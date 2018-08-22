@@ -1,4 +1,4 @@
-import math
+import math, time
 
 GOAL_WIDTH = 1784
 FIELD_LENGTH = 10240
@@ -39,7 +39,7 @@ def to_local(targetObject, ourObject):
 
 def getBigBoostPads(self):
     res = []
-    for i in range(len(self.fieldInfo.boost_pads)):
+    for i in range(self.fieldInfo.num_boosts):
         current = self.fieldInfo.boost_pads[i]
         if current.is_full_boost:
             newVector = convertVector3(current.location)
@@ -48,7 +48,7 @@ def getBigBoostPads(self):
 
 def boostAvailable(agent, pad):
     index = -1
-    for i in range(len(agent.fieldInfo.boost_pads)):
+    for i in range(agent.fieldInfo.num_boosts):
         if distance2D(convertVector3(agent.fieldInfo.boost_pads[i].location),pad) < 1:
             index = i
     return agent.boosts[index].is_active
@@ -159,3 +159,34 @@ def toLocation(target):
 def distance2D(targetObject, ourObject):
     difference = toLocation(targetObject) - toLocation(ourObject)
     return math.sqrt(difference.data[0]**2 + difference.data[1]**2)
+
+def dodge(self, target=None):
+    if not self.dodging:
+        if target is None:
+            pitch = -1
+            yaw = 0
+            roll = 0
+        #TODO else
+
+        self.controller.pitch = pitch
+        self.controller.yaw = yaw
+        self.controller.roll = roll
+        self.controller.jump = True
+        self.dodging = True
+        self.nextDodgeTime = time.time() + 0.15
+
+    # second jump
+    elif time.time() > self.nextDodgeTime:
+        if target is None:
+            pitch = -1
+            yaw = 0
+            roll = 0
+        #TODO else
+        self.controller.pitch = pitch
+        self.controller.yaw = yaw
+        self.controller.roll = roll
+        self.controller.jump = True
+        if self.onGround or time.time() > self.nextDodgeTime + 1:
+            self.dodging = False
+            self.kickOffHasDodged = True
+            #Recovery kicks in

@@ -3,6 +3,29 @@ import time
 from Util import *
 from rlbot.agents.base_agent import  SimpleControllerState
 
+class kickOff:
+    def __init__(self):
+        self.expired = False
+
+    def execute(self, agent):
+        if not agent.kickoff:
+            self.kickOffHasDodged = False
+            self.expired = True
+        agent.controller = SimpleControllerState()
+        timeDifference = time.time() - agent.kickOffStart
+        if timeDifference > 0.75 and not agent.kickOffHasDodged:
+            dodge(agent)
+            return agent.controller
+        elif agent.kickOffHasDodged:
+            agent.controller = calcController
+            return agent.controller(agent,agent.ball,5000)
+        else:
+            agent.controller.boost = True
+            agent.controller.throttle = 1
+            agent.controller.handbrake = False
+            agent.controller.steer = 0
+            return agent.controller
+
 class boostManager:
     def __init__(self):
         self.expired = False
@@ -15,7 +38,6 @@ class boostManager:
         return False
 
     def execute(self, agent):
-        print("GRABBING BOOST")
         agent.controller = calcController
         targetLocation = getClosestPad(agent)
         boostAvailable(agent, targetLocation)
@@ -35,7 +57,6 @@ class defending:
         self.expired = False
 
     def execute(self,agent):
-        print("DEFENDING")
         agent.controller = calcController
         goal = agent.ourGoal
         goalToBall = (agent.ball.location - goal)
@@ -66,7 +87,6 @@ class calcShot:
         return False
 
     def execute(self,agent):
-        print("CALCULATE")
         agent.controller = calcController
         goal = agent.theirGoal
         goalToBall = (agent.ball.location - goal).normalize()
