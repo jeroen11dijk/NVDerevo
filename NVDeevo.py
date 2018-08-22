@@ -30,6 +30,10 @@ class NVDeevo(BaseAgent):
                 self.state = boostManager()
             else:
                 self.state = defending()
+        self.renderer.begin_rendering()
+        self.renderer.draw_string_2d(20, 20, 3, 3, str(self.state), self.renderer.black())
+        self.renderer.end_rendering()
+
 
     def get_output(self, game: GameTickPacket) -> SimpleControllerState:
         self.preprocess(game)
