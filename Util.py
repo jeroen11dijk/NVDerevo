@@ -173,7 +173,7 @@ def dodge(self, target=None):
         self.controller.roll = roll
         self.controller.jump = True
         self.dodging = True
-        self.nextDodgeTime = time.time() + 0.15
+        self.nextDodgeTime = time.time() + 0.16
 
     # second jump
     elif time.time() > self.nextDodgeTime:

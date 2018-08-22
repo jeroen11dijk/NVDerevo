@@ -19,7 +19,7 @@ class NVDeevo(BaseAgent):
         self.ourGoal = getOurGoal(self)
         self.theirGoal = getTheirGoal(self)
         self.controller = calcController
-        self.kickoff = True
+        self.kickoff = False
         self.kickOffHasDodged = False
         self.kickOffStart = time.time()
         self.nextDodgeTime = time.time()
@@ -33,12 +33,10 @@ class NVDeevo(BaseAgent):
         if self.state.expired:
             if calcShot().available(self):
                 self.state = calcShot()
+            elif boostManager().available(self) == True:
                 self.state = boostManager()
             else:
                 self.state = defending()
-        self.renderer.begin_rendering()
-        self.renderer.draw_string_2d(20, 20, 3, 3, str(self.state), self.renderer.black())
-        self.renderer.end_rendering()
 
     def get_output(self, game: GameTickPacket) -> SimpleControllerState:
         self.preprocess(game)
@@ -63,5 +61,6 @@ class NVDeevo(BaseAgent):
         self.kickoff = game.game_info.is_kickoff_pause
         if not prevKickoff and self.kickoff:
             self.kickOffStart = time.time()
+            self.kickOffHasDodged = False
         self.boosts = game.game_boosts
         self.onGround = game.game_cars[self.index].has_wheel_contact

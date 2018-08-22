@@ -9,11 +9,13 @@ class kickOff:
 
     def execute(self, agent):
         if not agent.kickoff:
-            self.kickOffHasDodged = False
             self.expired = True
         agent.controller = SimpleControllerState()
         timeDifference = time.time() - agent.kickOffStart
-        if timeDifference > 0.75 and not agent.kickOffHasDodged:
+        agent.renderer.begin_rendering()
+        agent.renderer.draw_string_2d(20, 20, 3, 3, str(timeDifference) + str(agent.kickOffHasDodged), agent.renderer.black())
+        agent.renderer.end_rendering()
+        if timeDifference > 0.4525 and not agent.kickOffHasDodged:
             dodge(agent)
             return agent.controller
         elif agent.kickOffHasDodged:
