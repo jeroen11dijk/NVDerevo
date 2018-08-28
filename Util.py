@@ -31,6 +31,28 @@ class obj:
         self.localLocation = Vector3([0,0,0])
         self.boost = 0
 
+def abc(a,b,c):
+    inside = (b**2) - (4*a*c)
+    if inside < 0 or a == 0:
+        return 0.1
+    else:
+        n = ((-b - math.sqrt(inside))/(2*a))
+        p = ((-b + math.sqrt(inside))/(2*a))
+        if p > n:
+            return p
+        return n
+
+def future(ball):
+    time = timeZ(ball)
+    x = ball.location.data[0] + (ball.velocity.data[0] * time)
+    y = ball.location.data[1] + (ball.velocity.data[1] * time)
+    z = ball.location.data[2] + (ball.velocity.data[2] * time)
+    return Vector3([x,y,z])
+
+def timeZ(ball):
+    rate = 0.97
+    return abc(-325, ball.velocity.data[2] * rate, ball.location.data[2]-92.75)
+
 def to_local(targetObject, ourObject):
     x = (toLocation(targetObject) - ourObject.location) * ourObject.matrix[0]
     y = (toLocation(targetObject) - ourObject.location) * ourObject.matrix[1]
@@ -53,13 +75,13 @@ def boostAvailable(agent, pad):
             index = i
     return agent.boosts[index].is_active
 
-def getAttackingGoal(self):
+def getTheirGoalPosts(self):
     res = []
     for i in range(len(self.fieldInfo.goals)):
         current = self.fieldInfo.goals[i]
         if(sign(current.team_num) == -sign(self.team)):
-            leftPost = Vector3([sign(self.team)*GOAL_WIDTH/2, current.location.y, current.location.z])
-            rightPost = Vector3([-sign(self.team)*GOAL_WIDTH/2, current.location.y, current.location.z])
+            leftPost = Vector3([-sign(self.team)*GOAL_WIDTH/2, current.location.y, current.location.z])
+            rightPost = Vector3([sign(self.team)*GOAL_WIDTH/2, current.location.y, current.location.z])
             res.append(leftPost)
             res.append(rightPost)
     return res
@@ -145,7 +167,7 @@ def cap(x, low, high):
         return x
 
 def steer(angle):
-    final = ((10 * angle + sign(angle))**3) / 20
+    final = ((9 * angle + sign(angle))**3) / 20
     return cap(final,-1,1)
 
 def toLocation(target):
@@ -161,32 +183,19 @@ def distance2D(targetObject, ourObject):
     return math.sqrt(difference.data[0]**2 + difference.data[1]**2)
 
 def dodge(self, target=None):
-    if not self.dodging:
-        if target is None:
-            pitch = -1
-            yaw = 0
-            roll = 0
-        #TODO else
-
-        self.controller.pitch = pitch
-        self.controller.yaw = yaw
-        self.controller.roll = roll
-        self.controller.jump = True
+    timeDifference = time.time() - self.startDodgeTime
+    self.controller.pitch = -1
+    self.controller.jump = True
+    if target != None:
+        location = toLocal(target, self.deevo)
+        angleToBall = math.atan2(location.data[1],location.data[0])
+        self.controller.yaw = steer(angleToBall)
+    if not self.dodging and self.onGround:
         self.dodging = True
-        self.nextDodgeTime = time.time() + 0.16
-
-    # second jump
-    elif time.time() > self.nextDodgeTime:
-        if target is None:
-            pitch = -1
-            yaw = 0
-            roll = 0
-        #TODO else
-        self.controller.pitch = pitch
-        self.controller.yaw = yaw
-        self.controller.roll = roll
-        self.controller.jump = True
-        if self.onGround or time.time() > self.nextDodgeTime + 1:
+        self.startDodgeTime = time.time()
+    elif timeDifference > 0.1:
+        if self.onGround or timeDifference > 1:
             self.dodging = False
             self.kickOffHasDodged = True
-            #Recovery kicks in
+    else:
+        self.controller.jump = False

@@ -11,18 +11,20 @@ class NVDeevo(BaseAgent):
     def initialize_agent(self):
         self.deevo = obj()
         self.ball = obj()
-        self.start = time.time()
         self.state = calcShot()
         self.fieldInfo = self.get_field_info()
         self.bigBoostPads = getBigBoostPads(self)
-        self.attackingGoal = getAttackingGoal(self)
+        self.theirGoalPosts = getTheirGoalPosts(self)
         self.ourGoal = getOurGoal(self)
         self.theirGoal = getTheirGoal(self)
         self.controller = calcController
+        self.closestEnemyDistance = math.inf
         self.kickoff = False
         self.kickOffHasDodged = False
+        self.isDiagonalKickoff = False
         self.kickOffStart = time.time()
-        self.nextDodgeTime = time.time()
+        self.startDodgeTime = time.time()
+        self.startGrabbingBoost = time.time()
         self.dodging = False
         self.onGround = True
         self.boosts = []
@@ -34,6 +36,7 @@ class NVDeevo(BaseAgent):
             if calcShot().available(self):
                 self.state = calcShot()
             elif boostManager().available(self) == True:
+                self.startGrabbingBoost = time.time()
                 self.state = boostManager()
             else:
                 self.state = defending()
@@ -44,23 +47,35 @@ class NVDeevo(BaseAgent):
         return self.state.execute(self)
 
     def preprocess(self, game):
-        self.deevo.location.data = [game.game_cars[self.index].physics.location.x,game.game_cars[self.index].physics.location.y,game.game_cars[self.index].physics.location.z]
-        self.deevo.velocity.data = [game.game_cars[self.index].physics.velocity.x,game.game_cars[self.index].physics.velocity.y,game.game_cars[self.index].physics.velocity.z]
-        self.deevo.rotation.data = [game.game_cars[self.index].physics.rotation.pitch,game.game_cars[self.index].physics.rotation.yaw,game.game_cars[self.index].physics.rotation.roll]
-        self.deevo.rotationVelocity.data = [game.game_cars[self.index].physics.angular_velocity.x,game.game_cars[self.index].physics.angular_velocity.y,game.game_cars[self.index].physics.angular_velocity.z]
+        deevo = game.game_cars[self.index].physics
+        self.deevo.location.data = [deevo.location.x, deevo.location.y, deevo.location.z]
+        self.deevo.velocity.data = [deevo.velocity.x, deevo.velocity.y, deevo.velocity.z]
+        self.deevo.rotation.data = [deevo.rotation.pitch, deevo.rotation.yaw, deevo.rotation.roll]
+        self.deevo.rotationVelocity.data = [deevo.angular_velocity.x, deevo.angular_velocity.y, deevo.angular_velocity.z]
         self.deevo.matrix = rotator_to_matrix(self.deevo)
         self.deevo.boost = game.game_cars[self.index].boost
-
-        self.ball.location.data = [game.game_ball.physics.location.x,game.game_ball.physics.location.y,game.game_ball.physics.location.z]
-        self.ball.velocity.data = [game.game_ball.physics.velocity.x,game.game_ball.physics.velocity.y,game.game_ball.physics.velocity.z]
-        self.ball.rotation.data = [game.game_ball.physics.rotation.pitch,game.game_ball.physics.rotation.yaw,game.game_ball.physics.rotation.roll]
-        self.ball.rotationVelocity.data = [game.game_ball.physics.angular_velocity.x,game.game_ball.physics.angular_velocity.y,game.game_ball.physics.angular_velocity.z]
+        ball = game.game_ball.physics
+        self.ball.location.data = [ball.location.x, ball.location.y, ball.location.z]
+        self.ball.velocity.data = [ball.velocity.x, ball.velocity.y, ball.velocity.z]
+        self.ball.rotation.data = [ball.rotation.pitch, ball.rotation.yaw, ball.rotation.roll]
+        self.ball.rotationVelocity.data = [ball.angular_velocity.x, ball.angular_velocity.y, ball.angular_velocity.z]
         self.ball.localLocation = to_local(self.ball,self.deevo)
 
-        prevKickoff = self.kickoff
+        prevIsKickoffPause = self.kickoff
         self.kickoff = game.game_info.is_kickoff_pause
-        if not prevKickoff and self.kickoff:
+        if not prevIsKickoffPause and self.kickoff:
             self.kickOffStart = time.time()
             self.kickOffHasDodged = False
+            if abs(self.deevo.location.data[0] - 2000) < 200 or abs(self.deevo.location.data[0] + 2000) < 200:
+                self.isDiagonalKickoff = True
+            else:
+                self.isDiagonalKickoff = False
         self.boosts = game.game_boosts
         self.onGround = game.game_cars[self.index].has_wheel_contact
+        distance = math.inf
+        for i in range(len(game.game_cars)):
+            enemy = game.game_cars[i]
+            if enemy.team == self.team:
+                enemyLocation = [enemy.physics.location.x,enemy.physics.location.y,enemy.physics.location.z]
+                if distance2D(enemyLocation, self.ball) < distance:
+                    self.closestEnemyDistance = distance
