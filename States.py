@@ -13,10 +13,7 @@ class kickOff:
     def execute(self, agent):
         if not agent.kickoff and not agent.dodging:
             self.expired = True
-        if agent.isDiagonalKickoff:
-            agent.controller = diagonalKickoff
-        else:
-            agent.controller = normalKickOff
+        agent.controller = normalKickOff
         return agent.controller(agent)
 
 class boostManager:
@@ -41,7 +38,7 @@ class boostManager:
         speedCorrection =  ((1+ abs(angleToTarget)**2) * 300)
         speed = 1399 - speedCorrection + cap((distanceToTarget/16)**2,0,speedCorrection)
 
-        if agent.deevo.boost > 90 or not(boostAvailable(agent, targetLocation)) or time.time() - agent.startGrabbingBoost > 2:
+        if (agent.deevo.boost > 90 or not(boostAvailable(agent, targetLocation)) or time.time() - agent.startGrabbingBoost > 2) and not agent.dodging and not agent.halfFlipping:
             self.expired = True
 
         return agent.controller(agent, targetLocation, speed)
@@ -64,7 +61,8 @@ class defending:
         distanceToTarget = distance2D(agent.deevo, targetLocation)
         speedCorrection =  ((1+ abs(angleToTarget)**2) * 300)
         speed = 2300 - speedCorrection + cap((distanceToTarget/16)**2,0,speedCorrection)
-        self.expired = True
+        if (calcShot().available(agent) or boostManager().available(agent)) and not agent.dodging and not agent.halfFlipping:
+            self.expired = True
         return agent.controller(agent,targetLocation,speed)
 
 class calcShot:
@@ -94,7 +92,7 @@ class calcShot:
         distanceToTarget = distance2D(agent.deevo, targetLocation)
         speedCorrection =  ((1+ abs(angleToTarget)**2) * 300)
         speed = 2300 - speedCorrection + cap((distanceToTarget/16)**2,0,speedCorrection)
-        if ballProject(agent) < 10:
+        if ballProject(agent) < 10 and not agent.dodging and not agent.halfFlipping:
             self.expired = True
 
         return agent.controller(agent,targetLocation,speed)
