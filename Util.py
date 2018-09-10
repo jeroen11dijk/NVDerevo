@@ -1,4 +1,5 @@
 import math, time
+from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3 as StateVector3, Rotator
 
 GOAL_WIDTH = 1784
 FIELD_LENGTH = 10240
@@ -199,3 +200,8 @@ def dodge(self, target=None):
             self.kickOffHasDodged = True
     else:
         self.controller.jump = False
+
+def setState(self):
+    #ball_state = BallState(Physics(velocity=StateVector3(self.ball.velocity.data[0]*10, self.ball.velocity.data[1]*10, self.ball.velocity.data[2]*10)))
+    game_state = GameState(ball=BallState(physics=Physics(location=StateVector3(z=0))))
+    self.set_game_state(game_state)

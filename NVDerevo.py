@@ -3,6 +3,7 @@ import time
 from Util import *
 from States import *
 
+from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
@@ -21,13 +22,13 @@ class NVDeevo(BaseAgent):
         self.closestEnemyDistance = math.inf
         self.kickoff = False
         self.kickOffHasDodged = False
-        self.isDiagonalKickoff = False
         self.kickOffStart = time.time()
         self.startDodgeTime = time.time()
         self.startGrabbingBoost = time.time()
         self.dodging = False
         self.onGround = True
         self.boosts = []
+        self.time = time.time()
 
     def checkState(self):
         if self.kickoff:
@@ -60,16 +61,15 @@ class NVDeevo(BaseAgent):
         self.ball.rotation.data = [ball.rotation.pitch, ball.rotation.yaw, ball.rotation.roll]
         self.ball.rotationVelocity.data = [ball.angular_velocity.x, ball.angular_velocity.y, ball.angular_velocity.z]
         self.ball.localLocation = to_local(self.ball,self.deevo)
-
+        setState(self)
+        # if (time.time() - self.time) > 4:
+        #     self.time = time.time()
+        #     setState(self)
         prevIsKickoffPause = self.kickoff
         self.kickoff = game.game_info.is_kickoff_pause
         if not prevIsKickoffPause and self.kickoff:
             self.kickOffStart = time.time()
             self.kickOffHasDodged = False
-            if abs(self.deevo.location.data[0] - 2000) < 200 or abs(self.deevo.location.data[0] + 2000) < 200:
-                self.isDiagonalKickoff = True
-            else:
-                self.isDiagonalKickoff = False
         self.boosts = game.game_boosts
         self.onGround = game.game_cars[self.index].has_wheel_contact
         distance = math.inf

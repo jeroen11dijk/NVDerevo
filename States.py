@@ -13,10 +13,7 @@ class kickOff:
     def execute(self, agent):
         if not agent.kickoff and not agent.dodging:
             self.expired = True
-        if agent.isDiagonalKickoff:
-            agent.controller = diagonalKickoff
-        else:
-            agent.controller = normalKickOff
+        agent.controller = normalKickOff
         return agent.controller(agent)
 
 class boostManager:

@@ -20,22 +20,22 @@ def calcController(agent, targetObject, targetSpeed):
         controllerState.throttle = -1.0
     return controllerState
 
-def diagonalKickoff(agent):
-    agent.controller = SimpleControllerState()
-    timeDifference = time.time() - agent.kickOffStart
-    if (timeDifference > 0.5 and not agent.kickOffHasDodged):
-        dodge(agent)
-        return agent.controller
-    if distance2D(agent.deevo, agent.ball) < 450 or agent.dodging:
-        dodge(agent, future(agent.ball))
-        return agent.controller
-    elif agent.kickOffHasDodged:
-        agent.controller = calcController
-        return agent.controller(agent,agent.ball,5000)
-    else:
-        agent.controller.boost = True
-        agent.controller.throttle = 1
-        return agent.controller
+# def diagonalKickoff(agent):
+#     agent.controller = SimpleControllerState()
+#     timeDifference = time.time() - agent.kickOffStart
+#     if (timeDifference > 0.5 and not agent.kickOffHasDodged):
+#         dodge(agent)
+#         return agent.controller
+#     if distance2D(agent.deevo, agent.ball) < 450 or agent.dodging:
+#         dodge(agent, future(agent.ball))
+#         return agent.controller
+#     elif agent.kickOffHasDodged:
+#         agent.controller = calcController
+#         return agent.controller(agent,agent.ball,5000)
+#     else:
+#         agent.controller.boost = True
+#         agent.controller.throttle = 1
+#         return agent.controller
 
 def normalKickOff(agent):
     agent.controller = SimpleControllerState()
