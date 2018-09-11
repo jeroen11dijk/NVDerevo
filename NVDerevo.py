@@ -8,7 +8,6 @@ from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 class NVDeevo(BaseAgent):
-
     def initialize_agent(self):
         self.deevo = obj()
         self.ball = obj()
@@ -21,11 +20,12 @@ class NVDeevo(BaseAgent):
         self.controller = calcController
         self.closestEnemyDistance = math.inf
         self.kickoff = False
-        self.kickOffHasDodged = False
-        self.kickOffStart = time.time()
+        self.time = time.time()
         self.startDodgeTime = time.time()
+        self.startHalfFlipTime = time.time()
         self.startGrabbingBoost = time.time()
         self.dodging = False
+        self.halfFlipping = False
         self.onGround = True
         self.boosts = []
         self.time = time.time()
@@ -36,7 +36,7 @@ class NVDeevo(BaseAgent):
         if self.state.expired:
             if calcShot().available(self):
                 self.state = calcShot()
-            elif boostManager().available(self) == True:
+            elif boostManager().available(self):
                 self.startGrabbingBoost = time.time()
                 self.state = boostManager()
             else:
@@ -45,6 +45,13 @@ class NVDeevo(BaseAgent):
     def get_output(self, game: GameTickPacket) -> SimpleControllerState:
         self.preprocess(game)
         self.checkState()
+        # ball_prediction = self.get_ball_prediction()
+        # if ball_prediction is not None:
+        #     for i in range(0, ball_prediction.SlicesLength()):
+        #         prediction_slice = ball_prediction.Slices(i)
+        #         location = prediction_slice.Physics().Location()
+        #         if(location.Z() < 100):
+        #             self.logger.info("At time {}, the ball will be at ({}, {}, {})".format(prediction_slice.GameSeconds(), location.X(), location.Y(), location.Z()))
         return self.state.execute(self)
 
     def preprocess(self, game):
@@ -61,13 +68,12 @@ class NVDeevo(BaseAgent):
         self.ball.rotation.data = [ball.rotation.pitch, ball.rotation.yaw, ball.rotation.roll]
         self.ball.rotationVelocity.data = [ball.angular_velocity.x, ball.angular_velocity.y, ball.angular_velocity.z]
         self.ball.localLocation = to_local(self.ball,self.deevo)
-        prevIsKickoffPause = self.kickoff
+        if time.time() - self.time > 3:
+            self.time = time.time()
+            setState(self)
         self.kickoff = game.game_info.is_kickoff_pause
-        if not prevIsKickoffPause and self.kickoff:
-            self.kickOffStart = time.time()
-            self.kickOffHasDodged = False
         self.boosts = game.game_boosts
-        self.onGround = game.game_cars[self.index].has_wheel_contact
+        self.onGround = game.game_cars[self.index].has_wheel_contact and self.deevo.location.data[2] < 18
         distance = math.inf
         for i in range(len(game.game_cars)):
             enemy = game.game_cars[i]

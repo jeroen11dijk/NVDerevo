@@ -1,6 +1,9 @@
 import math, time
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3 as StateVector3, Rotator
+<<<<<<< HEAD
 
+=======
+>>>>>>> af1bbedbd76910e4de5859f447029c5a9f4f6c17
 GOAL_WIDTH = 1784
 FIELD_LENGTH = 10240
 FIELD_WIDTH = 8192
