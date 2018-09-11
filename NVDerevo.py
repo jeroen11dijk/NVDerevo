@@ -61,10 +61,6 @@ class NVDeevo(BaseAgent):
         self.ball.rotation.data = [ball.rotation.pitch, ball.rotation.yaw, ball.rotation.roll]
         self.ball.rotationVelocity.data = [ball.angular_velocity.x, ball.angular_velocity.y, ball.angular_velocity.z]
         self.ball.localLocation = to_local(self.ball,self.deevo)
-        setState(self)
-        # if (time.time() - self.time) > 4:
-        #     self.time = time.time()
-        #     setState(self)
         prevIsKickoffPause = self.kickoff
         self.kickoff = game.game_info.is_kickoff_pause
         if not prevIsKickoffPause and self.kickoff:
