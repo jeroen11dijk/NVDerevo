@@ -1,4 +1,5 @@
-import math
+import math, time
+from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3 as StateVector3, Rotator
 
 GOAL_WIDTH = 1784
 FIELD_LENGTH = 10240
@@ -31,6 +32,28 @@ class obj:
         self.localLocation = Vector3([0,0,0])
         self.boost = 0
 
+def abc(a,b,c):
+    inside = (b**2) - (4*a*c)
+    if inside < 0 or a == 0:
+        return 0.1
+    else:
+        n = ((-b - math.sqrt(inside))/(2*a))
+        p = ((-b + math.sqrt(inside))/(2*a))
+        if p > n:
+            return p
+        return n
+
+def future(ball):
+    time = timeZ(ball)
+    x = ball.location.data[0] + (ball.velocity.data[0] * time)
+    y = ball.location.data[1] + (ball.velocity.data[1] * time)
+    z = ball.location.data[2] + (ball.velocity.data[2] * time)
+    return Vector3([x,y,z])
+
+def timeZ(ball):
+    rate = 0.97
+    return abc(-325, ball.velocity.data[2] * rate, ball.location.data[2]-92.75)
+
 def to_local(targetObject, ourObject):
     x = (toLocation(targetObject) - ourObject.location) * ourObject.matrix[0]
     y = (toLocation(targetObject) - ourObject.location) * ourObject.matrix[1]
@@ -39,7 +62,7 @@ def to_local(targetObject, ourObject):
 
 def getBigBoostPads(self):
     res = []
-    for i in range(len(self.fieldInfo.boost_pads)):
+    for i in range(self.fieldInfo.num_boosts):
         current = self.fieldInfo.boost_pads[i]
         if current.is_full_boost:
             newVector = convertVector3(current.location)
@@ -48,18 +71,18 @@ def getBigBoostPads(self):
 
 def boostAvailable(agent, pad):
     index = -1
-    for i in range(len(agent.fieldInfo.boost_pads)):
+    for i in range(agent.fieldInfo.num_boosts):
         if distance2D(convertVector3(agent.fieldInfo.boost_pads[i].location),pad) < 1:
             index = i
     return agent.boosts[index].is_active
 
-def getAttackingGoal(self):
+def getTheirGoalPosts(self):
     res = []
     for i in range(len(self.fieldInfo.goals)):
         current = self.fieldInfo.goals[i]
         if(sign(current.team_num) == -sign(self.team)):
-            leftPost = Vector3([sign(self.team)*GOAL_WIDTH/2, current.location.y, current.location.z])
-            rightPost = Vector3([-sign(self.team)*GOAL_WIDTH/2, current.location.y, current.location.z])
+            leftPost = Vector3([-sign(self.team)*GOAL_WIDTH/2, current.location.y, current.location.z])
+            rightPost = Vector3([sign(self.team)*GOAL_WIDTH/2, current.location.y, current.location.z])
             res.append(leftPost)
             res.append(rightPost)
     return res
@@ -145,7 +168,7 @@ def cap(x, low, high):
         return x
 
 def steer(angle):
-    final = ((10 * angle + sign(angle))**3) / 20
+    final = ((9 * angle + sign(angle))**3) / 20
     return cap(final,-1,1)
 
 def toLocation(target):
@@ -159,3 +182,73 @@ def toLocation(target):
 def distance2D(targetObject, ourObject):
     difference = toLocation(targetObject) - toLocation(ourObject)
     return math.sqrt(difference.data[0]**2 + difference.data[1]**2)
+
+def dodge(self, target=None):
+    timeDifference = time.time() - self.startDodgeTime
+    self.controller.pitch = -1
+    self.controller.jump = True
+    if target != None:
+        location = toLocal(target, self.deevo)
+        angleToBall = math.atan2(location.data[1],location.data[0])
+        self.controller.yaw = steer(angleToBall)
+    if not self.dodging and self.onGround:
+        self.dodging = True
+        self.startDodgeTime = time.time()
+    elif timeDifference < 0.1:
+        self.controller.jump = False
+    elif self.onGround or timeDifference > 1:
+        self.dodging = False
+
+def halfFlip(self):
+    timeDifference = time.time() - self.startHalfFlipTime
+    self.controller.throttle = -1
+    self.controller.jump = True
+    self.controller.pitch = 1
+    if not self.halfFlipping and self.onGround:
+        self.halfFlipping = True
+        self.startHalfFlipTime = time.time()
+    elif timeDifference < 0.1:
+        self.controller.jump = False
+    elif timeDifference > 1.5 or self.onGround:
+        self.halfFlipping = False
+    elif timeDifference > 0.35:
+        cancelling(self)
+
+def cancelling(self):
+    angleToGround = math.degrees(self.deevo.rotation.data[0])
+    rollAngle = math.degrees(self.deevo.rotation.data[2])
+    if angleToGround < -15:
+        self.controller.pitch = 1
+        self.correctingPitch = True
+    elif angleToGround > 15:
+        self.controller.pitch = -1
+        self.correctingPitch = True
+    else:
+        self.controller.pitch = -1
+        self.correctingPitch = False
+    if not self.correctingPitch:
+        self.controller.roll= 1
+        self.controller.throttle = 1
+        self.controller.boost = 1
+
+def boost_needed(self, initialSpeed, targetSpeed):
+    p1 = 6.31e-06
+    p2 = 0.010383
+    p3 = 1.3183
+    initialBoost = p1*initialSpeed**2 + p2*initialSpeed + p3
+    targetBoost = p1*targetSpeed**2 + p2*targetSpeed + p3
+    boostNeeded = targetBoost - initialBoost
+    return boostNeeded
+
+def render(self, string):
+        self.renderer.begin_rendering()
+        self.renderer.draw_string_2d(20, 20, 3, 3, string, self.renderer.red())
+        self.renderer.end_rendering()
+
+def setState(self):
+    carState = CarState(jumped=False, double_jumped=False, boost_amount=87, physics=Physics(velocity=StateVector3(0, 0, 0), location=StateVector3(0, 250, 0), rotation=Rotator(0, - math.pi/2, 0), angular_velocity=StateVector3(0, 0, 0)))
+    carState2 = CarState(physics=Physics(location=StateVector3(10000, 10000, 10000)))
+    ballState = BallState(physics=Physics(velocity=StateVector3(0, 0, 0), location=StateVector3(0, 2000, 0), rotation=Rotator(0, 0, 0), angular_velocity=StateVector3(0, 0, 0)))
+    gameState = GameState(ball=ballState, cars={self.index: carState, 0: carState2})
+    self.halfFlipping = False
+    self.set_game_state(gameState)
