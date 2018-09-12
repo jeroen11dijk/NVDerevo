@@ -1,9 +1,6 @@
 import math, time
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3 as StateVector3, Rotator
-<<<<<<< HEAD
 
-=======
->>>>>>> af1bbedbd76910e4de5859f447029c5a9f4f6c17
 GOAL_WIDTH = 1784
 FIELD_LENGTH = 10240
 FIELD_WIDTH = 8192
@@ -197,14 +194,61 @@ def dodge(self, target=None):
     if not self.dodging and self.onGround:
         self.dodging = True
         self.startDodgeTime = time.time()
-    elif timeDifference > 0.1:
-        if self.onGround or timeDifference > 1:
-            self.dodging = False
-            self.kickOffHasDodged = True
-    else:
+    elif timeDifference < 0.1:
         self.controller.jump = False
+    elif self.onGround or timeDifference > 1:
+        self.dodging = False
+
+def halfFlip(self):
+    timeDifference = time.time() - self.startHalfFlipTime
+    self.controller.throttle = -1
+    self.controller.jump = True
+    self.controller.pitch = 1
+    if not self.halfFlipping and self.onGround:
+        self.halfFlipping = True
+        self.startHalfFlipTime = time.time()
+    elif timeDifference < 0.1:
+        self.controller.jump = False
+    elif timeDifference > 1.5 or self.onGround:
+        self.halfFlipping = False
+    elif timeDifference > 0.35:
+        cancelling(self)
+
+def cancelling(self):
+    angleToGround = math.degrees(self.deevo.rotation.data[0])
+    rollAngle = math.degrees(self.deevo.rotation.data[2])
+    if angleToGround < -15:
+        self.controller.pitch = 1
+        self.correctingPitch = True
+    elif angleToGround > 15:
+        self.controller.pitch = -1
+        self.correctingPitch = True
+    else:
+        self.controller.pitch = -1
+        self.correctingPitch = False
+    if not self.correctingPitch:
+        self.controller.roll= 1
+        self.controller.throttle = 1
+        self.controller.boost = 1
+
+def boost_needed(self, initialSpeed, targetSpeed):
+    p1 = 6.31e-06
+    p2 = 0.010383
+    p3 = 1.3183
+    initialBoost = p1*initialSpeed**2 + p2*initialSpeed + p3
+    targetBoost = p1*targetSpeed**2 + p2*targetSpeed + p3
+    boostNeeded = targetBoost - initialBoost
+    return boostNeeded
+
+def render(self, string):
+        self.renderer.begin_rendering()
+        self.renderer.draw_string_2d(20, 20, 3, 3, string, self.renderer.red())
+        self.renderer.end_rendering()
 
 def setState(self):
-    #ball_state = BallState(Physics(velocity=StateVector3(self.ball.velocity.data[0]*10, self.ball.velocity.data[1]*10, self.ball.velocity.data[2]*10)))
-    game_state = GameState(ball=BallState(physics=Physics(location=StateVector3(z=0))))
-    self.set_game_state(game_state)
+    carState = CarState(jumped=False, double_jumped=False, boost_amount=87, physics=Physics(velocity=StateVector3(0, 0, 0), location=StateVector3(0, 250, 0), rotation=Rotator(0, - math.pi/2, 0), angular_velocity=StateVector3(0, 0, 0)))
+    carState2 = CarState(physics=Physics(location=StateVector3(10000, 10000, 10000)))
+    ballState = BallState(physics=Physics(velocity=StateVector3(0, 0, 0), location=StateVector3(0, 2000, 0), rotation=Rotator(0, 0, 0), angular_velocity=StateVector3(0, 0, 0)))
+    gameState = GameState(ball=ballState, cars={self.index: carState, 0: carState2})
+    self.halfFlipping = False
+    self.set_game_state(gameState)
