@@ -34,7 +34,9 @@ class NVDeevo(BaseAgent):
         if self.kickoff:
             self.state = kickOff()
         if self.state.expired:
-            if calcShot().available(self):
+            if recovery().available(self):
+                self.state = recovery()
+            elif calcShot().available(self):
                 self.state = calcShot()
             elif boostManager().available(self):
                 self.startGrabbingBoost = time.time()
@@ -68,9 +70,9 @@ class NVDeevo(BaseAgent):
         self.ball.rotation.data = [ball.rotation.pitch, ball.rotation.yaw, ball.rotation.roll]
         self.ball.rotationVelocity.data = [ball.angular_velocity.x, ball.angular_velocity.y, ball.angular_velocity.z]
         self.ball.localLocation = to_local(self.ball,self.deevo)
-        # if time.time() - self.time > 3:
-        #     self.time = time.time()
-        #     setState(self)
+        if time.time() - self.time > 3:
+            self.time = time.time()
+            setState(self)
         self.kickoff = game.game_info.is_kickoff_pause
         self.boosts = game.game_boosts
         self.onGround = game.game_cars[self.index].has_wheel_contact and self.deevo.location.data[2] < 18

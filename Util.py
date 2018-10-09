@@ -1,4 +1,4 @@
-import math, time
+import math, time, random
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3 as StateVector3, Rotator
 
 GOAL_WIDTH = 1784
@@ -148,8 +148,7 @@ def toLocal(target, ourObject):
 
 def ballReady(agent):
     ball = agent.ball
-    if abs(ball.velocity.data[2]) < 100 and ball.location.data[2] < 250:
-        if abs(ball.location.data[1]) < 5000:
+    if abs(ball.velocity.data[2]) < 150 and timeZ(ball) < 1:
             return True
     return False
 
@@ -158,6 +157,17 @@ def ballProject(agent):
     goalToBall = (agent.ball.location - goal).normalize()
     diff = agent.deevo.location - agent.ball.location
     return diff * goalToBall
+
+def dpp(targetLocation,targetSpeed,location,velocity):
+    targetLocation = toLocation(targetLocation)
+    targetSpeed = toLocation(targetSpeed)
+    location = toLocation(location)
+    velocity = toLocation(velocity)
+    d = distance2D(targetLocation,location)
+    if d != 0:
+        return (((targetLocation.data[0] - location.data[0]) * (targetSpeed.data[0] - velocity.data[0])) + ((targetLocation.data[1] - location.data[1]) * (targetSpeed.data[1] - velocity.data[1])))/d
+    else:
+        return 0
 
 def cap(x, low, high):
     if x < low:
@@ -168,7 +178,7 @@ def cap(x, low, high):
         return x
 
 def steer(angle):
-    final = ((9 * angle + sign(angle))**3) / 20
+    final = ((10 * angle+sign(angle))**3) / 20
     return cap(final,-1,1)
 
 def toLocation(target):
@@ -245,10 +255,27 @@ def render(self, string):
         self.renderer.draw_string_2d(20, 20, 3, 3, string, self.renderer.red())
         self.renderer.end_rendering()
 
+# def setState(self):
+#     pitch = random.uniform(0, 1)*2*math.pi
+#     yaw = random.uniform(0, 1)*2*math.pi
+#     roll = random.uniform(0, 1)*2*math.pi
+#     xSpeed = random.uniform(-1, 1)*1000
+#     ySpeed = random.uniform(-1, 1)*1000
+#     zSpeed = random.uniform(-1, 1)*1000
+#     xLocation = random.uniform(-1, 1)*4096
+#     yLocation = random.uniform(-1, 1)*5120
+#     carState = CarState(jumped=False, double_jumped=False, boost_amount=87, physics=Physics(velocity=StateVector3(xSpeed, ySpeed, zSpeed), location=StateVector3(xLocation, yLocation, 500), rotation=Rotator(pitch, yaw, roll), angular_velocity=StateVector3(1000, 1000, 1000)))
+#     carState2 = CarState(physics=Physics(location=StateVector3(10000, 10000, 10000)))
+#     ballState = BallState(physics=Physics(velocity=StateVector3(0, 0, 0), location=StateVector3(0, 2500, 0), rotation=Rotator(0, 0, 0), angular_velocity=StateVector3(0, 0, 0)))
+#     gameState = GameState(ball=ballState, cars={self.index: carState, 1: carState2})
+#     self.halfFlipping = False
+#     self.set_game_state(gameState)
+
+
 def setState(self):
-    carState = CarState(jumped=False, double_jumped=False, boost_amount=87, physics=Physics(velocity=StateVector3(0, 0, 0), location=StateVector3(0, 250, 0), rotation=Rotator(0, - math.pi/2, 0), angular_velocity=StateVector3(0, 0, 0)))
+    carState = CarState(jumped=False, double_jumped=False, boost_amount=87, physics=Physics(velocity=StateVector3(0, 0, 0), location=StateVector3(0, 300, 0), rotation=Rotator(0, - math.pi/2, 0), angular_velocity=StateVector3(0, 0, 0)))
     carState2 = CarState(physics=Physics(location=StateVector3(10000, 10000, 10000)))
-    ballState = BallState(physics=Physics(velocity=StateVector3(0, 0, 0), location=StateVector3(0, 2000, 0), rotation=Rotator(0, 0, 0), angular_velocity=StateVector3(0, 0, 0)))
-    gameState = GameState(ball=ballState, cars={self.index: carState, 0: carState2})
+    ballState = BallState(physics=Physics(velocity=StateVector3(0, 0, 0), location=StateVector3(0, 2500, 0), rotation=Rotator(0, 0, 0), angular_velocity=StateVector3(0, 0, 0)))
+    gameState = GameState(ball=ballState, cars={self.index: carState, 1: carState2})
     self.halfFlipping = False
     self.set_game_state(gameState)

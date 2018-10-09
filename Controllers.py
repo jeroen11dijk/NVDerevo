@@ -7,10 +7,9 @@ def calcController(agent, targetObject, targetSpeed):
     angleToTarget = math.atan2(location.data[1],location.data[0])
     currentSpeed = velocity2D(agent.deevo)
     controllerState.steer = steer(angleToTarget)
-    if (angleToTarget > 0.5 * math.pi and agent.onGround and distance2D(agent.deevo, targetObject) > 1500) or agent.halfFlipping:
+    if (angleToTarget > 0.5 * math.pi and agent.onGround and distance2D(agent.deevo, targetObject) > 2000) or agent.halfFlipping:
         agent.controller = SimpleControllerState()
         halfFlip(agent)
-        #render(agent, str(math.degrees(agent.deevo.rotation.data[0])) + " the current pitch is " + str(agent.controller.pitch) + "the degrees of roll " + str(math.degrees(agent.deevo.rotation.data[2])) +  " the current roll is " + str(agent.controller.roll))
         return agent.controller
     if targetSpeed > currentSpeed:
         controllerState.throttle = 1.0
@@ -19,6 +18,30 @@ def calcController(agent, targetObject, targetSpeed):
     elif targetSpeed < currentSpeed:
         controllerState.throttle = -1.0
     return controllerState
+
+def recoveryController(agent, ball):
+    controllerState = SimpleControllerState()
+    location = toLocal(ball, agent.deevo)
+    angleToTarget = math.atan2(location.data[1],location.data[0])
+    steering = steer(angleToTarget)
+    controllerState.yaw = steering
+    roll = math.degrees(agent.deevo.rotation.data[2])
+    pitch = math.degrees(agent.deevo.rotation.data[0])
+    if roll > 5:
+        controllerState.roll = -1
+    elif roll < 5:
+        controllerState.roll = 1
+    else:
+        controllerState.roll = 0
+    if pitch > 5:
+        controllerState.pitch = -1
+    elif pitch < 5:
+        controllerState.pitch = 1
+    else:
+        controllerState.pitch = 0
+    render(agent, "roll is " + str(math.degrees(agent.deevo.rotation.data[2])) + " roll is " + str(controllerState.roll))
+    return controllerState
+
 
 def normalKickOff(agent):
     agent.controller = SimpleControllerState()
