@@ -5,33 +5,6 @@ GOAL_WIDTH = 1784
 FIELD_LENGTH = 10240
 FIELD_WIDTH = 8192
 
-class Vector3:
-    def __init__(self, data):
-        self.data = data
-    def __add__(self,value):
-        return Vector3([self.data[0]+value.data[0],self.data[1]+value.data[1],self.data[2]+value.data[2]])
-    def __sub__(self,value):
-        return Vector3([self.data[0]-value.data[0],self.data[1]-value.data[1],self.data[2]-value.data[2]])
-    def __mul__(self,value):
-        return (self.data[0]*value.data[0] + self.data[1]*value.data[1] + self.data[2]*value.data[2])
-    def __str__(self):
-        return str(self.data)
-    def length(self):
-        return math.sqrt(self*self)
-    def normalize(self):
-        length = self.length()
-        return Vector3([self.data[0]/length,self.data[1]/length,self.data[2]/length])
-
-class obj:
-    def __init__(self):
-        self.location = Vector3([0,0,0])
-        self.velocity = Vector3([0,0,0])
-        self.rotation = Vector3([0,0,0])
-        self.rotationVelocity = Vector3([0,0,0])
-
-        self.localLocation = Vector3([0,0,0])
-        self.boost = 0
-
 def abc(a,b,c):
     inside = (b**2) - (4*a*c)
     if inside < 0 or a == 0:
@@ -59,15 +32,6 @@ def to_local(targetObject, ourObject):
     y = (toLocation(targetObject) - ourObject.location) * ourObject.matrix[1]
     z = (toLocation(targetObject) - ourObject.location) * ourObject.matrix[2]
     return Vector3([x,y,z])
-
-def getBigBoostPads(self):
-    res = []
-    for i in range(self.fieldInfo.num_boosts):
-        current = self.fieldInfo.boost_pads[i]
-        if current.is_full_boost:
-            newVector = convertVector3(current.location)
-            res.append(newVector)
-    return res
 
 def boostAvailable(agent, pad):
     index = -1
@@ -134,8 +98,8 @@ def getClosestPad(agent):
     return closestPad
 
 def angle2D(targetLocation, objectLocation):
-    difference = toLocation(targetLocation) - toLocation(objectLocation)
-    return math.atan2(difference.data[1], difference.data[0])
+    difference = targetLocation - objectLocation
+    return math.atan2(difference[1], difference[0])
 
 def velocity2D(targetObject):
     return math.sqrt(targetObject.velocity.data[0]**2 + targetObject.velocity.data[1]**2)
@@ -159,13 +123,9 @@ def ballProject(agent):
     return diff * goalToBall
 
 def dpp(targetLocation,targetSpeed,location,velocity):
-    targetLocation = toLocation(targetLocation)
-    targetSpeed = toLocation(targetSpeed)
-    location = toLocation(location)
-    velocity = toLocation(velocity)
     d = distance2D(targetLocation,location)
     if d != 0:
-        return (((targetLocation.data[0] - location.data[0]) * (targetSpeed.data[0] - velocity.data[0])) + ((targetLocation.data[1] - location.data[1]) * (targetSpeed.data[1] - velocity.data[1])))/d
+        return (((targetLocation[0] - location[0]) * (targetSpeed[0] - velocity[0])) + ((targetLocation[1] - location[1]) * (targetSpeed[1] - velocity[1])))/d
     else:
         return 0
 
@@ -190,56 +150,8 @@ def toLocation(target):
         return target.location
 
 def distance2D(targetObject, ourObject):
-    difference = toLocation(targetObject) - toLocation(ourObject)
-    return math.sqrt(difference.data[0]**2 + difference.data[1]**2)
-
-def dodge(self, target=None):
-    timeDifference = time.time() - self.startDodgeTime
-    self.controller.pitch = -1
-    self.controller.jump = True
-    if target != None:
-        location = toLocal(target, self.deevo)
-        angleToBall = math.atan2(location.data[1],location.data[0])
-        self.controller.yaw = steer(angleToBall)
-    if not self.dodging and self.onGround:
-        self.dodging = True
-        self.startDodgeTime = time.time()
-    elif timeDifference < 0.1:
-        self.controller.jump = False
-    elif self.onGround or timeDifference > 1:
-        self.dodging = False
-
-def halfFlip(self):
-    timeDifference = time.time() - self.startHalfFlipTime
-    self.controller.throttle = -1
-    self.controller.jump = True
-    self.controller.pitch = 1
-    if not self.halfFlipping and self.onGround:
-        self.halfFlipping = True
-        self.startHalfFlipTime = time.time()
-    elif timeDifference < 0.1:
-        self.controller.jump = False
-    elif timeDifference > 1.5 or self.onGround:
-        self.halfFlipping = False
-    elif timeDifference > 0.35:
-        cancelling(self)
-
-def cancelling(self):
-    angleToGround = math.degrees(self.deevo.rotation.data[0])
-    rollAngle = math.degrees(self.deevo.rotation.data[2])
-    if angleToGround < -15:
-        self.controller.pitch = 1
-        self.correctingPitch = True
-    elif angleToGround > 15:
-        self.controller.pitch = -1
-        self.correctingPitch = True
-    else:
-        self.controller.pitch = -1
-        self.correctingPitch = False
-    if not self.correctingPitch:
-        self.controller.roll= 1
-        self.controller.throttle = 1
-        self.controller.boost = 1
+    difference = targetObject - ourObject
+    return math.sqrt(difference[0]**2 + difference[1]**2)
 
 def boost_needed(self, initialSpeed, targetSpeed):
     p1 = 6.31e-06
