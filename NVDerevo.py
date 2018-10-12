@@ -1,9 +1,9 @@
 import math
 import time
 from Chip import *
+from Simulation import Car
 from Util import *
 from States import *
-from Simulation import Car
 from GameInfo import GameInfo
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
