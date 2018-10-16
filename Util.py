@@ -1,4 +1,5 @@
 import math, time, random
+from LinearAlgebra import *
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3 as StateVector3, Rotator
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 
@@ -22,8 +23,8 @@ def getClosestPad(agent):
     closestPad = None
     distToClosestPad = math.inf
     for i in range(len(pads)):
-        if(distance2D(agent.deevo, pads[i]) < distToClosestPad):
-            distToClosestPad = distance2D(agent.deevo, pads[i])
+        if(distance2D(agent.info.my_car.pos, pads[i]) < distToClosestPad):
+            distToClosestPad = distance2D(agent.info.my_car.pos, pads[i])
             closestPad = pads[i]
     return closestPad
 
@@ -43,9 +44,9 @@ def ballReady(agent):
 
 def ballProject(agent):
     goal = agent.info.their_goal
-    goalToBall = normalize(agent.ball.location - goal)
-    diff = agent.info.my_car.pos - agent.info.my_car
-    return diff * goalToBall
+    goalToBall = normalize(agent.info.ball.pos - goal.center)
+    diff = agent.info.my_car.pos - agent.info.my_car.pos
+    return dot(diff, goalToBall)
 
 def dpp(targetLocation,targetSpeed,location,velocity):
     d = distance2D(targetLocation,location)

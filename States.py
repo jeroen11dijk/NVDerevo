@@ -72,7 +72,7 @@ class calcShot:
         return "Shooting"
 
     def available(self,agent):
-        if (ballReady(agent) and ballProject(agent) > 500 - (distance2D(agent.ball,agent.deevo)/2)) or distance2D(agent.ball, agent.ourGoal) < 3000:
+        if (ballReady(agent) and ballProject(agent) > 500 - (distance2D(agent.info.ball.pos,agent.info.my_car.pos)/2)) or distance2D(agent.info.ball.pos, agent.info.my_goal.center) < 3000:
             return True
         return False
 
@@ -134,8 +134,8 @@ class calcShot:
         angleToTarget = math.atan2(targetLocal[1], targetLocal[0])
         distanceToTarget = distance2D(deevo.pos, targetLocation)
         speed = 2000 - (100*(1+angleToTarget)**2)
-        # if (not ballReady(agent) or recovery().available(agent)) and not agent.dodging and not agent.halfFlipping:
-        #     self.expired = True
+        if not ballReady(agent):
+            self.expired = True
 
         agent.renderer.begin_rendering()
         agent.renderer.draw_line_3d(ball.pos, leftPost, agent.renderer.blue())
