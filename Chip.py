@@ -464,7 +464,9 @@ class HalfFlip:
 
         behind = car.pos - 1000.0 * car.forward() - 0 * 120.0 * car.left()
 
-        self.dodge = AirDodge(self.car, 0.20, target = behind)
+        self.dodge = AirDodge(self.car, 0.10, target = behind)
+
+        self.s = sgn(dot(self.car.omega, self.car.up()) + 0.01)
 
         self.counter = 0
         self.timer = 0.0
@@ -473,15 +475,13 @@ class HalfFlip:
 
     def step(self, dt):
 
-        boost_delay = 0.8
-        stall_start = 0.75
-        stall_end = 1.10
+        boost_delay = 0.4
+        stall_start = 0.50
+        stall_end = 0.70
         timeout = 2.0
 
         self.dodge.step(dt)
         self.controls = self.dodge.controls
-
-        omega_up = dot(self.car.omega, self.car.up())
 
         if stall_start < self.timer < stall_end:
             self.controls.roll  =  0.0
@@ -489,9 +489,14 @@ class HalfFlip:
             self.controls.yaw   =  0.0
 
         if self.timer > stall_end:
-            self.controls.roll  = sgn(omega_up + 0.01)
+            self.controls.roll  =  self.s
             self.controls.pitch = -1.0
-            self.controls.yaw   =  0.0
+            self.controls.yaw   =  self.s
+
+        if self.use_boost and self.timer > boost_delay:
+            self.controls.boost = 1
+        else:
+            self.controls.boost = 0
 
         self.timer += dt
 
@@ -532,13 +537,13 @@ class Drive:
         self.controls.steer = clamp(2.5 * phi, -1.0, 1.0)
 
         if abs(phi) > 1.7:
-            #self.controls.slide = 1
-            self.controls.slide = 0
+            #self.controls.handbrake = 1
+            self.controls.handbrake = 0
 
         if abs(phi) < 1.5:
-            self.controls.slide = 0
+            self.controls.handbrake = 0
 
-        if self.controls.slide == 1:
+        if self.controls.handbrake == 1:
 
             self.controls.boost = 0
 
@@ -562,8 +567,8 @@ class Drive:
                     else:
                         self.controls.throttle = 0.01
                 self.controls.boost = 0
-
-        self.finished = (self.car.ETA - self.car.time) < 0
+        #TODO add self.car.ETA
+        #self.finished = (self.car.ETA - self.car.time) < 0
 
         return self.finished
 
@@ -589,7 +594,7 @@ class Wavedash:
             self.direction = normalize(self.direction)
 
         self.controls = Input()
-        self.controls.slide = True
+        self.controls.handbrake = True
         self.controls.throttle = 1
 
         self.action = None
@@ -651,7 +656,7 @@ class Wavedash:
                 self.controls.yaw = 0
                 self.controls.jump = 0
 
-            self.controls.slide = True
+            self.controls.handbrake = True
 
         if self.state == old_state:
             self.counter += 1

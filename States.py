@@ -1,7 +1,6 @@
 import math
 import time
 from Util import *
-from Controllers import *
 from LinearAlgebra import *
 from Chip import *
 from rlbot.agents.base_agent import  SimpleControllerState
@@ -26,19 +25,21 @@ class boostManager:
 
     def available(self,agent):
         pad = getClosestPad(agent)
-        distance = distance2D(agent.deevo, pad)
-        if distance < 1500 and agent.deevo.boost < 34 and boostAvailable(agent, pad):
+        distance = distance2D(agent.info.my_car.pos, pad.pos)
+        if distance < 1500 and agent.info.my_car.boost < 34 and pad.is_active:
             return True
         return False
 
     def execute(self, agent):
         agent.controller = calcController
-        targetLocation = getClosestPad(agent)
-        targetLocal = toLocal(targetLocation,agent.deevo)
+        deevo = agent.info.my_car
+        pad = getClosestPad(agent)
+        targetLocation = pad.pos
+        targetLocal = dot(targetLocation - deevo.pos, deevo.theta)
         angleToTarget = math.atan2(targetLocal.data[1], targetLocal.data[0])
-        distanceToTarget = distance2D(agent.deevo, targetLocation)
+        distanceToTarget = distance2D(deevo.pos, targetLocation)
         speed = 2000 - (100*(1+angleToTarget)**2)
-        if (agent.deevo.boost > 90 or not(boostAvailable(agent, targetLocation)) or time.time() - agent.startGrabbingBoost > 2) and not agent.dodging and not agent.halfFlipping:
+        if deevo.boost > 90 or not(pad.is_active) or time.time() - agent.startGrabbingBoost > 2:
             self.expired = True
 
         return agent.controller(agent, targetLocation, speed)
@@ -50,38 +51,19 @@ class defending:
         return "Defending"
 
     def execute(self,agent):
-        agent.controller = calcController
-        centerGoal = agent.ourGoal
-        futureBall = future(agent.ball)
-        goalToBall = (futureBall - centerGoal)
-        targetVector = Vector3([3/4 * goalToBall.data[0], 3/4 * goalToBall.data[1], 0])
+        centerGoal = agent.info.my_goal.center
+        ball = agent.info.ball
+        deevo = agent.info.my_car
+        goalToBall = normalize(futureBall - centerGoal)
+        targetVector = vec3([3/4 * goalToBall.data[0], 3/4 * goalToBall.data[1], 0])
         targetLocation = centerGoal + targetVector
-        targetLocal = toLocal(targetLocation,agent.deevo)
+        targetLocal = dot(targetLocation - deevo.pos, deevo.theta)
         angleToTarget = math.atan2(targetLocal.data[1], targetLocal.data[0])
-        distanceToTarget = distance2D(agent.deevo, targetLocation)
+        distanceToTarget = distance2D(deevo.pos, targetLocation)
         speed = 2000 - (100*(1+angleToTarget)**2)
-        if (calcShot().available(agent) or boostManager().available(agent)) and not agent.dodging and not agent.halfFlipping:
+        if calcShot().available(agent) or boostManager().available(agent):
             self.expired = True
         return agent.controller(agent,targetLocation,speed)
-
-
-class recovery:
-    def __init__(self):
-        self.expired = False
-    def __str__(self):
-        return "Recovering"
-
-    def available(self,agent):
-        if not agent.onGround and not agent.dodging:
-            return True
-        return False
-
-    def execute(self,agent):
-        agent.controller = recoveryController
-        ball = agent.ball.location
-        if agent.onGround:
-            self.expired = True
-        return agent.controller(agent,ball)
 
 class calcShot:
     def __init__(self):
@@ -146,7 +128,7 @@ class calcShot:
         if extra < 0:
             # we prevent our target from going outside the wall, and extend it so that Gosling gets closer to the wall before taking a shot, makes things more reliable
             targetLocation[0] = cap(targetLocation[0],-4120,4120)
-            targetLocation[1] = targetLocation[1] + (-sign(agent.info.team)*cap(extra,-500,500))
+            targetLocation[1] = targetLocation[1] + (-sgn(agent.info.team)*cap(extra,-500,500))
 
         targetLocal = dot(targetLocation - deevo.pos, deevo.theta)
         angleToTarget = math.atan2(targetLocal[1], targetLocal[0])
@@ -154,6 +136,15 @@ class calcShot:
         speed = 2000 - (100*(1+angleToTarget)**2)
         # if (not ballReady(agent) or recovery().available(agent)) and not agent.dodging and not agent.halfFlipping:
         #     self.expired = True
-        agent.action = Drive(deevo, targetLocation, speed)
-        agent.action.step(1/60)
-        return self.controls
+
+        agent.renderer.begin_rendering()
+        agent.renderer.draw_line_3d(ball.pos, leftPost, agent.renderer.blue())
+        agent.renderer.draw_line_3d(ball.pos, rightPost, agent.renderer.red())
+
+        agent.renderer.draw_line_3d(deevo.pos, targetLocation, agent.renderer.black())
+        agent.renderer.end_rendering()
+
+        agent.action.target_pos = targetLocation
+        agent.action.target_speed = speed
+        agent.action.step(0.016666)
+        return convert_input(agent.action.controls)

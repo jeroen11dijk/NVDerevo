@@ -11,9 +11,8 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 class NVDeevo(BaseAgent):
     def initialize_agent(self):
+        self.info = GameInfo(self.index, self.team, self.get_field_info())
         self.action = None
-        self.controls = Input()
-        self.info = GameInfo(self.index, self.team)
         self.state = calcShot()
         self.controller = None
         self.kickoff = False
@@ -21,12 +20,10 @@ class NVDeevo(BaseAgent):
         self.time = time.time()
 
     def checkState(self):
-        if self.kickoff:
-            self.state = kickOff()
+        # if self.kickoff:
+        #     self.state = kickOff()
         if self.state.expired:
-            if recovery().available(self):
-                self.state = recovery()
-            elif calcShot().available(self):
+            if calcShot().available(self):
                 self.state = calcShot()
             elif boostManager().available(self):
                 self.startGrabbingBoost = time.time()
@@ -36,18 +33,16 @@ class NVDeevo(BaseAgent):
 
     def get_output(self, game: GameTickPacket) -> SimpleControllerState:
         self.preprocess(game)
-        #self.checkState()
-        return self.controls
+        self.checkState()
+        renderString(self, str(self.state))
+        return self.state.execute(self)
 
     def preprocess(self, game):
         self.info.read_packet(game)
         self.boosts = game.game_boosts
         self.kickoff = game.game_info.is_kickoff_pause
         if self.action is None:
-            self.action = AirDodge(self.info.my_car, target=self.info.ball.pos)
-        if self.action.finished:
-            self.action = None
-        self.action.step(0.016666)
-        # if time.time() - self.time > 3:
-        #     self.time = time.time()
-        #     setState(self)
+            self.action = Drive(self.info.my_car, self.info.ball.pos, 1500)
+        if time.time() - self.time > 3:
+            self.time = time.time()
+            setState(self)

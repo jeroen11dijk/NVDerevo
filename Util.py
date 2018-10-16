@@ -1,5 +1,6 @@
 import math, time, random
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3 as StateVector3, Rotator
+from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 
 GOAL_WIDTH = 1784
 FIELD_LENGTH = 10240
@@ -16,79 +17,8 @@ def abc(a,b,c):
             return p
         return n
 
-def future(ball):
-    time = timeZ(ball)
-    x = ball.location.data[0] + (ball.velocity.data[0] * time)
-    y = ball.location.data[1] + (ball.velocity.data[1] * time)
-    z = ball.location.data[2] + (ball.velocity.data[2] * time)
-    return Vector3([x,y,z])
-
-def timeZ(ball):
-    rate = 0.97
-    return abc(-325, ball.velocity.data[2] * rate, ball.location.data[2]-92.75)
-
-def to_local(targetObject, ourObject):
-    x = (toLocation(targetObject) - ourObject.location) * ourObject.matrix[0]
-    y = (toLocation(targetObject) - ourObject.location) * ourObject.matrix[1]
-    z = (toLocation(targetObject) - ourObject.location) * ourObject.matrix[2]
-    return Vector3([x,y,z])
-
-def boostAvailable(agent, pad):
-    index = -1
-    for i in range(agent.fieldInfo.num_boosts):
-        if distance2D(convertVector3(agent.fieldInfo.boost_pads[i].location),pad) < 1:
-            index = i
-    return agent.boosts[index].is_active
-
-def getTheirGoalPosts(self):
-    res = []
-    for i in range(len(self.fieldInfo.goals)):
-        current = self.fieldInfo.goals[i]
-        if(sign(current.team_num) == -sign(self.team)):
-            leftPost = Vector3([-sign(self.team)*GOAL_WIDTH/2, current.location.y, current.location.z])
-            rightPost = Vector3([sign(self.team)*GOAL_WIDTH/2, current.location.y, current.location.z])
-            res.append(leftPost)
-            res.append(rightPost)
-    return res
-
-def getOurGoal(self):
-    for i in range(len(self.fieldInfo.goals)):
-        current = self.fieldInfo.goals[i]
-        if(sign(current.team_num) == sign(self.team)):
-            return convertVector3(current.location)
-
-def getTheirGoal(self):
-    for i in range(len(self.fieldInfo.goals)):
-        current = self.fieldInfo.goals[i]
-        if(sign(current.team_num) != sign(self.team)):
-            return convertVector3(current.location)
-
-def rotator_to_matrix(ourObject):
-    r = ourObject.rotation.data
-    CR = math.cos(r[2])
-    SR = math.sin(r[2])
-    CP = math.cos(r[0])
-    SP = math.sin(r[0])
-    CY = math.cos(r[1])
-    SY = math.sin(r[1])
-
-    matrix = []
-    matrix.append(Vector3([CP*CY, CP*SY, SP]))
-    matrix.append(Vector3([CY*SP*SR-CR*SY, SY*SP*SR+CR*CY, -CP * SR]))
-    matrix.append(Vector3([-CR*CY*SP-SR*SY, -CR*SY*SP+SR*CY, CP*CR]))
-    return matrix
-
-def sign(x):
-    if x <= 0:
-        return -1
-    else:
-        return 1
-
-def convertVector3(vector):
-    return Vector3([vector.x, vector.y, vector.z])
-
 def getClosestPad(agent):
-    pads = agent.bigBoostPads
+    pads = agent.info.boost_pads
     closestPad = None
     distToClosestPad = math.inf
     for i in range(len(pads)):
@@ -101,25 +31,20 @@ def angle2D(targetLocation, objectLocation):
     difference = targetLocation - objectLocation
     return math.atan2(difference[1], difference[0])
 
-def velocity2D(targetObject):
-    return math.sqrt(targetObject.velocity.data[0]**2 + targetObject.velocity.data[1]**2)
-
-def toLocal(target, ourObject):
-    if isinstance(target, obj):
-        return target.localLocation
-    else:
-        return to_local(target, ourObject)
+def timeZ(ball):
+    rate = 0.97
+    return abc(-325, ball.vel[2] * rate, ball.pos[2]-92.75)
 
 def ballReady(agent):
-    ball = agent.ball
-    if abs(ball.velocity.data[2]) < 150 and timeZ(ball) < 1:
+    ball = agent.info.ball
+    if abs(ball.vel[2]) < 150 and timeZ(ball) < 1:
             return True
     return False
 
 def ballProject(agent):
-    goal = agent.theirGoal
-    goalToBall = (agent.ball.location - goal).normalize()
-    diff = agent.deevo.location - agent.ball.location
+    goal = agent.info.their_goal
+    goalToBall = normalize(agent.ball.location - goal)
+    diff = agent.info.my_car.pos - agent.info.my_car
     return diff * goalToBall
 
 def dpp(targetLocation,targetSpeed,location,velocity):
@@ -137,18 +62,6 @@ def cap(x, low, high):
     else:
         return x
 
-def steer(angle):
-    final = ((10 * angle+sign(angle))**3) / 20
-    return cap(final,-1,1)
-
-def toLocation(target):
-    if isinstance(target, Vector3):
-        return target
-    elif isinstance(target, list):
-        return Vector3(target)
-    else:
-        return target.location
-
 def distance2D(targetObject, ourObject):
     difference = targetObject - ourObject
     return math.sqrt(difference[0]**2 + difference[1]**2)
@@ -162,10 +75,22 @@ def boost_needed(self, initialSpeed, targetSpeed):
     boostNeeded = targetBoost - initialBoost
     return boostNeeded
 
-def render(self, string):
+def renderString(self, string):
         self.renderer.begin_rendering()
         self.renderer.draw_string_2d(20, 20, 3, 3, string, self.renderer.red())
         self.renderer.end_rendering()
+
+def convert_input(original):
+    converted = SimpleControllerState()
+    converted.steer = original.steer
+    converted.throttle = original.throttle
+    converted.pitch = original.pitch
+    converted.yaw = original.yaw
+    converted.roll = original.roll
+    converted.jump = original.jump
+    converted.boost = original.boost
+    converted.handbrake = original.slide
+    return converted
 
 # def setState(self):
 #     pitch = random.uniform(0, 1)*2*math.pi
@@ -187,7 +112,6 @@ def render(self, string):
 def setState(self):
     carState = CarState(jumped=False, double_jumped=False, boost_amount=87, physics=Physics(velocity=StateVector3(0, 0, 0), location=StateVector3(0, 300, 0), rotation=Rotator(0, - math.pi/2, 0), angular_velocity=StateVector3(0, 0, 0)))
     carState2 = CarState(physics=Physics(location=StateVector3(10000, 10000, 10000)))
-    ballState = BallState(physics=Physics(velocity=StateVector3(0, 0, 0), location=StateVector3(0, 2500, 0), rotation=Rotator(0, 0, 0), angular_velocity=StateVector3(0, 0, 0)))
-    gameState = GameState(ball=ballState, cars={self.index: carState, 1: carState2})
-    self.halfFlipping = False
+    ballState = BallState(physics=Physics(velocity=StateVector3(0, 0, 0), location=StateVector3(0, -2500, 0), rotation=Rotator(0, 0, 0), angular_velocity=StateVector3(0, 0, 0)))
+    gameState = GameState(ball=ballState, cars={self.index: carState, 0: carState2})
     self.set_game_state(gameState)

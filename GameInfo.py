@@ -5,16 +5,17 @@ from Goal import Goal
 
 class BoostPad:
 
-    def __init__(self, index, pos, timer):
+    def __init__(self, index, pos, is_active, timer):
         self.index = index
         self.pos = pos
+        self.is_active = is_active
         self.timer = timer
 
 class GameInfo:
 
     DT = 0.01666
 
-    def __init__(self, index, team):
+    def __init__(self, index, team, fieldInfo = None):
 
         self.time = 0
         self.ball = Ball()
@@ -32,14 +33,21 @@ class GameInfo:
 
         self.my_car = Car()
 
-        self.boost_pads = [
-            BoostPad( 3, vec3(-3072.0, -4096.0, 73.0), 0.0),
-            BoostPad( 4, vec3( 3072.0, -4096.0, 73.0), 0.0),
-            BoostPad(15, vec3(-3584.0,     0.0, 73.0), 0.0),
-            BoostPad(18, vec3( 3584.0,     0.0, 73.0), 0.0),
-            BoostPad(29, vec3(-3072.0,  4096.0, 73.0), 0.0),
-            BoostPad(30, vec3( 3072.0,  4096.0, 73.0), 0.0)
-        ]
+        if fieldInfo == None:
+            self.boost_pads = [
+                BoostPad( 3, vec3(-3072.0, -4096.0, 73.0), True, 0.0),
+                BoostPad( 4, vec3( 3072.0, -4096.0, 73.0), True, 0.0),
+                BoostPad(15, vec3(-3584.0,     0.0, 73.0), True, 0.0),
+                BoostPad(18, vec3( 3584.0,     0.0, 73.0), True, 0.0),
+                BoostPad(29, vec3(-3072.0,  4096.0, 73.0), True, 0.0),
+                BoostPad(30, vec3( 3072.0,  4096.0, 73.0), True, 0.0)
+            ]
+        else:
+            self.boost_pads = []
+            for i in range(fieldInfo.num_boosts):
+                current = fieldInfo.boost_pads[i]
+                if current.is_full_boost:
+                    self.boost_pads.append(BoostPad(i, vec3(current.location.x, current.location.y, current.location.z), True, 0.0))
 
         self.ball_predictions = []
 
@@ -93,6 +101,7 @@ class GameInfo:
             car.supersonic = game_car.is_super_sonic
             car.jumped = game_car.jumped
             car.double_jumped = game_car.double_jumped
+            car.boost = game_car.boost
             car.time = self.time
 
             car.extrapolate(GameInfo.DT)
@@ -110,6 +119,14 @@ class GameInfo:
                         self.teammates.append(car)
                 else:
                     self.opponents.append(car)
+
+        for i in range(0, len(self.boost_pads)):
+
+            boost_pad = packet.game_boosts[self.boost_pads[i].index]
+
+            self.boost_pads[i].is_active = boost_pad.is_active
+
+            self.boost_pads[i].timer = boost_pad.timer
 
         self.time += GameInfo.DT
 
