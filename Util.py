@@ -23,8 +23,8 @@ def getClosestPad(agent):
     closestPad = None
     distToClosestPad = math.inf
     for i in range(len(pads)):
-        if(distance2D(agent.info.my_car.pos, pads[i]) < distToClosestPad):
-            distToClosestPad = distance2D(agent.info.my_car.pos, pads[i])
+        if(distance2D(agent.info.my_car.pos, pads[i].pos) < distToClosestPad):
+            distToClosestPad = distance2D(agent.info.my_car.pos, pads[i].pos)
             closestPad = pads[i]
     return closestPad
 

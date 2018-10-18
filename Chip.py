@@ -509,12 +509,12 @@ class HalfFlip:
 
 class Drive:
 
-    __slots__ = ['car', 'target_pos', 'target_speed', 'controls', 'finished']
+    __slots__ = ['car', 'target', 'target_speed', 'controls', 'finished']
 
-    def __init__(self, car, target_pos=vec3(0, 0, 0), target_speed=0):
+    def __init__(self, car, target=vec3(0, 0, 0), target_speed=0):
 
         self.car = car
-        self.target_pos = target_pos
+        self.target = target
         self.target_speed = target_speed
         self.controls = Input()
 
@@ -529,7 +529,7 @@ class Drive:
         # delta_local[0]: how far in front
         # delta_local[1]: how far to the left
         # delta_local[2]: how far above
-        delta_local = dot(self.target_pos - self.car.pos, self.car.theta)
+        delta_local = dot(self.target - self.car.pos, self.car.theta)
 
         # angle between car's forward direction and target position
         phi = math.atan2(delta_local[1], delta_local[0])

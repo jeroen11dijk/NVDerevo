@@ -6,16 +6,21 @@ from Chip import *
 from rlbot.agents.base_agent import  SimpleControllerState
 
 class kickOff:
-    def __init__(self):
+    def __init__(self, agent):
         self.expired = False
+        agent.action = Drive(agent.info.my_car, agent.info.ball.pos, 2300)
     def __str__(self):
         return "Kickoff"
 
     def execute(self, agent):
-        if not agent.kickoff and not agent.dodging:
+        print(agent.action.target, agent.info.ball.pos)
+        if not agent.kickoff or (type(agent.action) == AirDodge and agent.info.my_car.on_ground):
             self.expired = True
-        agent.controller = normalKickOff
-        return agent.controller(agent)
+            agent.action = None
+        if distance2D(agent.info.my_car.pos, agent.info.ball.pos) < 750 and type(agent.action) != AirDodge:
+            agent.action = AirDodge(agent.info.my_car, 5.0, agent.info.ball.pos)
+        agent.action.step(0.016666)
+        return convert_input(agent.action.controls)
 
 class boostManager:
     def __init__(self):
@@ -31,18 +36,23 @@ class boostManager:
         return False
 
     def execute(self, agent):
-        agent.controller = calcController
         deevo = agent.info.my_car
         pad = getClosestPad(agent)
         targetLocation = pad.pos
         targetLocal = dot(targetLocation - deevo.pos, deevo.theta)
-        angleToTarget = math.atan2(targetLocal.data[1], targetLocal.data[0])
+        angleToTarget = math.atan2(targetLocal[1], targetLocal[0])
         distanceToTarget = distance2D(deevo.pos, targetLocation)
         speed = 2000 - (100*(1+angleToTarget)**2)
         if deevo.boost > 90 or not(pad.is_active) or time.time() - agent.startGrabbingBoost > 2:
             self.expired = True
-
-        return agent.controller(agent, targetLocation, speed)
+            agent.action = None
+        if agent.action is None:
+            agent.action = Drive(agent.info.my_car, targetLocation, speed)
+        else:
+            agent.action.target = targetLocation
+            agent.action.target_speed = speed
+        agent.action.step(0.016666)
+        return convert_input(agent.action.controls)
 
 class defending:
     def __init__(self):
@@ -54,16 +64,23 @@ class defending:
         centerGoal = agent.info.my_goal.center
         ball = agent.info.ball
         deevo = agent.info.my_car
-        goalToBall = normalize(futureBall - centerGoal)
-        targetVector = vec3([3/4 * goalToBall.data[0], 3/4 * goalToBall.data[1], 0])
+        goalToBall = normalize(ball.pos - centerGoal)
+        targetVector = vec3(3/4 * goalToBall[0], 3/4 * goalToBall[1], 0)
         targetLocation = centerGoal + targetVector
         targetLocal = dot(targetLocation - deevo.pos, deevo.theta)
-        angleToTarget = math.atan2(targetLocal.data[1], targetLocal.data[0])
+        angleToTarget = math.atan2(targetLocal[1], targetLocal[0])
         distanceToTarget = distance2D(deevo.pos, targetLocation)
         speed = 2000 - (100*(1+angleToTarget)**2)
         if calcShot().available(agent) or boostManager().available(agent):
             self.expired = True
-        return agent.controller(agent,targetLocation,speed)
+            agent.action = None
+        if agent.action is None:
+            agent.action = Drive(agent.info.my_car, targetLocation, speed)
+        else:
+            agent.action.target = targetLocation
+            agent.action.target_speed = speed
+        agent.action.step(0.016666)
+        return convert_input(agent.action.controls)
 
 class calcShot:
     def __init__(self):
@@ -136,15 +153,11 @@ class calcShot:
         speed = 2000 - (100*(1+angleToTarget)**2)
         if not ballReady(agent):
             self.expired = True
-
-        agent.renderer.begin_rendering()
-        agent.renderer.draw_line_3d(ball.pos, leftPost, agent.renderer.blue())
-        agent.renderer.draw_line_3d(ball.pos, rightPost, agent.renderer.red())
-
-        agent.renderer.draw_line_3d(deevo.pos, targetLocation, agent.renderer.black())
-        agent.renderer.end_rendering()
-
-        agent.action.target_pos = targetLocation
-        agent.action.target_speed = speed
+            agent.action = None
+        if agent.action is None:
+            agent.action = Drive(agent.info.my_car, targetLocation, speed)
+        else:
+            agent.action.target = targetLocation
+            agent.action.target_speed = speed
         agent.action.step(0.016666)
         return convert_input(agent.action.controls)
