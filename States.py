@@ -1,8 +1,8 @@
 import math
 import time
 from Util import *
-from LinearAlgebra import *
-from Chip import *
+from RLUtilities.LinearAlgebra import *
+from RLUtilities.Maneuvers import *
 from rlbot.agents.base_agent import  SimpleControllerState
 
 class kickOff:
@@ -13,7 +13,6 @@ class kickOff:
         return "Kickoff"
 
     def execute(self, agent):
-        print(agent.action.target, agent.info.ball.pos)
         if not agent.kickoff or (type(agent.action) == AirDodge and agent.info.my_car.on_ground):
             self.expired = True
             agent.action = None
@@ -49,7 +48,7 @@ class boostManager:
         if agent.action is None:
             agent.action = Drive(agent.info.my_car, targetLocation, speed)
         else:
-            agent.action.target = targetLocation
+            agent.action.target_pos = targetLocation
             agent.action.target_speed = speed
         agent.action.step(0.016666)
         return convert_input(agent.action.controls)
@@ -77,7 +76,7 @@ class defending:
         if agent.action is None:
             agent.action = Drive(agent.info.my_car, targetLocation, speed)
         else:
-            agent.action.target = targetLocation
+            agent.action.target_pos = targetLocation
             agent.action.target_speed = speed
         agent.action.step(0.016666)
         return convert_input(agent.action.controls)
@@ -157,7 +156,7 @@ class calcShot:
         if agent.action is None:
             agent.action = Drive(agent.info.my_car, targetLocation, speed)
         else:
-            agent.action.target = targetLocation
+            agent.action.target_pos = targetLocation
             agent.action.target_speed = speed
         agent.action.step(0.016666)
         return convert_input(agent.action.controls)

@@ -1,5 +1,5 @@
 import math, time, random
-from LinearAlgebra import *
+from RLUtilities.LinearAlgebra import *
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3 as StateVector3, Rotator
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 
