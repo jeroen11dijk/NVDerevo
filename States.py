@@ -19,7 +19,7 @@ class kickOff:
         if distance2D(agent.info.my_car.pos, agent.info.ball.pos) < 750 and type(agent.action) != AirDodge:
             agent.action = AirDodge(agent.info.my_car, 5.0, agent.info.ball.pos)
         agent.action.step(0.016666)
-        return convert_input(agent.action.controls)
+        return agent.action.controls
 
 class boostManager:
     def __init__(self):
@@ -51,7 +51,7 @@ class boostManager:
             agent.action.target_pos = targetLocation
             agent.action.target_speed = speed
         agent.action.step(0.016666)
-        return convert_input(agent.action.controls)
+        return agent.action.controls
 
 class defending:
     def __init__(self):
@@ -79,7 +79,7 @@ class defending:
             agent.action.target_pos = targetLocation
             agent.action.target_speed = speed
         agent.action.step(0.016666)
-        return convert_input(agent.action.controls)
+        return agent.action.controls
 
 class calcShot:
     def __init__(self):
@@ -161,4 +161,4 @@ class calcShot:
             agent.action.target_pos = targetLocation
             agent.action.target_speed = speed
         agent.action.step(0.016666)
-        return convert_input(agent.action.controls)
+        return agent.action.controls

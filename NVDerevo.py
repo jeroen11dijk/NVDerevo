@@ -35,8 +35,6 @@ class NVDeevo(BaseAgent):
     def get_output(self, game: GameTickPacket) -> SimpleControllerState:
         self.preprocess(game)
         self.checkState()
-        if self.action == None:
-            print("MAAIEN")
         renderString(self, str(self.state))
         return self.state.execute(self)
 

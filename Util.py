@@ -79,18 +79,6 @@ def renderString(self, string):
         self.renderer.draw_string_2d(20, 20, 3, 3, string, self.renderer.red())
         self.renderer.end_rendering()
 
-def convert_input(original):
-    converted = SimpleControllerState()
-    converted.steer = original.steer
-    converted.throttle = original.throttle
-    converted.pitch = original.pitch
-    converted.yaw = original.yaw
-    converted.roll = original.roll
-    converted.jump = original.jump
-    converted.boost = original.boost
-    converted.handbrake = original.slide
-    return converted
-
 # def setState(self):
 #     pitch = random.uniform(0, 1)*2*math.pi
 #     yaw = random.uniform(0, 1)*2*math.pi
