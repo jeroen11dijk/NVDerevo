@@ -122,34 +122,36 @@ class calcShot:
             goalToBall = normalize(deevo.pos - ball.pos)
             error = cap(distance2D(ball.pos, deevo.pos) /1000,0,1)
 
-        #this is measuring how fast the ball is traveling away from us if we were stationary
-        ball_dpp_skew = cap(abs(dpp(ball.pos, ball.vel, deevo.pos, vec3(0,0,0)))/80, 1,1.5)
+        goalToBall2D = vec2(goalToBall[0], goalToBall[1])
+        testVector2D = dot(rotation(0.5 * math.pi), goalToBall2D)
+        testVector = vec3(testVector2D[0], testVector2D[1], 0)
 
         #same as Gosling's old distance calculation, but now we consider dpp_skew which helps us handle when the ball is moving
-        targetDistance = cap((40 + distance2D(ball.pos, deevo.pos)*(error**2))/1.8, 0,4000)
-        targetLocation = ball.pos + vec3((goalToBall[0]*targetDistance) * ball_dpp_skew, goalToBall[1]*targetDistance,0)
+        targetDistance = cap((40 + distance2D(ball.pos, deevo.pos)* (error**2))/1.8, 0,4000)
+        targetLocation = ball.pos + vec3((goalToBall[0]*targetDistance), goalToBall[1]*targetDistance,0)
 
-        #this also adjusts the target location based on dpp
-        ballSomething = dpp(targetLocation,ball.vel, deevo.pos,[0,0,0])**2
-
-        if ballSomething > 100: #if we were stopped, and the ball is moving 100uu/s away from us
-            ballSomething = cap(ballSomething,0,80)
-            correction = normalize(ball.vel)
-            correction = vec3(correction[0]*ballSomething,correction[1]*ballSomething,correction[2]*ballSomething)
-            targetLocation += correction #we're adding some component of the ball's velocity to the target position so that we are able to hit a faster moving ball better
-            #it's important that this only happens when the ball is moving away from us.
+       #this adjusts the target based on the ball velocity perpendicular to the direction we're trying to hit it
+        multiplier = cap(distance2D(deevo.pos,targetLocation) / 1500,0,2)
+        targetModDistance = cap(dot(testVector, ball.vel) * multiplier, -1000,1000)
+        finalModVector = vec3(testVector[0] * targetModDistance, testVector[1] * targetModDistance,0)
+        preLoc = targetLocation
+        targetLocation += finalModVector
 
         #another target adjustment that applies if the ball is close to the wall
-        extra = 4120 - abs(targetLocation[0])
+        extra = 3850 - abs(targetLocation[0])
         if extra < 0:
             # we prevent our target from going outside the wall, and extend it so that Gosling gets closer to the wall before taking a shot, makes things more reliable
-            targetLocation[0] = cap(targetLocation[0],-4120,4120)
-            targetLocation[1] = targetLocation[1] + (-sgn(agent.info.team)*cap(extra,-500,500))
+            targetLocation[0] = cap(targetLocation[0],-3850,3850)
+            targetLocation[1] = targetLocation[1] + (-sign(agent.team)*cap(extra,-800,800))
 
+        #getting speed, this would be a good place to modify because it's not very good
         targetLocal = dot(targetLocation - deevo.pos, deevo.theta)
-        angleToTarget = math.atan2(targetLocal[1], targetLocal[0])
+        angleToTarget = cap(math.atan2(targetLocal[1], targetLocal[0]),-3,3)
         distanceToTarget = distance2D(deevo.pos, targetLocation)
-        speed = 2000 - (100*(1+angleToTarget)**2)
+        if distanceToTarget > 2.5*velocity2D(deevo):
+            speed = 2300
+        else:
+            speed = 2300 - (340*(angleToTarget**2))
         if not ballReady(agent):
             self.expired = True
             agent.action = None

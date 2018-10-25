@@ -11,11 +11,11 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 class NVDeevo(BaseAgent):
     def initialize_agent(self):
-        #self.info = GameInfo(self.index, self.team, self.get_field_info())
+        # self.info = GameInfo(self.index, self.team, self.get_field_info())
+        # self.info2 = GameInfo(self.index, self.team)
         self.info = GameInfo(self.index, self.team)
         self.action = None
         self.state = calcShot()
-        self.controller = None
         self.kickoff = False
         self.startGrabbingBoost = time.time()
         self.time = time.time()
@@ -41,8 +41,23 @@ class NVDeevo(BaseAgent):
         return self.state.execute(self)
 
     def preprocess(self, game):
+        # print("INFO ++++++++++++++++++++++++++++++++++++++")
+        # print(self.info.my_goal.center)
+        # for i in range(len(self.info.my_goal.corners)):
+        #     print(self.info.my_goal.corners[i])
+        # print("INFO 2++++++++++++++++++++++++++++++++++++++")
+        # print(self.info2.my_goal.center)
+        # for i in range(len(self.info2.my_goal.corners)):
+        #     print(self.info2.my_goal.corners[i])
+        # print("INFO ++++++++++++++++++++++++++++++++++++++")
+        # print(self.info.their_goal.center)
+        # for i in range(len(self.info.their_goal.corners)):
+        #     print(self.info.their_goal.corners[i])
+        # print("INFO 2++++++++++++++++++++++++++++++++++++++")
+        # print(self.info2.their_goal.center)
+        # for i in range(len(self.info2.their_goal.corners)):
+        #     print(self.info2.their_goal.corners[i])
         self.info.read_packet(game)
-        self.boosts = game.game_boosts
         self.kickoff = game.game_info.is_kickoff_pause
         # if time.time() - self.time > 3:
         #     self.time = time.time()
