@@ -1,10 +1,9 @@
 from RLUtilities.Maneuvers import Drive
 
-from ab0t import BaseAgent
 from util import speedController, isReachable, distance2D
 
 
-def catching(agent: BaseAgent):
+def catching(agent):
     agent.drive.step(1 / 60)
     agent.controls = agent.drive.controls
     speedController(agent, agent.drive.target_pos)
@@ -14,7 +13,7 @@ def catching(agent: BaseAgent):
         agent.step = "Ballchasing"
 
 
-def startCatching(agent: BaseAgent):
+def startCatching(agent):
     for i in range(len(agent.bounces)):
         location = agent.bounces[i][0]
         bounceTime = agent.bounces[i][1]
@@ -25,7 +24,7 @@ def startCatching(agent: BaseAgent):
             return
 
 
-def bounceChanged(agent: BaseAgent):
+def bounceChanged(agent):
     target = agent.drive.target_pos
     for i in range(len(agent.bounces)):
         if distance2D(target, agent.bounces[i][0]) < 1:

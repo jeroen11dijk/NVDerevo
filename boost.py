@@ -1,10 +1,11 @@
-from ab0t import BaseAgent
-from util import getClosestPad, distance2D, cap
-from RLUtilities.LinearAlgebra import dot
 import math
 
+from RLUtilities.LinearAlgebra import dot
 
-def grabBoost(agent: BaseAgent):
+from util import getClosestPad, cap, distance2D, velocity2D
+
+
+def grabBoost(agent):
     agent.drive.step(1 / 60)
     agent.controls = agent.drive.controls
     agent.drive.target_speed = boostGrabbingSpeed(agent, agent.drive.target_pos)
@@ -12,7 +13,7 @@ def grabBoost(agent: BaseAgent):
         agent.step = "Ballchasing"
 
 
-def boostGrabbingAvaiable(agent: BaseAgent, ball):
+def boostGrabbingAvaiable(agent, ball):
     pad = getClosestPad(agent)
     distance = distance2D(agent.info.my_car.pos, pad.pos)
     futureInFrontOfBall = distance2D(ball.pos, agent.info.my_goal.center) < distance2D(agent.info.my_car.pos,
@@ -23,7 +24,11 @@ def boostGrabbingAvaiable(agent: BaseAgent, ball):
 
 
 def boostGrabbingSpeed(agent, target_location):
-    target_local = dot(target_location - agent.info.my_car.pos, agent.info.my_car.theta)
-    angle_to_target = math.atan2(target_local[1], target_local[0])
-    distance_to_target = distance2D(target_location, agent.info.my_car.pos)
-    return 2300 - cap((900 * (angle_to_target ** 2)), 0, 2200) + cap((distance_to_target - 1000) / 4, 0, 500)
+    car = agent.info.my_car
+    targetLocal = dot(target_location - car.pos, car.theta)
+    angle_to_target = cap(math.atan2(targetLocal[1], targetLocal[0]), -3, 3)
+    distance_to_target = distance2D(agent.info.my_car.pos, target_location)
+    if distance_to_target > 2.5 * velocity2D(agent.info.my_car):
+        return 2300
+    else:
+        return 2300 - (340 * (angle_to_target ** 2))

@@ -1,10 +1,9 @@
 from RLUtilities.LinearAlgebra import vec3, normalize
 
-from ab0t import BaseAgent
 from util import angle2D, distance2D, cap, sign
 
 
-def inTheCone(agent: BaseAgent):
+def inTheCone(agent):
     ballPos = agent.info.ball.pos
     goal = agent.info.my_goal
     leftPost = goal.corners[3]

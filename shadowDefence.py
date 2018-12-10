@@ -3,13 +3,12 @@ import math
 from RLUtilities.LinearAlgebra import vec3, dot
 from RLUtilities.Maneuvers import Drive
 
-from ab0t import BaseAgent
 from boost import boostGrabbingSpeed
 from shooting import canShoot, startShooting
 from util import getClosestPad, cap, distance2D, velocity2D
 
 
-def shadow(agent: BaseAgent):
+def shadow(agent):
     agent.drive.step(1 / 60)
     agent.controls = agent.drive.controls
     target = shadowTarget(agent)
@@ -25,7 +24,7 @@ def shadow(agent: BaseAgent):
         agent.drive = Drive(agent.info.my_car, target, boostGrabbingSpeed(agent, target))
 
 
-def shadowTarget(agent: BaseAgent):
+def shadowTarget(agent):
     centerGoal = agent.info.my_goal.center
     ball = agent.info.ball
     goalToBall = ball.pos - centerGoal
@@ -34,7 +33,7 @@ def shadowTarget(agent: BaseAgent):
     return targetLocation
 
 
-def shadowSpeed(agent: BaseAgent, targetLocation):
+def shadowSpeed(agent, targetLocation):
     car = agent.info.my_car
     targetLocal = dot(targetLocation - car.pos, car.theta)
     angle_to_target = cap(math.atan2(targetLocal[1], targetLocal[0]), -3, 3)
@@ -45,7 +44,7 @@ def shadowSpeed(agent: BaseAgent, targetLocation):
         return 2300 - (340 * (angle_to_target ** 2))
 
 
-def shadowSpeedOld(agent: BaseAgent, targetLocation):
+def shadowSpeedOld(agent, targetLocation):
     car = agent.info.my_car
     targetLocal = dot(targetLocation - car.pos, car.theta)
     angleToTarget = cap(math.atan2(targetLocal[1], targetLocal[0]), -3, 3)

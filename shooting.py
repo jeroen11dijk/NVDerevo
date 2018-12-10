@@ -1,7 +1,6 @@
 from RLUtilities.LinearAlgebra import vec3, normalize, dot
 from RLUtilities.Maneuvers import Drive
 
-from ab0t import BaseAgent
 from util import distance2D, speedController, angle2D, cap, sign, isReachable, timeZ, ETACalculator
 
 
@@ -11,7 +10,7 @@ def shootingAvailable(ball, car, goal):
     return False
 
 
-def shooting(agent: BaseAgent):
+def shooting(agent):
     agent.drive.step(1 / 60)
     agent.controls = agent.drive.controls
     target = shootingTarget(agent.target, agent.info.my_car, agent.info.their_goal, agent.team)
@@ -65,7 +64,7 @@ def shootingTarget(ballPos, car, goal, team):
     return targetLocation
 
 
-def canShoot(agent: BaseAgent):
+def canShoot(agent):
     for i in range(len(agent.shots)):
         location = agent.shots[i][0]
         shotTime = agent.shots[i][1]
@@ -77,7 +76,7 @@ def canShoot(agent: BaseAgent):
     return False
 
 
-def startShooting(agent: BaseAgent):
+def startShooting(agent):
     for i in range(len(agent.shots)):
         location = agent.shots[i][0]
         shotTime = agent.shots[i][1]
@@ -91,7 +90,7 @@ def startShooting(agent: BaseAgent):
             return
 
 
-def shotChanged(agent: BaseAgent):
+def shotChanged(agent):
     target = agent.target
     ball_prediction = agent.get_ball_prediction_struct()
     for i in range(ball_prediction.num_slices):

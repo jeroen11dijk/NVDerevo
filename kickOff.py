@@ -1,11 +1,10 @@
 from RLUtilities.LinearAlgebra import vec3
 from RLUtilities.Maneuvers import Drive, AirDodge
 
-from ab0t import BaseAgent
 from util import getClosestSmallPad, sign, distance2D
 
 
-def initKickOff(agent: BaseAgent):
+def initKickOff(agent):
     if abs(agent.info.my_car.pos[0]) < 250:
         pad = getClosestSmallPad(agent)
         target = vec3(pad.location.x, pad.location.y, pad.location.z) - sign(agent.team) * vec3(0, 500, 0)
@@ -29,7 +28,7 @@ def initKickOff(agent: BaseAgent):
     agent.controls = agent.drive.controls
 
 
-def kickOff(agent: BaseAgent):
+def kickOff(agent):
     if agent.kickoffStart == "Diagonal":
         if agent.step == "Drive":
             agent.drive.step(1 / 60)

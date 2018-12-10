@@ -1,13 +1,12 @@
 from RLUtilities.Maneuvers import Drive
 
-from ab0t import BaseAgent
 from boost import grabBoost, boostGrabbingSpeed
 from shadowDefence import shadow
 from shooting import shooting, canShoot, startShooting
 from util import getClosestPad
 
 
-def controls(agent: BaseAgent):
+def controls(agent):
     if agent.step == "Ballchasing":
         ballChase(agent)
     # elif agent.step == "Catching":
@@ -22,7 +21,7 @@ def controls(agent: BaseAgent):
         agent.step = "Ballchasing"
 
 
-def ballChase(agent: BaseAgent):
+def ballChase(agent):
     if agent.drive.target_speed != 1399:
         agent.drive.target_speed = 1399
     agent.drive.target_pos = agent.info.ball.pos
