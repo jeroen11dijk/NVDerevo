@@ -8,7 +8,7 @@ from boost import boostGrabbingAvaiable
 from controls import controls
 from kickOff import initKickOff, kickOff
 from shooting import shootingAvailable
-from util import distance2D, renderString, ETACalculator, getClosestPad
+from util import distance_2d, renderString, eta_calculator, get_closest_pad
 
 
 class Derevo(BaseAgent):
@@ -35,18 +35,19 @@ class Derevo(BaseAgent):
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         self.info.read_packet(packet)
-        prevKickoff = self.kickoff
+        prev_kickoff = self.kickoff
         predict(self)
         self.kickoff = packet.game_info.is_kickoff_pause
         self.time = packet.game_info.seconds_elapsed
-        self.inFrontOfBall = distance2D(self.info.ball.pos, self.info.my_goal.center) < distance2D(self.info.my_car.pos,
-                                                                                                   self.info.my_goal.center)
+        self.inFrontOfBall = distance_2d(self.info.ball.pos, self.info.my_goal.center) < distance_2d(
+            self.info.my_car.pos,
+            self.info.my_goal.center)
         if self.firstKickOff:
             if self.drive is None:
                 self.drive = Drive(self.info.my_car, self.info.ball.pos, 1399)
             self.drive.step(1 / 60)
             self.controls = self.drive.controls
-        if self.kickoff and not prevKickoff and not self.firstKickOff:
+        if self.kickoff and not prev_kickoff and not self.firstKickOff:
             initKickOff(self)
         if self.firstKickOff and self.get_field_info() is not None:
             initKickOff(self)
@@ -68,7 +69,7 @@ def predict(agent):
     agent.bounces = []
     agent.shots = []
     agent.boostGrabs = False
-    eta_to_boostpad = round(ETACalculator(agent.info.my_car, getClosestPad(agent).pos))
+    eta_to_boostpad = round(eta_calculator(agent.info.my_car, get_closest_pad(agent).pos))
     ball_prediction = agent.get_ball_prediction_struct()
     for i in range(ball_prediction.num_slices):
         location = vec3(ball_prediction.slices[i].physics.location.x,

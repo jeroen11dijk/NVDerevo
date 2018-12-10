@@ -3,7 +3,7 @@ from RLUtilities.Maneuvers import Drive
 from boost import grabBoost, boostGrabbingSpeed
 from shadowDefence import shadow
 from shooting import shooting, canShoot, startShooting
-from util import getClosestPad
+from util import get_closest_pad
 
 
 def controls(agent):
@@ -35,5 +35,5 @@ def ballChase(agent):
     #     startCatching(agent)
     elif agent.boostGrabs:
         agent.step = "Grabbing Boost"
-        target = getClosestPad(agent).pos
+        target = get_closest_pad(agent).pos
         agent.drive = Drive(agent.info.my_car, target, boostGrabbingSpeed(agent, target))

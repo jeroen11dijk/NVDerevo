@@ -1,11 +1,11 @@
 from RLUtilities.LinearAlgebra import vec3, normalize, dot
 from RLUtilities.Maneuvers import Drive
 
-from util import distance2D, speedController, angle2D, cap, sign, isReachable, timeZ, ETACalculator
+from util import distance_2d, speedController, angle_2d, cap, sign, is_reachable, time_z, eta_calculator
 
 
 def shootingAvailable(ball, car, goal):
-    if ballReady(ball) and ballProject(ball, car, goal) > 500 - (distance2D(ball.pos, car.pos) / 2):
+    if ballReady(ball) and ballProject(ball, car, goal) > 500 - (distance_2d(ball.pos, car.pos) / 2):
         return True
     return False
 
@@ -27,10 +27,10 @@ def shooting(agent):
 def shootingTarget(ballPos, car, goal, team):
     leftPost = goal.corners[3]
     rightPost = goal.corners[2]
-    ballLeft = angle2D(ballPos, leftPost)
-    ballRight = angle2D(ballPos, rightPost)
-    agentLeft = angle2D(car.pos, leftPost)
-    agentRight = angle2D(car.pos, rightPost)
+    ballLeft = angle_2d(ballPos, leftPost)
+    ballRight = angle_2d(ballPos, rightPost)
+    agentLeft = angle_2d(car.pos, leftPost)
+    agentRight = angle_2d(car.pos, rightPost)
 
     # determining if we are left/right/inside of cone
     if agentLeft > ballLeft and agentRight > ballRight:
@@ -49,10 +49,10 @@ def shootingTarget(ballPos, car, goal, team):
         error = cap(abs(difference[0]) + abs(difference[1]), 1, 10)
     else:
         goalToBall = normalize(car.pos - ballPos)
-        error = cap(distance2D(ballPos, car.pos) / 1000, 0, 1)
+        error = cap(distance_2d(ballPos, car.pos) / 1000, 0, 1)
 
     # same as Gosling's old distance calculation, but now we consider dpp_skew which helps us handle when the ball is moving
-    targetDistance = cap((40 + distance2D(ballPos, car.pos) * (error ** 2)) / 1.8, 0, 4000)
+    targetDistance = cap((40 + distance_2d(ballPos, car.pos) * (error ** 2)) / 1.8, 0, 4000)
     targetLocation = ballPos + vec3((goalToBall[0] * targetDistance), goalToBall[1] * targetDistance, 0)
 
     # another target adjustment that applies if the ball is close to the wall
@@ -69,9 +69,10 @@ def canShoot(agent):
         location = agent.shots[i][0]
         shotTime = agent.shots[i][1]
         ourGoal = agent.info.my_goal.center
-        behindTheBall = distance2D(agent.info.ball.pos, ourGoal) > distance2D(agent.info.my_car.pos, ourGoal)
-        closer = ETACalculator(agent.info.my_car, location) < ETACalculator(agent.info.opponents[0], location)
-        if closer and behindTheBall and isReachable(agent, location, shotTime):
+        behindTheBall = distance_2d(agent.info.ball.pos, ourGoal) > distance_2d(agent.info.my_car.pos, ourGoal)
+        closer = eta_calculator(agent.info.my_car, location) < eta_calculator(agent.info.opponents[0], location)
+        if closer and behindTheBall and is_reachable(agent, location, shotTime):
+            print(eta_calculator < shotTime)
             return True
     return False
 
@@ -80,8 +81,8 @@ def startShooting(agent):
     for i in range(len(agent.shots)):
         location = agent.shots[i][0]
         shotTime = agent.shots[i][1]
-        closer = ETACalculator(agent.info.my_car, location) < ETACalculator(agent.info.opponents[0], location)
-        if closer and isReachable(agent, location, shotTime):
+        closer = eta_calculator(agent.info.my_car, location) < eta_calculator(agent.info.opponents[0], location)
+        if closer and is_reachable(agent, location, shotTime):
             agent.eta = agent.time + shotTime / 60
             agent.target = location
             agent.step = "Shooting"
@@ -97,13 +98,13 @@ def shotChanged(agent):
         location = vec3(ball_prediction.slices[i].physics.location.x,
                         ball_prediction.slices[i].physics.location.y,
                         ball_prediction.slices[i].physics.location.z)
-        if distance2D(target, location) < 1:
+        if distance_2d(target, location) < 1:
             return False
     return True
 
 
 def ballReady(ball):
-    if abs(ball.vel[2]) < 150 and timeZ(ball) < 1:
+    if abs(ball.vel[2]) < 150 and time_z(ball) < 1:
         return True
     return False
 

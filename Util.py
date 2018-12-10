@@ -7,52 +7,52 @@ from RLUtilities.LinearAlgebra import vec3, vec2, dot, normalize
 from rlbot.utils.game_state_util import Vector3, Rotator, CarState, GameState, BallState, Physics
 
 
-def ETACalculator(car: Car, target: vec3):
+def eta_calculator(car: Car, target: vec3):
     boost_time = car.boost / 33
     speed = cap(dot(vec2(car.vel), vec2(normalize((target - car.pos)))) + 500 * boost_time ** 2, 1, 2300)
-    distance = distance2D(car.pos, target)
+    distance = distance_2d(car.pos, target)
     if (distance / speed) < boost_time:
         speed = cap(dot(vec2(car.vel), vec2(normalize((target - car.pos)))) + 500 * (distance / speed) ** 2, 1, 2300)
-        distance = distance2D(car.pos, target)
+        distance = distance_2d(car.pos, target)
         return 60 * distance / speed
     return 60 * distance / speed
 
 
-def distance2D(target_location: vec3, object_location: vec3):
+def distance_2d(target_location: vec3, object_location: vec3):
     vector = target_location - object_location
     return math.sqrt(vector[0] ** 2 + vector[1] ** 2)
 
 
-def angle2D(target_location: vec3, object_location: vec3):
+def angle_2d(target_location: vec3, object_location: vec3):
     difference = target_location - object_location
     return math.atan2(difference[1], difference[0])
 
 
-def velocity2D(targetObject):
-    return math.sqrt(targetObject.vel[0] ** 2 + targetObject.vel[1] ** 2)
+def velocity_2d(vel):
+    return math.sqrt(vel[0] ** 2 + vel[1] ** 2)
 
 
-def getClosestPad(agent):
+def get_closest_pad(agent):
     pads = agent.info.boost_pads
-    closestPad = None
-    distToClosestPad = math.inf
+    pad = None
+    distance = math.inf
     for i in range(len(pads)):
-        if distance2D(agent.info.my_car.pos, pads[i].pos) < distToClosestPad:
-            distToClosestPad = distance2D(agent.info.my_car.pos, pads[i].pos)
-            closestPad = pads[i]
-    return closestPad
+        if distance_2d(agent.info.my_car.pos, pads[i].pos) < distance:
+            distance = distance_2d(agent.info.my_car.pos, pads[i].pos)
+            pad = pads[i]
+    return pad
 
 
-def getClosestSmallPad(agent):
-    closestPad = None
-    distToClosestPad = math.inf
+def get_closest_small_pad(agent):
+    pad = None
+    distance = math.inf
     for i in range(agent.get_field_info().num_boosts):
         current = agent.get_field_info().boost_pads[i]
         current_pos = vec3(current.location.x, current.location.y, current.location.z)
-        if not (current.is_full_boost) and distance2D(agent.info.my_car.pos, current_pos) < distToClosestPad:
-            distToClosestPad = distance2D(agent.info.my_car.pos, current_pos)
-            closestPad = current
-    return closestPad
+        if not current.is_full_boost and distance_2d(agent.info.my_car.pos, current_pos) < distance:
+            distance = distance_2d(agent.info.my_car.pos, current_pos)
+            pad = current
+    return pad
 
 
 def quad(a, b, c):
@@ -83,57 +83,57 @@ def cap(x, low, high):
         return x
 
 
-def timeZ(ball):
+def time_z(ball):
     rate = 0.97
     return quad(-325, ball.vel[2] * rate, ball.pos[2] - 92.75)
 
 
-def kickOffStateSetting(agent, prevKickoff):
+def state_stetting_kickoff(agent, prevKickoff):
     if not agent.kickoff and prevKickoff:
         agent.timer = time.time()
-    if agent.timer is not (None) and time.time() - agent.timer > 2.5:
-        theirGoal = agent.info.their_goal.center - sign(agent.team) * vec3(0, 400, 0)
-        ball_state = BallState(Physics(location=Vector3(theirGoal[0], theirGoal[1], theirGoal[2])))
+    if agent.timer is not None and time.time() - agent.timer > 2.5:
+        their_goal = agent.info.their_goal.center - sign(agent.team) * vec3(0, 400, 0)
+        ball_state = BallState(Physics(location=Vector3(their_goal[0], their_goal[1], their_goal[2])))
         game_state = GameState(ball=ball_state)
         agent.timer = None
         agent.set_game_state(game_state)
 
 
-def boostNeeded(initialSpeed, goalSpeed):
+def boost_needed(initial_speed, goal_speed):
     p1 = 6.31e-06
     p2 = 0.010383
     p3 = 1.3183
-    boost_initial = p1 * initialSpeed ** 2 + p2 * initialSpeed + p3
-    boost_goal = p1 * goalSpeed ** 2 + p2 * goalSpeed + p3
+    boost_initial = p1 * initial_speed ** 2 + p2 * initial_speed + p3
+    boost_goal = p1 * goal_speed ** 2 + p2 * goal_speed + p3
     boost_needed = boost_goal - boost_initial
     return boost_needed
 
 
-def isReachable(agent, location, eta):
-    distance = distance2D(agent.info.my_car.pos, location)
+def is_reachable(agent, location, eta):
+    distance = distance_2d(agent.info.my_car.pos, location)
     speed = distance / (eta - agent.time)
     if speed < 2300:
         if speed < 1399:
             return True
-        return agent.info.my_car.boost > boostNeeded(velocity2D(agent.info.my_car), speed)
+        return agent.info.my_car.boost > boost_needed(velocity_2d(agent.info.my_car.vel), speed)
 
 
 def speedController(agent, location):
-    distance = distance2D(agent.info.my_car.pos, location)
+    distance = distance_2d(agent.info.my_car.pos, location)
 
     alpha = 1.3
     time_left = agent.eta - agent.time
     avg_vf = distance / time_left
-    target_vf = (1.0 - alpha) * velocity2D(agent.info.my_car) + alpha * avg_vf
+    target_vf = (1.0 - alpha) * velocity_2d(agent.info.my_car.vel) + alpha * avg_vf
 
-    if velocity2D(agent.info.my_car) < target_vf:
+    if velocity_2d(agent.info.my_car.vel) < target_vf:
         agent.controls.throttle = 1.0
         if target_vf > 1399:
             agent.controls.boost = 1
         else:
             agent.controls.boost = 0
     else:
-        if velocity2D(agent.info.my_car) - target_vf > 75:
+        if velocity_2d(agent.info.my_car.vel) - target_vf > 75:
             agent.controls.throttle = -1.0
         else:
             agent.controls.throttle = 0.0
