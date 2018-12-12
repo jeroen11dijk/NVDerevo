@@ -15,7 +15,9 @@ def shadow(agent):
     target = shadow_target(agent)
     agent.drive.target_pos = target
     agent.drive.target_speed = shadow_speed(agent, target)
-    if in_shadow_position(agent) or can_challenge(agent):
+    if agent.conceding:
+        agent.step = "Defending"
+    elif in_shadow_position(agent) or can_challenge(agent):
         agent.step = "Ballchasing"
     elif agent.info.ball.pos[2] > 500:
         start_catching(agent)

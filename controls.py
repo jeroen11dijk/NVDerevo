@@ -2,6 +2,7 @@ from RLUtilities.Maneuvers import Drive
 
 from boost import grabBoost, boost_grabbing_speed
 from catching import catching, start_catching
+from defending import defending
 from dribble import aim
 from shadowDefence import shadow
 from shooting import shooting, start_shooting, can_shoot
@@ -13,6 +14,8 @@ def controls(agent):
         ballChase(agent)
     elif agent.step == "Catching":
         catching(agent)
+    elif agent.step == "Defending":
+        defending(agent)
     elif agent.step == "Shooting":
         shooting(agent)
     elif agent.step == "Grabbing Boost":
@@ -21,6 +24,8 @@ def controls(agent):
         shadow(agent)
     elif agent.step == "Dribbling":
         agent.controls = aim(agent)
+        if agent.conceding:
+            agent.step = "Defending"
         if agent.info.ball.pos[2] < 95:
             start_shooting(agent)
     else:
@@ -33,7 +38,9 @@ def ballChase(agent):
     agent.drive.target_pos = agent.info.ball.pos
     agent.drive.step(1 / 60)
     agent.controls = agent.drive.controls
-    if agent.inFrontOfBall:
+    if agent.conceding:
+        agent.step = "Defending"
+    elif agent.inFrontOfBall:
         agent.step = "Shadowing"
     elif agent.info.ball.pos[2] > 500:
         start_catching(agent)

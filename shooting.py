@@ -41,7 +41,9 @@ def shooting(agent):
     target = shooting_target(agent)
     agent.drive.target_pos = target
     agent.drive.target_speed = shooting_speed(agent, target)
-    if agent.inFrontOfBall:
+    if agent.conceding:
+        agent.step = "Defending"
+    elif agent.inFrontOfBall:
         agent.step = "Shadowing"
     elif agent.info.ball.pos[2] > 500:
         start_catching(agent)

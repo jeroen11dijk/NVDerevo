@@ -31,6 +31,7 @@ class Derevo(BaseAgent):
         self.time = 0
         self.eta = None
         self.inFrontOfBall = False
+        self.conceding = False
         self.yaw = 0
         self.p_s = 0.
 
@@ -68,6 +69,7 @@ class Derevo(BaseAgent):
 def predict(agent):
     agent.bounces = []
     agent.boostGrabs = False
+    agent.conceding = False
     eta_to_boostpad = round(eta_calculator(agent.info.my_car, get_closest_pad(agent).pos))
     ball_prediction = agent.get_ball_prediction_struct()
     for i in range(ball_prediction.num_slices):
@@ -84,3 +86,6 @@ def predict(agent):
             agent.bounces.append((location, i))
         if i == eta_to_boostpad:
             agent.boostGrabs = boostGrabbingAvaiable(agent, ball)
+        print(agent.info.my_goal.inside(location))
+        if agent.info.my_goal.inside(location):
+            agent.conceding = True
