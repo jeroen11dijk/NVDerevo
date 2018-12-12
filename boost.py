@@ -8,7 +8,7 @@ from util import get_closest_pad, cap, distance_2d, velocity_2d
 def grabBoost(agent):
     agent.drive.step(1 / 60)
     agent.controls = agent.drive.controls
-    agent.drive.target_speed = boostGrabbingSpeed(agent, agent.drive.target_pos)
+    agent.drive.target_speed = boost_grabbing_speed(agent, agent.drive.target_pos)
     if agent.info.my_car.boost > 90 or not get_closest_pad(agent).is_active:
         agent.step = "Ballchasing"
 
@@ -23,10 +23,10 @@ def boostGrabbingAvaiable(agent, ball):
     return False
 
 
-def boostGrabbingSpeed(agent, target_location):
+def boost_grabbing_speed(agent, target_location):
     car = agent.info.my_car
-    targetLocal = dot(target_location - car.pos, car.theta)
-    angle_to_target = cap(math.atan2(targetLocal[1], targetLocal[0]), -3, 3)
+    target_local = dot(target_location - car.pos, car.theta)
+    angle_to_target = cap(math.atan2(target_local[1], target_local[0]), -3, 3)
     distance_to_target = distance_2d(agent.info.my_car.pos, target_location)
     if distance_to_target > 2.5 * velocity_2d(agent.info.my_car.vel):
         return 2300

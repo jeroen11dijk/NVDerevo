@@ -1,6 +1,5 @@
 import math
 import random
-import time
 
 from RLUtilities.GameInfo import Car
 from RLUtilities.LinearAlgebra import vec3, vec2, dot, normalize
@@ -18,12 +17,12 @@ def eta_calculator(car: Car, target: vec3):
     return 60 * distance / speed
 
 
-def distance_2d(target_location: vec3, object_location: vec3):
+def distance_2d(target_location, object_location):
     vector = target_location - object_location
     return math.sqrt(vector[0] ** 2 + vector[1] ** 2)
 
 
-def angle_2d(target_location: vec3, object_location: vec3):
+def angle_2d(target_location, object_location):
     difference = target_location - object_location
     return math.atan2(difference[1], difference[0])
 
@@ -67,6 +66,14 @@ def quad(a, b, c):
         return n
 
 
+def remap_angle(angle):
+    if angle < -math.pi:
+        angle += 2 * math.pi
+    if angle > math.pi:
+        angle -= 2 * math.pi
+    return angle
+
+
 def sign(x):
     if x <= 0:
         return -1
@@ -88,15 +95,17 @@ def time_z(ball):
     return quad(-325, ball.vel[2] * rate, ball.pos[2] - 92.75)
 
 
-def state_stetting_kickoff(agent, prevKickoff):
-    if not agent.kickoff and prevKickoff:
-        agent.timer = time.time()
-    if agent.timer is not None and time.time() - agent.timer > 2.5:
-        their_goal = agent.info.their_goal.center - sign(agent.team) * vec3(0, 400, 0)
-        ball_state = BallState(Physics(location=Vector3(their_goal[0], their_goal[1], their_goal[2])))
-        game_state = GameState(ball=ball_state)
-        agent.timer = None
-        agent.set_game_state(game_state)
+def in_front_of_ball(agent):
+    our_goal = agent.info.my_goal.center
+    return distance_2d(agent.info.ball.pos, our_goal) < distance_2d(agent.info.my_car.pos, our_goal)
+
+
+def state_stetting_kickoff(agent):
+    their_goal = agent.info.their_goal.center - sign(agent.team) * vec3(0, 400, 0)
+    ball_state = BallState(Physics(location=Vector3(their_goal[0], their_goal[1], their_goal[2])))
+    game_state = GameState(ball=ball_state)
+    agent.timer = None
+    agent.set_game_state(game_state)
 
 
 def boost_needed(initial_speed, goal_speed):
@@ -105,8 +114,7 @@ def boost_needed(initial_speed, goal_speed):
     p3 = 1.3183
     boost_initial = p1 * initial_speed ** 2 + p2 * initial_speed + p3
     boost_goal = p1 * goal_speed ** 2 + p2 * goal_speed + p3
-    boost_needed = boost_goal - boost_initial
-    return boost_needed
+    return boost_goal - boost_initial
 
 
 def is_reachable(agent, location, eta):
@@ -118,35 +126,14 @@ def is_reachable(agent, location, eta):
         return agent.info.my_car.boost > boost_needed(velocity_2d(agent.info.my_car.vel), speed)
 
 
-def speedController(agent, location):
-    distance = distance_2d(agent.info.my_car.pos, location)
-
-    alpha = 1.3
-    time_left = agent.eta - agent.time
-    avg_vf = distance / time_left
-    target_vf = (1.0 - alpha) * velocity_2d(agent.info.my_car.vel) + alpha * avg_vf
-
-    if velocity_2d(agent.info.my_car.vel) < target_vf:
-        agent.controls.throttle = 1.0
-        if target_vf > 1399:
-            agent.controls.boost = 1
-        else:
-            agent.controls.boost = 0
-    else:
-        if velocity_2d(agent.info.my_car.vel) - target_vf > 75:
-            agent.controls.throttle = -1.0
-        else:
-            agent.controls.throttle = 0.0
-
-
-def renderString(agent, string):
+def render_string(agent, string):
     agent.renderer.begin_rendering()
     agent.renderer.draw_line_3d(agent.info.my_car.pos, agent.drive.target_pos, agent.renderer.black())
     agent.renderer.draw_string_2d(20, 20, 3, 3, string, agent.renderer.red())
     agent.renderer.end_rendering()
 
 
-def setState(agent):
+def set_state(agent):
     # this just initializes the car and ball
     # to different starting points each time
     c_position = Vector3(random.uniform(-1000, 1000),

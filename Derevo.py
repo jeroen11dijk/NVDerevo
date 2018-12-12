@@ -7,13 +7,13 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 from boost import boostGrabbingAvaiable
 from controls import controls
 from kickOff import initKickOff, kickOff
-from shooting import shootingAvailable
-from util import distance_2d, renderString, eta_calculator, get_closest_pad
+from util import in_front_of_ball, render_string, eta_calculator, get_closest_pad
 
 
 class Derevo(BaseAgent):
 
     def __init__(self, name, team, index):
+        super().__init__(name, team, index)
         self.name = name
         self.team = team
         self.index = index
@@ -24,24 +24,24 @@ class Derevo(BaseAgent):
         self.kickoffStart = None
         self.drive = None
         self.dodge = None
-        self.target = vec3(0, 0, 0)
+        self.dribble = None
         self.bounces = []
-        self.shots = []
         self.boostGrabs = False
         self.step = 0
         self.time = 0
         self.eta = None
         self.inFrontOfBall = False
+        self.yaw = 0
+        self.p_s = 0.
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         self.info.read_packet(packet)
+        self.yaw = packet.game_cars[self.index].physics.rotation.yaw
         prev_kickoff = self.kickoff
         predict(self)
         self.kickoff = packet.game_info.is_kickoff_pause
         self.time = packet.game_info.seconds_elapsed
-        self.inFrontOfBall = distance_2d(self.info.ball.pos, self.info.my_goal.center) < distance_2d(
-            self.info.my_car.pos,
-            self.info.my_goal.center)
+        self.inFrontOfBall = in_front_of_ball(self)
         if self.firstKickOff:
             if self.drive is None:
                 self.drive = Drive(self.info.my_car, self.info.ball.pos, 1399)
@@ -61,13 +61,12 @@ class Derevo(BaseAgent):
             controls(self)
         if not packet.game_info.is_round_active:
             self.controls.steer = 0
-        renderString(self, str(self.step))
+        render_string(self, str(self.step))
         return self.controls
 
 
 def predict(agent):
     agent.bounces = []
-    agent.shots = []
     agent.boostGrabs = False
     eta_to_boostpad = round(eta_calculator(agent.info.my_car, get_closest_pad(agent).pos))
     ball_prediction = agent.get_ball_prediction_struct()
@@ -81,8 +80,6 @@ def predict(agent):
         ball = Ball()
         ball.pos = location
         ball.vel = velocity
-        if shootingAvailable(ball, agent.info.my_car, agent.info.their_goal):
-            agent.shots.append((location, i))
         if location[2] < 100:
             agent.bounces.append((location, i))
         if i == eta_to_boostpad:

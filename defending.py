@@ -3,7 +3,7 @@ from RLUtilities.LinearAlgebra import vec3, normalize
 from util import angle_2d, distance_2d, cap, sign
 
 
-def inTheCone(agent):
+def inTheDefensiveCone(agent):
     ballPos = agent.info.ball.pos
     goal = agent.info.my_goal
     leftPost = goal.corners[3]
