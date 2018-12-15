@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 from RLUtilities.Simulation import Input
-
+from RLUtilities.LinearAlgebra import dot
 from util import distance_2d, velocity_2d, remap_angle
 
 
@@ -11,20 +11,18 @@ def aim(agent):
     car = agent.info.my_car
     ball = agent.info.ball
     target = agent.info.their_goal.center
-    bot_to_target = target - car.pos
-    angle_between_bot_and_target = math.atan2(bot_to_target[1], bot_to_target[0])
     # direction of target relative to yaw of car (where should we aim verse where we are aiming)
-    angle_front_to_target = remap_angle(angle_between_bot_and_target - agent.yaw)
-
+    local_bot_to_target = dot(target - car.pos, car.theta)
+    angle_front_to_target = math.atan2(local_bot_to_target[1], local_bot_to_target[0])
     # direction of ball relative to center of car (where should we aim)
-    bot_to_ball = ball.pos - car.pos
-    angle_between_bot_and_ball = math.atan2(bot_to_ball[1], bot_to_ball[0])
     # direction of ball relative to yaw of car (where should we aim verse where we are aiming)
-    angle_front_to_ball = remap_angle(angle_between_bot_and_ball - agent.yaw)
+    local_ball_to_target = dot(ball.pos - car.pos, car.theta)
+    angle_front_to_ball = math.atan2(local_ball_to_target[1], local_ball_to_target[0])
     # distance between bot and ball
     distance = distance_2d(car.pos, ball.pos)
     # direction of ball velocity relative to yaw of car (which way the ball is moving verse which way we are moving)
-    ball_angle_to_car = remap_angle(math.atan2(ball.vel[1], ball.vel[0]) - agent.yaw)
+    velocity_direction = dot(ball.vel, car.theta)
+    ball_angle_to_car = math.atan2(velocity_direction[1], velocity_direction[0])
     # magnitude of ball_bot_angle (squared)
     ball_bot_diff = (ball.vel[0] ** 2 + ball.vel[1] ** 2) - (car.vel[0] ** 2 + car.vel[1] ** 2)
     # p is the distance between ball and car

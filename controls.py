@@ -6,12 +6,18 @@ from defending import defending
 from dribble import aim
 from shadowDefence import shadow
 from shooting import shooting, start_shooting, can_shoot
-from util import get_closest_pad
+from util import get_closest_pad, distance_2d
 
 
 def controls(agent):
     if agent.step == "Ballchasing":
         ballChase(agent)
+    elif agent.step == "Dodge":
+        agent.dodge.step(1 / 60)
+        agent.controls = agent.dodge.controls
+        agent.controls.boost = 0
+        if agent.dodge.finished:
+            agent.step = "Ballchasing"
     elif agent.step == "Catching":
         catching(agent)
     elif agent.step == "Defending":
@@ -24,7 +30,7 @@ def controls(agent):
         shadow(agent)
     elif agent.step == "Dribbling":
         agent.controls = aim(agent)
-        if agent.conceding:
+        if agent.conceding or distance_2d(agent.info.ball.pos, agent.info.my_goal.center) < 2000:
             agent.step = "Defending"
         if agent.info.ball.pos[2] < 95:
             start_shooting(agent)
@@ -38,7 +44,7 @@ def ballChase(agent):
     agent.drive.target_pos = agent.info.ball.pos
     agent.drive.step(1 / 60)
     agent.controls = agent.drive.controls
-    if agent.conceding:
+    if agent.conceding or distance_2d(agent.info.ball.pos, agent.info.my_goal.center) < 2000:
         agent.step = "Defending"
     elif agent.inFrontOfBall:
         agent.step = "Shadowing"

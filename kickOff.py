@@ -36,7 +36,7 @@ def kickOff(agent):
             if agent.drive.finished:
                 agent.step = "Dodge1"
                 target = agent.info.ball.pos + sign(agent.team) * vec3(0, 150, 0)
-                agent.dodge = AirDodge(agent.info.my_car, 0.035, target)
+                agent.dodge = AirDodge(agent.info.my_car, 0.075, target)
         elif agent.step == "Dodge1":
             agent.dodge.step(1 / 60)
             agent.controls = agent.dodge.controls
@@ -52,7 +52,7 @@ def kickOff(agent):
                 agent.drive.target_speed = 2400
             if distance_2d(agent.info.ball.pos, agent.info.my_car.pos) < 600:
                 agent.step = "Dodge2"
-                agent.dodge = AirDodge(agent.info.my_car, 0.1, agent.info.ball.pos)
+                agent.dodge = AirDodge(agent.info.my_car, 0.075, agent.info.ball.pos)
         elif agent.step == "Dodge2":
             agent.dodge.step(1 / 60)
             agent.controls = agent.dodge.controls

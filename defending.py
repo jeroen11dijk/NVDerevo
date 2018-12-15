@@ -11,7 +11,7 @@ def defending(agent):
     target = defending_target(agent)
     agent.drive.target_pos = target
     agent.drive.target_speed = defending_speed(agent, target)
-    if not agent.conceding:
+    if not agent.conceding and distance_2d(agent.info.ball.pos, agent.info.my_goal.center) > 2000:
         agent.step = "Ballchasing"
 
 

@@ -1,21 +1,28 @@
 import math
 
 from RLUtilities.LinearAlgebra import vec3, dot, norm, vec2
-from RLUtilities.Maneuvers import Drive
+from RLUtilities.Maneuvers import Drive, AirDodge, HalfFlip
 
 from boost import boost_grabbing_speed
 from catching import start_catching
 from shooting import can_shoot, start_shooting
-from util import get_closest_pad, cap, distance_2d, velocity_2d, remap_angle
+from util import get_closest_pad, cap, distance_2d, velocity_2d, get_closest_small_pad
 
 
 def shadow(agent):
     agent.drive.step(1 / 60)
     agent.controls = agent.drive.controls
     target = shadow_target(agent)
+    pad = get_closest_small_pad(agent)
+    pad_pos = vec3(pad.location.x, pad.location.y, pad.location.z)
+    if distance_2d(pad_pos, target) < 400:
+        target = pad_pos
     agent.drive.target_pos = target
     agent.drive.target_speed = shadow_speed(agent, target)
-    if agent.conceding:
+    if can_dodge(agent, target):
+        agent.step = "Dodge"
+        agent.dodge = AirDodge(agent.info.my_car, 0.1, target)
+    if agent.conceding or distance_2d(agent.info.ball.pos, agent.info.my_goal.center) < 2000:
         agent.step = "Defending"
     elif in_shadow_position(agent) or can_challenge(agent):
         agent.step = "Ballchasing"
@@ -29,6 +36,14 @@ def shadow(agent):
         agent.drive = Drive(agent.info.my_car, target, boost_grabbing_speed(agent, target))
 
 
+def can_dodge(agent, target):
+    bot_to_target = target - agent.info.my_car.pos
+    local_bot_to_target = dot(bot_to_target, agent.info.my_car.theta)
+    angle_front_to_target = math.atan2(local_bot_to_target[1], local_bot_to_target[0])
+    distance_bot_to_target = norm(vec2(bot_to_target))
+    return math.radians(-10) < angle_front_to_target < math.radians(10) and distance_bot_to_target > 750
+
+
 def in_shadow_position(agent):
     distance_car_to_goal = distance_2d(agent.info.my_car.pos, agent.info.my_goal.center)
     distance_ball_to_goal = distance_2d(agent.info.ball.pos, agent.info.my_goal.center)
@@ -37,8 +52,8 @@ def in_shadow_position(agent):
 
 def can_challenge(agent):
     bot_to_ball = agent.info.ball.pos - agent.info.my_car.pos
-    angle_between_bot_and_ball = math.atan2(bot_to_ball[1], bot_to_ball[0])
-    angle_front_to_ball = remap_angle(math.fabs(angle_between_bot_and_ball - agent.yaw))
+    local_bot_to_ball = dot(bot_to_ball, agent.info.my_car.theta)
+    angle_front_to_ball = math.atan2(local_bot_to_ball[1], local_bot_to_ball[0])
     distance_bot_to_ball = norm(vec2(bot_to_ball))
     could_challenge = math.radians(-45) < angle_front_to_ball < math.radians(45) and distance_bot_to_ball < 750
     return could_challenge and not agent.inFrontOfBall
@@ -62,10 +77,3 @@ def shadow_speed(agent, target_location):
     else:
         return 2300 - (340 * (angle_to_target ** 2))
 
-
-def shadowSpeedOld(agent, targetLocation):
-    car = agent.info.my_car
-    targetLocal = dot(targetLocation - car.pos, car.theta)
-    angleToTarget = cap(math.atan2(targetLocal[1], targetLocal[0]), -3, 3)
-    distanceToTarget = distance_2d(car.pos, targetLocation)
-    return 2300 - cap((900 * (angleToTarget ** 2)), 0, 2200) + cap((distanceToTarget - 1000) / 4, 0, 500)

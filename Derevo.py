@@ -3,8 +3,8 @@ from RLUtilities.LinearAlgebra import vec3
 from RLUtilities.Maneuvers import Drive
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
-
-from boost import boostGrabbingAvaiable
+import math
+from boost import boost_grabbing_available
 from controls import controls
 from kickOff import initKickOff, kickOff
 from util import in_front_of_ball, render_string, eta_calculator, get_closest_pad
@@ -32,12 +32,10 @@ class Derevo(BaseAgent):
         self.eta = None
         self.inFrontOfBall = False
         self.conceding = False
-        self.yaw = 0
         self.p_s = 0.
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         self.info.read_packet(packet)
-        self.yaw = packet.game_cars[self.index].physics.rotation.yaw
         prev_kickoff = self.kickoff
         predict(self)
         self.kickoff = packet.game_info.is_kickoff_pause
@@ -85,7 +83,6 @@ def predict(agent):
         if location[2] < 100:
             agent.bounces.append((location, i))
         if i == eta_to_boostpad:
-            agent.boostGrabs = boostGrabbingAvaiable(agent, ball)
-        print(agent.info.my_goal.inside(location))
+            agent.boostGrabs = boost_grabbing_available(agent, ball)
         if agent.info.my_goal.inside(location):
             agent.conceding = True

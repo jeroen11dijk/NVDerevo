@@ -3,6 +3,8 @@ import math
 from RLUtilities.LinearAlgebra import dot
 
 from util import get_closest_pad, cap, distance_2d, velocity_2d
+from shooting import start_shooting, can_shoot
+from catching import start_catching
 
 
 def grabBoost(agent):
@@ -11,9 +13,17 @@ def grabBoost(agent):
     agent.drive.target_speed = boost_grabbing_speed(agent, agent.drive.target_pos)
     if agent.info.my_car.boost > 90 or not get_closest_pad(agent).is_active:
         agent.step = "Ballchasing"
+    if agent.conceding or distance_2d(agent.info.ball.pos, agent.info.my_goal.center) < 2000:
+        agent.step = "Defending"
+    elif agent.inFrontOfBall:
+        agent.step = "Shadowing"
+    elif agent.info.ball.pos[2] > 500:
+        start_catching(agent)
+    elif can_shoot(agent):
+        start_shooting(agent)
 
 
-def boostGrabbingAvaiable(agent, ball):
+def boost_grabbing_available(agent, ball):
     pad = get_closest_pad(agent)
     distance = distance_2d(agent.info.my_car.pos, pad.pos)
     futureInFrontOfBall = distance_2d(ball.pos, agent.info.my_goal.center) < distance_2d(agent.info.my_car.pos,
