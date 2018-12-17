@@ -1,7 +1,7 @@
 import math
 
 from RLUtilities.LinearAlgebra import normalize, rotation, vec3, vec2, dot
-from RLUtilities.Maneuvers import Drive, AirDodge
+from RLUtilities.Maneuvers import Drive
 
 from catching import start_catching
 from util import angle_2d, cap, distance_2d, sign, velocity_2d, time_z, eta_calculator
@@ -43,8 +43,10 @@ def shooting(agent):
     agent.drive.target_speed = shooting_speed(agent, target)
     if agent.conceding or distance_2d(agent.info.ball.pos, agent.info.my_goal.center) < 2000:
         agent.step = "Defending"
-    elif agent.inFrontOfBall or not can_shoot(agent):
-        agent.step = "Shadowing"
+    # elif agent.inFrontOfBall or not can_shoot(agent):
+    #     agent.step = "Shadowing"
+    elif not can_shoot(agent):
+        agent.step = "Ballchasing"
     elif agent.info.ball.pos[2] > 500:
         start_catching(agent)
 

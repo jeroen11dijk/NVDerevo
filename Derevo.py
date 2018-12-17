@@ -3,7 +3,6 @@ from RLUtilities.LinearAlgebra import vec3
 from RLUtilities.Maneuvers import Drive
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
-import math
 from boost import boost_grabbing_available
 from controls import controls
 from kickOff import initKickOff, kickOff
@@ -33,8 +32,10 @@ class Derevo(BaseAgent):
         self.inFrontOfBall = False
         self.conceding = False
         self.p_s = 0.
+        self.yaw = 0
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
+        self.yaw = packet.game_cars[self.index].physics.rotation.yaw
         self.info.read_packet(packet)
         prev_kickoff = self.kickoff
         predict(self)

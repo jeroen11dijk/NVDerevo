@@ -15,8 +15,8 @@ def grabBoost(agent):
         agent.step = "Ballchasing"
     if agent.conceding or distance_2d(agent.info.ball.pos, agent.info.my_goal.center) < 2000:
         agent.step = "Defending"
-    elif agent.inFrontOfBall:
-        agent.step = "Shadowing"
+    # elif agent.inFrontOfBall:
+    #     agent.step = "Shadowing"
     elif agent.info.ball.pos[2] > 500:
         start_catching(agent)
     elif can_shoot(agent):

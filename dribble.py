@@ -16,8 +16,8 @@ def aim(agent):
     angle_front_to_target = math.atan2(local_bot_to_target[1], local_bot_to_target[0])
     # direction of ball relative to center of car (where should we aim)
     # direction of ball relative to yaw of car (where should we aim verse where we are aiming)
-    local_ball_to_target = dot(ball.pos - car.pos, car.theta)
-    angle_front_to_ball = math.atan2(local_ball_to_target[1], local_ball_to_target[0])
+    local_bot_to_ball = dot(ball.pos - car.pos, car.theta)
+    angle_front_to_ball = math.atan2(local_bot_to_ball[1], local_bot_to_ball[0])
     # distance between bot and ball
     distance = distance_2d(car.pos, ball.pos)
     # direction of ball velocity relative to yaw of car (which way the ball is moving verse which way we are moving)
@@ -33,8 +33,6 @@ def aim(agent):
     # p_s is the x component of the distance to the ball
     # d_s is the one frame change of p_s, that's why p_s has to be global
 
-    # speed of car to be used when deciding how much to accelerate when approaching the ball
-    car_speed = velocity_2d(car.vel)
     # we modify distance and ball_bot_diff so that only the component along the car's path is counted
     # if the ball is too far to the left, we don't want the bot to think it has to drive forward
     # to catch it
@@ -44,18 +42,6 @@ def aim(agent):
     forward = False
     if math.fabs(ball_angle_to_car) < math.radians(90):
         forward = True
-    # this section is the standard approach to a dribble
-    # the car quickly gets to the general area of the ball, then drives slow until it is very close
-    # then begins balancing
-    if (distance > 90000):  # 900
-        controls.throttle = 1.
-        controls.boost = False
-    # we limit the speed to 300 to ensure a slow approach
-    elif distance > 40000 and car_speed > 300:
-        controls.throttle = 0
-    elif (distance > 40000):  # 400
-        controls.throttle = .1
-        controls.boost = False
     # this is the balancing PID section
     # it always starts with full boost/throttle because the bot thinks the ball is too far in front
     # opposite is true for behind
