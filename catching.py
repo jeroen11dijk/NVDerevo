@@ -7,7 +7,7 @@ def catching(agent):
     agent.drive.step(1 / 60)
     agent.controls = agent.drive.controls
     catching_speed(agent, agent.drive.target_pos)
-    if agent.conceding or distance_2d(agent.info.ball.pos, agent.info.my_goal.center) < 2000:
+    if agent.defending:
         agent.step = "Defending"
     if bounce_changed(agent):
         start_catching(agent)

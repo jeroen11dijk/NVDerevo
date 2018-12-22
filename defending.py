@@ -2,7 +2,7 @@ import math
 
 from RLUtilities.LinearAlgebra import normalize, rotation, vec3, vec2, dot
 
-from util import angle_2d, cap, distance_2d, sign, velocity_2d
+from util import line_backline_intersect, cap, distance_2d, sign, velocity_2d
 
 
 def defending(agent):
@@ -11,37 +11,34 @@ def defending(agent):
     target = defending_target(agent)
     agent.drive.target_pos = target
     agent.drive.target_speed = defending_speed(agent, target)
-    if not agent.conceding and distance_2d(agent.info.ball.pos, agent.info.my_goal.center) > 2000:
+    if not agent.defending:
         agent.step = "Ballchasing"
-
-
-def in_defensive_cone(agent):
-    ball = agent.info.ball
-    car = agent.info.my_car
-    left_post = agent.info.my_goal.corners[3]
-    right_post = agent.info.my_goal.corners[2]
-    ball_left = angle_2d(ball.pos, left_post)
-    ball_right = angle_2d(ball.pos, right_post)
-    agent_left = angle_2d(car.pos, left_post)
-    agent_right = angle_2d(car.pos, right_post)
-    return agent_left > ball_left and agent_right < ball_right
 
 
 def defending_target(agent):
     ball = agent.info.ball
     car = agent.info.my_car
-    if in_defensive_cone(agent):
-        local = dot(ball.pos - car.pos, car.theta)
-        angle = math.atan2(local[1], local[0])
-        if angle > 0:
-            target = agent.info.my_goal.center + sign(agent.team) * vec3(2000, 0, 0)
+    car_to_ball = ball.pos - car.pos
+    backline_intersect = sign(agent.team) * line_backline_intersect(agent, vec2(car.pos), vec2(car_to_ball))
+    if -900 < backline_intersect < 900:
+        if backline_intersect < 0:
+            target = agent.info.their_goal.corners[3] - vec3(60, 0, 0)
+            goal_to_ball = normalize(ball.pos - target)
+            goal_to_car = normalize(car.pos - target)
+            difference = goal_to_ball - goal_to_car
+            error = cap(abs(difference[0]) + abs(difference[1]), 1, 10)
         else:
-            target = agent.info.my_goal.center - sign(agent.team) * vec3(2000, 0, 0)
-        goal_to_ball = normalize(ball.pos - target)
-        goal_to_car = normalize(car.pos - target)
-        difference = goal_to_ball - goal_to_car
-        error = cap(abs(difference[0]) + abs(difference[1]), 1, 10)
-    else:
+            target = agent.info.their_goal.corners[2] + vec3(60, 0, 0)
+            goal_to_ball = normalize(ball.pos - target)
+            goal_to_car = normalize(car.pos - target)
+            difference = goal_to_ball - goal_to_car
+            error = cap(abs(difference[0]) + abs(difference[1]), 1, 10)
+    # Right of the ball
+    elif -900 > backline_intersect:
+        goal_to_ball = normalize(car.pos - ball.pos)
+        error = cap(distance_2d(ball.pos, car.pos) / 1000, 0, 1)
+    # Left of the ball
+    elif 900 < backline_intersect:
         goal_to_ball = normalize(car.pos - ball.pos)
         error = cap(distance_2d(ball.pos, car.pos) / 1000, 0, 1)
 

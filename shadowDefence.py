@@ -22,7 +22,7 @@ def shadow(agent):
     if can_dodge(agent, target):
         agent.step = "Dodge"
         agent.dodge = AirDodge(agent.info.my_car, 0.1, target)
-    if agent.conceding or distance_2d(agent.info.ball.pos, agent.info.my_goal.center) < 2000:
+    if agent.defending:
         agent.step = "Defending"
     elif in_shadow_position(agent) or can_challenge(agent):
         agent.step = "Ballchasing"

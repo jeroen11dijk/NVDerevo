@@ -1,19 +1,15 @@
 import math
 
 import numpy as np
+from RLUtilities.LinearAlgebra import dot, angle_between, vec2
 from RLUtilities.Simulation import Input
-from RLUtilities.LinearAlgebra import dot
-from util import distance_2d, velocity_2d, remap_angle
-
+from util import distance_2d, velocity_2d, z0, sign, line_backline_intersect
 
 def aim(agent):
     controls = Input()
     car = agent.info.my_car
     ball = agent.info.ball
-    target = agent.info.their_goal.center
-    # direction of target relative to yaw of car (where should we aim verse where we are aiming)
-    local_bot_to_target = dot(target - car.pos, car.theta)
-    angle_front_to_target = math.atan2(local_bot_to_target[1], local_bot_to_target[0])
+
     # direction of ball relative to center of car (where should we aim)
     # direction of ball relative to yaw of car (where should we aim verse where we are aiming)
     local_bot_to_ball = dot(ball.pos - car.pos, car.theta)
@@ -21,8 +17,10 @@ def aim(agent):
     # distance between bot and ball
     distance = distance_2d(car.pos, ball.pos)
     # direction of ball velocity relative to yaw of car (which way the ball is moving verse which way we are moving)
-    velocity_direction = dot(ball.vel, car.theta)
-    ball_angle_to_car = math.atan2(velocity_direction[1], velocity_direction[0])
+    if velocity_2d(ball.vel) < 1e-10:
+        angle_car_forward_to_ball_vel = 0
+    else:
+        angle_car_forward_to_ball_vel = angle_between(z0(car.forward()), z0(ball.vel))
     # magnitude of ball_bot_angle (squared)
     ball_bot_diff = (ball.vel[0] ** 2 + ball.vel[1] ** 2) - (car.vel[0] ** 2 + car.vel[1] ** 2)
     # p is the distance between ball and car
@@ -40,8 +38,20 @@ def aim(agent):
     distance_x = math.fabs(distance * math.sin(angle_front_to_ball))
     # ball moving forward WRT car yaw?
     forward = False
-    if math.fabs(ball_angle_to_car) < math.radians(90):
+    if math.fabs(angle_car_forward_to_ball_vel) < math.radians(90):
         forward = True
+    # this section is the standard approach to a dribble
+    # the car quickly gets to the general area of the ball, then drives slow until it is very close
+    # then begins balancing
+    if distance > 900:
+        controls.throttle = 1.
+        controls.boost = False
+        # we limit the speed to 300 to ensure a slow approach
+    elif distance > 400 and velocity_2d(car.vel) > 300:
+        controls.throttle = -1
+    elif distance > 400:
+        controls.throttle = .1
+        controls.boost = False
     # this is the balancing PID section
     # it always starts with full boost/throttle because the bot thinks the ball is too far in front
     # opposite is true for behind
@@ -93,17 +103,16 @@ def aim(agent):
         d_s = -d_s
     # d_s is actually -d_s ...whoops
     d_s = -d_s
-    min_angle = 10
     max_bias = 45
-    if angle_front_to_target < math.radians(-min_angle):
-        # If the target is more than 10 degrees right from the centre, steer left
-        bias = max_bias
-    elif angle_front_to_target > math.radians(min_angle):
-        # If the target is more than 10 degrees left from the centre, steer right
+    backline_intersect = sign(agent.team) * line_backline_intersect(agent, vec2(car.pos), vec2(car.forward()))
+    if -850 < backline_intersect < 850:
+        bias = 0
+    # Right of the ball
+    elif -850 > backline_intersect:
         bias = -max_bias
-    else:
-        # If the target is less than 10 degrees from the centre, steer straight
-        bias = max_bias * (math.degrees(angle_front_to_target) / min_angle)
+    # Left of the ball
+    elif 850 < backline_intersect:
+        bias = max_bias
     # the correction settings can be altered to change performance
     correction = np.tanh((100 * (agent.p_s + bias) + 1500 * d_s) / 8000)
     # apply the correction

@@ -13,7 +13,7 @@ def grabBoost(agent):
     agent.drive.target_speed = boost_grabbing_speed(agent, agent.drive.target_pos)
     if agent.info.my_car.boost > 90 or not get_closest_pad(agent).is_active:
         agent.step = "Ballchasing"
-    if agent.conceding or distance_2d(agent.info.ball.pos, agent.info.my_goal.center) < 2000:
+    if agent.defending:
         agent.step = "Defending"
     # elif agent.inFrontOfBall:
     #     agent.step = "Shadowing"

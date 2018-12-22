@@ -1,9 +1,7 @@
 import math
-import random
 
 from RLUtilities.GameInfo import Car
-from RLUtilities.LinearAlgebra import vec3, vec2, dot, normalize
-from rlbot.utils.game_state_util import Vector3, Rotator, CarState, GameState, BallState, Physics
+from RLUtilities.LinearAlgebra import vec3, vec2, dot, normalize, norm
 
 
 def eta_calculator(car: Car, target: vec3):
@@ -17,9 +15,8 @@ def eta_calculator(car: Car, target: vec3):
     return 60 * distance / speed
 
 
-def distance_2d(target_location, object_location):
-    vector = target_location - object_location
-    return math.sqrt(vector[0] ** 2 + vector[1] ** 2)
+def distance_2d(a, b):
+    return norm(vec2(a-b))
 
 
 def angle_2d(target_location, object_location):
@@ -28,7 +25,13 @@ def angle_2d(target_location, object_location):
 
 
 def velocity_2d(vel):
-    return math.sqrt(vel[0] ** 2 + vel[1] ** 2)
+    return norm(vec2(vel))
+
+
+def line_backline_intersect(agent, origin, direction):
+    center = vec2(agent.info.their_goal.center)
+    mult = (center[1] - origin[1])/direction[1]
+    return (origin + mult*direction)[0]
 
 
 def get_closest_pad(agent):
@@ -90,6 +93,10 @@ def cap(x, low, high):
         return x
 
 
+def z0(vector):
+    return vec3(vector[0], vector[1], 0)
+
+
 def time_z(ball):
     rate = 0.97
     return quad(-325, ball.vel[2] * rate, ball.pos[2] - 92.75)
@@ -98,14 +105,6 @@ def time_z(ball):
 def in_front_of_ball(agent):
     our_goal = agent.info.my_goal.center
     return distance_2d(agent.info.ball.pos, our_goal) < distance_2d(agent.info.my_car.pos, our_goal)
-
-
-def state_stetting_kickoff(agent):
-    their_goal = agent.info.their_goal.center - sign(agent.team) * vec3(0, 400, 0)
-    ball_state = BallState(Physics(location=Vector3(their_goal[0], their_goal[1], their_goal[2])))
-    game_state = GameState(ball=ball_state)
-    agent.timer = None
-    agent.set_game_state(game_state)
 
 
 def boost_needed(initial_speed, goal_speed):
@@ -133,38 +132,4 @@ def render_string(agent, string):
     agent.renderer.end_rendering()
 
 
-def set_state(agent):
-    # this just initializes the car and ball
-    # to different starting points each time
-    c_position = Vector3(random.uniform(-1000, 1000),
-                         random.uniform(-4500, -4000),
-                         25)
 
-    car_state = CarState(boost_amount=100, physics=Physics(
-        location=c_position,
-        velocity=Vector3(0, 1000, 0),
-        rotation=Rotator(0, 1.5, 0),
-        angular_velocity=Vector3(0, 0, 0)
-    ))
-
-    bsign = random.choice([-1, 1])
-
-    b_position = Vector3(random.uniform(-3500, -3000) * bsign,
-                         random.uniform(-1500, 1500),
-                         random.uniform(150, 500))
-
-    b_velocity = Vector3(random.uniform(1000, 1500) * bsign,
-                         random.uniform(- 500, 500),
-                         random.uniform(1000, 1500))
-
-    ball_state = BallState(physics=Physics(
-        location=b_position,
-        velocity=b_velocity,
-        rotation=Rotator(0, 0, 0),
-        angular_velocity=Vector3(0, 0, 0)
-    ))
-
-    agent.set_game_state(GameState(
-        ball=ball_state,
-        cars={agent.index: car_state})
-    )

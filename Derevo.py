@@ -1,13 +1,17 @@
+
+
 from RLUtilities.GameInfo import GameInfo, Ball
 from RLUtilities.LinearAlgebra import vec3
 from RLUtilities.Maneuvers import Drive
+from keyboardInput import keyboard
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
+
 from boost import boost_grabbing_available
 from controls import controls
 from kickOff import initKickOff, kickOff
-from util import in_front_of_ball, render_string, eta_calculator, get_closest_pad
-
+from util import in_front_of_ball, render_string, eta_calculator, get_closest_pad, distance_2d
+from stateSetting import defending
 
 class Derevo(BaseAgent):
 
@@ -30,7 +34,7 @@ class Derevo(BaseAgent):
         self.time = 0
         self.eta = None
         self.inFrontOfBall = False
-        self.conceding = False
+        self.defending = False
         self.p_s = 0.
         self.yaw = 0
 
@@ -62,13 +66,15 @@ class Derevo(BaseAgent):
         if not packet.game_info.is_round_active:
             self.controls.steer = 0
         render_string(self, str(self.step))
+        # if keyboard.get_output():
+        #     defending(self)
         return self.controls
 
 
 def predict(agent):
     agent.bounces = []
     agent.boostGrabs = False
-    agent.conceding = False
+    agent.defending = False
     eta_to_boostpad = round(eta_calculator(agent.info.my_car, get_closest_pad(agent).pos))
     ball_prediction = agent.get_ball_prediction_struct()
     for i in range(ball_prediction.num_slices):
@@ -85,5 +91,5 @@ def predict(agent):
             agent.bounces.append((location, i))
         if i == eta_to_boostpad:
             agent.boostGrabs = boost_grabbing_available(agent, ball)
-        if agent.info.my_goal.inside(location):
-            agent.conceding = True
+        if agent.info.my_goal.inside(location) or distance_2d(location, agent.info.my_goal.center) < 3000:
+            agent.defending = True

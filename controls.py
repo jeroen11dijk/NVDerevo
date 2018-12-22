@@ -30,8 +30,6 @@ def controls(agent):
     #     shadow(agent)
     elif agent.step == "Dribbling":
         agent.controls = aim(agent)
-        if agent.conceding or distance_2d(agent.info.ball.pos, agent.info.my_goal.center) < 2000:
-            agent.step = "Defending"
         if agent.info.ball.pos[2] < 95:
             start_shooting(agent)
     else:
@@ -44,7 +42,7 @@ def ballChase(agent):
     agent.drive.target_pos = agent.info.ball.pos
     agent.drive.step(1 / 60)
     agent.controls = agent.drive.controls
-    if agent.conceding or distance_2d(agent.info.ball.pos, agent.info.my_goal.center) < 2000:
+    if agent.defending:
         agent.step = "Defending"
     # elif agent.inFrontOfBall:
     #     agent.step = "Shadowing"
