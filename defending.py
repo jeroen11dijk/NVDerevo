@@ -2,7 +2,7 @@ import math
 
 from RLUtilities.LinearAlgebra import normalize, rotation, vec3, vec2, dot
 
-from util import line_backline_intersect, cap, distance_2d, sign, velocity_2d
+from util import line_backline_intersect, cap, distance_2d, sign, velocity_2d, render_string
 
 
 def defending(agent):
@@ -20,15 +20,16 @@ def defending_target(agent):
     car = agent.info.my_car
     car_to_ball = ball.pos - car.pos
     backline_intersect = sign(agent.team) * line_backline_intersect(agent, vec2(car.pos), vec2(car_to_ball))
-    if -900 < backline_intersect < 900:
+    print(backline_intersect)
+    if -1250 < backline_intersect < 1250:
         if backline_intersect < 0:
-            target = agent.info.their_goal.corners[3] - vec3(60, 0, 0)
+            target = agent.info.their_goal.corners[3] - vec3(10000, 0, 0) + sign(agent.team)*vec3(0, 10000, 0)
             goal_to_ball = normalize(ball.pos - target)
             goal_to_car = normalize(car.pos - target)
             difference = goal_to_ball - goal_to_car
             error = cap(abs(difference[0]) + abs(difference[1]), 1, 10)
         else:
-            target = agent.info.their_goal.corners[2] + vec3(60, 0, 0)
+            target = agent.info.their_goal.corners[2] + vec3(10000, 0, 0) + sign(agent.team)*vec3(0, 10000, 0)
             goal_to_ball = normalize(ball.pos - target)
             goal_to_car = normalize(car.pos - target)
             difference = goal_to_ball - goal_to_car

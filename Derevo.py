@@ -1,5 +1,3 @@
-
-
 from RLUtilities.GameInfo import GameInfo, Ball
 from RLUtilities.LinearAlgebra import vec3
 from RLUtilities.Maneuvers import Drive
@@ -11,7 +9,8 @@ from boost import boost_grabbing_available
 from controls import controls
 from kickOff import initKickOff, kickOff
 from util import in_front_of_ball, render_string, eta_calculator, get_closest_pad, distance_2d
-from stateSetting import defending
+from stateSetting import line_save
+
 
 class Derevo(BaseAgent):
 
@@ -66,8 +65,8 @@ class Derevo(BaseAgent):
         if not packet.game_info.is_round_active:
             self.controls.steer = 0
         render_string(self, str(self.step))
-        # if keyboard.get_output():
-        #     defending(self)
+        if keyboard.get_output():
+            line_save(self)
         return self.controls
 
 
