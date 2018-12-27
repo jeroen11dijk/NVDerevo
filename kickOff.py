@@ -1,6 +1,6 @@
 from RLUtilities.LinearAlgebra import vec3
 from RLUtilities.Maneuvers import Drive, AirDodge
-
+import random
 from util import get_closest_small_pad, sign, distance_2d
 
 
@@ -17,19 +17,24 @@ def initKickOff(agent):
         agent.drive = Drive(agent.info.my_car, target, 2400)
         agent.kickoffStart = "offCenter"
     else:
-        pad = get_closest_small_pad(agent)
-        vec3Pad = vec3(pad.location.x, pad.location.y, pad.location.z)
-        carToPad = vec3Pad - agent.info.my_car.pos
-        target = agent.info.my_car.pos + 1.425 * carToPad
-        agent.drive = Drive(agent.info.my_car, target, 2300)
-        agent.kickoffStart = "Diagonal"
+        if random.choice([True, False]):
+            pad = get_closest_small_pad(agent)
+            vec3Pad = vec3(pad.location.x, pad.location.y, pad.location.z)
+            carToPad = vec3Pad - agent.info.my_car.pos
+            target = agent.info.my_car.pos + 1.425 * carToPad
+            agent.drive = Drive(agent.info.my_car, target, 2300)
+            agent.kickoffStart = "Diagonal_Scrub"
+        else:
+            target = agent.info.ball.pos
+            agent.drive = Drive(agent.info.my_car, target, 2400)
+            agent.kickoffStart = "Diagonal"
     agent.step = "Drive"
     agent.drive.step(1 / 60)
     agent.controls = agent.drive.controls
 
 
 def kickOff(agent):
-    if agent.kickoffStart == "Diagonal":
+    if agent.kickoffStart == "Diagonal_Scrub":
         if agent.step == "Drive":
             agent.drive.step(1 / 60)
             agent.controls = agent.drive.controls
@@ -54,6 +59,18 @@ def kickOff(agent):
                 agent.step = "Dodge2"
                 agent.dodge = AirDodge(agent.info.my_car, 0.075, agent.info.ball.pos)
         elif agent.step == "Dodge2":
+            agent.dodge.step(1 / 60)
+            agent.controls = agent.dodge.controls
+            if agent.dodge.finished:
+                agent.step = "Ballchasing"
+    elif agent.kickoffStart == "Diagonal":
+        if agent.step == "Drive":
+            agent.drive.step(1 / 60)
+            agent.controls = agent.drive.controls
+            if distance_2d(agent.info.ball.pos, agent.info.my_car.pos) < 850:
+                agent.step = "Dodge"
+                agent.dodge = AirDodge(agent.info.my_car, 0.075, agent.info.ball.pos)
+        elif agent.step == "Dodge":
             agent.dodge.step(1 / 60)
             agent.controls = agent.dodge.controls
             if agent.dodge.finished:
