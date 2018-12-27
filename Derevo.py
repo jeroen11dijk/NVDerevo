@@ -9,7 +9,7 @@ from boost import boost_grabbing_available
 from controls import controls
 from kickOff import initKickOff, kickOff
 from util import in_front_of_ball, render_string, eta_calculator, get_closest_pad, distance_2d
-from stateSetting import line_save
+from stateSetting import shot_taking
 
 
 class Derevo(BaseAgent):
@@ -66,7 +66,7 @@ class Derevo(BaseAgent):
             self.controls.steer = 0
         render_string(self, str(self.step))
         if keyboard.get_output():
-            line_save(self)
+            shot_taking(self)
         return self.controls
 
 

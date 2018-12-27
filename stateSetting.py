@@ -50,3 +50,14 @@ def line_save(agent):
     enemy_car = CarState(physics=Physics(location=Vector3(10000, 10000, 10000)))
     game_state = GameState(ball=ball_state, cars={agent.index: car_state, (1-agent.index): enemy_car})
     agent.set_game_state(game_state)
+
+
+def own_goal(agent):
+    car_pos = Vector3(0, 2500, 25)
+    ball_pos = Vector3(0, 2000, 100)
+    ball_state = BallState(Physics(location=ball_pos, velocity=Vector3(0, -500, 0)))
+    # car_state = CarState(boost_amount=87, physics=Physics(location=car_pos, velocity=Vector3(0, 0, 0), rotation=Rotator(0, -math.pi / 2, 0)))
+    car_state = CarState(boost_amount=87, physics=Physics(location=car_pos, rotation=Rotator(0, -math.pi / 2, 0)))
+    enemy_car = CarState(physics=Physics(location=Vector3(10000, 10000, 10000)))
+    game_state = GameState(ball=ball_state, cars={agent.index: car_state, (1-agent.index): enemy_car})
+    agent.set_game_state(game_state)
