@@ -7,28 +7,25 @@ def catching(agent):
     agent.drive.step(1 / 60)
     agent.controls = agent.drive.controls
     catching_speed(agent, agent.drive.target_pos)
-    if agent.defending:
-        agent.step = "Defending"
     if bounce_changed(agent):
         start_catching(agent)
-    if distance_2d(agent.info.my_car.pos, agent.drive.target_pos) < 200:
+    if distance_2d(agent.info.my_car.pos, agent.drive.target_pos) < 400:
         agent.step = "Dribbling"
-    if agent.drive.finished or agent.eta - agent.time < 0:
-        agent.drive = Drive(agent.info.my_car, agent.info.ball.pos, 1399)
+    if agent.drive.finished or agent.eta - agent.time < 0 or agent.defending:
         agent.step = "Ballchasing"
 
 
 def start_catching(agent):
     for i in range(len(agent.bounces)):
         location = agent.bounces[i][0]
-        bounceTime = agent.bounces[i][1]
-        if location[2] < 100 and is_reachable(agent, location, bounceTime):
-            agent.eta = agent.time + bounceTime / 60
+        bounce_time = agent.bounces[i][1]
+        if location[2] < 100 and is_reachable(agent, location, bounce_time):
+            agent.eta = agent.time + bounce_time / 60
             agent.drive = Drive(agent.info.my_car, location, 1399)
             agent.step = "Catching"
             return
     agent.drive = Drive(agent.info.my_car, agent.info.ball.pos, 1399)
-    agent.step = "Ballchasing"
+    agent.step = "Defending"
 
 
 def bounce_changed(agent):

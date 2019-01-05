@@ -1,9 +1,8 @@
 import math
 
 from RLUtilities.LinearAlgebra import normalize, rotation, vec3, vec2, dot
-from RLUtilities.Maneuvers import Drive
+from RLUtilities.Maneuvers import Drive, AirDodge
 
-from catching import start_catching
 from util import cap, distance_2d, sign, velocity_2d, time_z, eta_calculator, line_backline_intersect
 
 
@@ -20,34 +19,30 @@ def shooting(agent):
     target = shooting_target(agent)
     agent.drive.target_pos = target
     agent.drive.target_speed = shooting_speed(agent, target)
-    if agent.defending:
-        agent.step = "Defending"
-    # elif agent.inFrontOfBall or not can_shoot(agent):
-    #     agent.step = "Shadowing"
+    if should_dodge(agent):
+        agent.step = "Dodge"
+        agent.dodge = AirDodge(agent.info.my_car, 0.1, agent.info.ball.pos)
     elif not can_shoot(agent):
         agent.step = "Ballchasing"
-    elif agent.info.ball.pos[2] > 500:
-        start_catching(agent)
+        agent.drive = Drive(agent.info.my_car, agent.info.ball.pos, 1399)
 
 
 def shooting_target(agent):
     ball = agent.info.ball
     car = agent.info.my_car
     car_to_ball = ball.pos - car.pos
-    backline_intersect = sign(agent.team) * line_backline_intersect(agent, vec2(car.pos), vec2(car_to_ball))
-    if -850 < backline_intersect < 850:
+    backline_intersect = line_backline_intersect(agent.info.their_goal.center[1], vec2(car.pos), vec2(car_to_ball))
+    if -750 < backline_intersect < 750:
+        target = ball.pos
         goal_to_ball = normalize(car.pos - ball.pos)
         error = cap(distance_2d(ball.pos, car.pos) / 1000, 0, 1)
-    # Right of the ball
-    elif -850 > backline_intersect:
-        target = agent.info.their_goal.corners[3]
-        goal_to_ball = normalize(ball.pos - target)
-        goal_to_car = normalize(car.pos - target)
-        difference = goal_to_ball - goal_to_car
-        error = cap(abs(difference[0]) + abs(difference[1]), 1, 10)
-    # Left of the ball
-    elif 850 < backline_intersect:
-        target = agent.info.their_goal.corners[2]
+    else:
+        # Right of the ball
+        if -750 > backline_intersect:
+            target = agent.info.their_goal.corners[3] + vec3(250, 0, 0)
+        # Left of the ball
+        elif 750 < backline_intersect:
+            target = agent.info.their_goal.corners[2] - vec3(250, 0, 0)
         goal_to_ball = normalize(ball.pos - target)
         goal_to_car = normalize(car.pos - target)
         difference = goal_to_ball - goal_to_car
@@ -83,6 +78,15 @@ def shooting_speed(agent, location):
         return 2300
     else:
         return 2300 - (340 * (angle ** 2))
+
+
+def should_dodge(agent):
+    car = agent.info.my_car
+    their_goal = agent.info.their_goal
+    close_to_ball = distance_2d(car.pos, agent.info.ball.pos) < 850
+    close_to_goal = distance_2d(car.pos, their_goal.center) < 4000
+    aiming_for_goal = abs(line_backline_intersect(their_goal.center[1], vec2(car.pos), vec2(car.forward()))) < 850
+    return close_to_ball and close_to_goal and aiming_for_goal
 
 
 def can_shoot(agent):

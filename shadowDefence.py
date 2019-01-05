@@ -1,12 +1,12 @@
 import math
 
 from RLUtilities.LinearAlgebra import vec3, dot, norm, vec2
-from RLUtilities.Maneuvers import Drive, AirDodge, HalfFlip
+from RLUtilities.Maneuvers import Drive, AirDodge
 
 from boost import boost_grabbing_speed
 from catching import start_catching
 from shooting import can_shoot, start_shooting
-from util import get_closest_pad, cap, distance_2d, velocity_2d, get_closest_small_pad
+from util import get_closest_pad, cap, distance_2d, velocity_2d, get_closest_small_pad, can_dodge
 
 
 def shadow(agent):
@@ -23,10 +23,8 @@ def shadow(agent):
         agent.step = "Dodge"
         agent.dodge = AirDodge(agent.info.my_car, 0.1, target)
     if agent.defending:
-        agent.step = "Defending"
-    elif in_shadow_position(agent) or can_challenge(agent):
         agent.step = "Ballchasing"
-    elif agent.info.ball.pos[2] > 500:
+    elif agent.info.ball.pos[2] > 250:
         start_catching(agent)
     elif can_shoot(agent):
         start_shooting(agent)
@@ -34,14 +32,6 @@ def shadow(agent):
         agent.step = "Grabbing Boost"
         target = get_closest_pad(agent).pos
         agent.drive = Drive(agent.info.my_car, target, boost_grabbing_speed(agent, target))
-
-
-def can_dodge(agent, target):
-    bot_to_target = target - agent.info.my_car.pos
-    local_bot_to_target = dot(bot_to_target, agent.info.my_car.theta)
-    angle_front_to_target = math.atan2(local_bot_to_target[1], local_bot_to_target[0])
-    distance_bot_to_target = norm(vec2(bot_to_target))
-    return math.radians(-10) < angle_front_to_target < math.radians(10) and distance_bot_to_target > 750
 
 
 def in_shadow_position(agent):

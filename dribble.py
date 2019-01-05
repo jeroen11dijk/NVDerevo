@@ -5,6 +5,7 @@ from RLUtilities.LinearAlgebra import dot, angle_between, vec2
 from RLUtilities.Simulation import Input
 from util import distance_2d, velocity_2d, z0, sign, line_backline_intersect
 
+
 def aim(agent):
     controls = Input()
     car = agent.info.my_car
@@ -40,55 +41,39 @@ def aim(agent):
     forward = False
     if math.fabs(angle_car_forward_to_ball_vel) < math.radians(90):
         forward = True
-    # this section is the standard approach to a dribble
-    # the car quickly gets to the general area of the ball, then drives slow until it is very close
-    # then begins balancing
-    if distance > 900:
-        controls.throttle = 1.
-        controls.boost = False
-        # we limit the speed to 300 to ensure a slow approach
-    elif distance > 400 and velocity_2d(car.vel) > 300:
-        controls.throttle = -1
-    elif distance > 400:
-        controls.throttle = .1
-        controls.boost = False
-    # this is the balancing PID section
-    # it always starts with full boost/throttle because the bot thinks the ball is too far in front
-    # opposite is true for behind
+    # first we give the distance values signs
+    if forward:
+        d = ball_bot_diff
+        i = (ball.vel[0] ** 2 + ball.vel[1] ** 2)
     else:
-        # first we give the distance values signs
-        if forward:
-            d = ball_bot_diff
-            i = (ball.vel[0] ** 2 + ball.vel[1] ** 2)
-        else:
-            d = -ball_bot_diff
-            i = -(ball.vel[0] ** 2 + ball.vel[1] ** 2)
+        d = -ball_bot_diff
+        i = -(ball.vel[0] ** 2 + ball.vel[1] ** 2)
 
-        if math.fabs(math.degrees(angle_front_to_ball)) < 90:
-            p = distance_y
+    if math.fabs(math.degrees(angle_front_to_ball)) < 90:
+        p = distance_y
 
-        else:
-            p = -1 * distance_y
-        # this is the PID correction.  all of the callibration goes on right here
-        # there is literature about how to set the variables but it doesn't work quite the same
-        # because the car is only touching the ball (and interacting with the system) on bounces
-        # we run the PID formula through tanh to give a value between -1 and 1 for steering input
-        # if the ball is lower we have no velocity bias
-        bias_v = 600000  # 600000
+    else:
+        p = -1 * distance_y
+    # this is the PID correction.  all of the callibration goes on right here
+    # there is literature about how to set the variables but it doesn't work quite the same
+    # because the car is only touching the ball (and interacting with the system) on bounces
+    # we run the PID formula through tanh to give a value between -1 and 1 for steering input
+    # if the ball is lower we have no velocity bias
+    bias_v = 600000  # 600000
 
-        # just the basic PID if the ball is too low
-        if ball.pos[2] < 120:
-            correction = np.tanh((20 * p + .0015 * i + .006 * d) / 500)
-        # if the ball is on top of the car we use our bias (the bias is in velocity units squared)
-        else:
-            correction = np.tanh((20 * p + .0015 * (i - bias_v) + .006 * d) / 500)
-        # makes sure we don't get value over .99 so we dont exceed maximum thrust
-        controls.throttle = correction * .99
-        # anything over .9 is boost
-        if correction > .99:
-            controls.boost = True
-        else:
-            controls.boost = False
+    # just the basic PID if the ball is too low
+    if ball.pos[2] < 120:
+        correction = np.tanh((20 * p + .0015 * i + .006 * d) / 500)
+    # if the ball is on top of the car we use our bias (the bias is in velocity units squared)
+    else:
+        correction = np.tanh((20 * p + .0015 * (i - bias_v) + .006 * d) / 500)
+    # makes sure we don't get value over .99 so we dont exceed maximum thrust
+    controls.throttle = correction * .99
+    # anything over .9 is boost
+    if correction > .99:
+        controls.boost = True
+    else:
+        controls.boost = False
 
     # this is the PID steering section
     # p_s is the x component of the distance to the ball (relative to the cars direction)
@@ -103,16 +88,17 @@ def aim(agent):
         d_s = -d_s
     # d_s is actually -d_s ...whoops
     d_s = -d_s
-    max_bias = 45
-    backline_intersect = sign(agent.team) * line_backline_intersect(agent, vec2(car.pos), vec2(car.forward()))
-    if -850 < backline_intersect < 850:
+    max_bias = 35
+    backline_intersect = line_backline_intersect(agent.info.their_goal.center[1], vec2(car.pos), vec2(car.forward()))
+    if abs(backline_intersect) < 1000 or ball.pos[2] > 200:
         bias = 0
     # Right of the ball
     elif -850 > backline_intersect:
-        bias = -max_bias
+        bias = max_bias
     # Left of the ball
     elif 850 < backline_intersect:
-        bias = max_bias
+        bias = -max_bias
+
     # the correction settings can be altered to change performance
     correction = np.tanh((100 * (agent.p_s + bias) + 1500 * d_s) / 8000)
     # apply the correction
