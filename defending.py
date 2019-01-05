@@ -17,8 +17,7 @@ def defending(agent):
     agent.drive.target_speed = target_speed
     if target_speed - dot(agent.info.my_car.vel, agent.info.my_car.forward()) < 10:
         agent.controls.boost = 0
-        agent.controls.throttle = get_throttle(agent)
-        print(get_throttle(agent))
+        agent.controls.throttle = 1
     if agent.info.ball.pos[2] > 250:
         start_catching(agent)
     if not agent.defending:
