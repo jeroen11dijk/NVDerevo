@@ -15,8 +15,19 @@ def eta_calculator(car: Car, target: vec3):
     return 60 * distance / speed
 
 
+def get_speed(agent, location):
+    car = agent.info.my_car
+    local = dot(location - car.pos, car.theta)
+    angle = cap(math.atan2(local[1], local[0]), -3, 3)
+    distance = distance_2d(car.pos, location)
+    if distance > 2.5 * velocity_2d(car.vel):
+        return 2250
+    else:
+        return 2250 - (375 * (angle ** 2))
+
+
 def distance_2d(a, b):
-    return norm(vec2(a-b))
+    return norm(vec2(a - b))
 
 
 def angle_2d(target_location, object_location):
@@ -31,8 +42,8 @@ def velocity_2d(vel):
 def line_backline_intersect(y, origin, direction):
     if abs(direction[1]) < 1e-10:
         direction[1] = 1e-10
-    mult = (y - origin[1])/direction[1]
-    return (origin + mult*direction)[0]
+    mult = (y - origin[1]) / direction[1]
+    return (origin + mult * direction)[0]
 
 
 def get_closest_pad(agent):
@@ -47,43 +58,14 @@ def get_closest_pad(agent):
 
 
 def get_closest_small_pad(agent):
+    pads = agent.info.small_boost_pads
     pad = None
     distance = math.inf
-    for i in range(agent.get_field_info().num_boosts):
-        current = agent.get_field_info().boost_pads[i]
-        current_pos = vec3(current.location.x, current.location.y, current.location.z)
-        if not current.is_full_boost and distance_2d(agent.info.my_car.pos, current_pos) < distance:
-            distance = distance_2d(agent.info.my_car.pos, current_pos)
-            pad = current
+    for i in range(len(pads)):
+        if distance_2d(agent.info.my_car.pos, pads[i].pos) < distance:
+            distance = distance_2d(agent.info.my_car.pos, pads[i].pos)
+            pad = pads[i]
     return pad
-
-
-def Range(value, max_value):
-    if abs(value) > max_value:
-        value = math.copysign(max_value, value)
-    return value
-
-
-def get_throttle(agent):
-    vel = dot(agent.info.my_car.vel, agent.info.my_car.forward())
-    dacc = (agent.drive.target_speed - vel) / 60
-    return Range(dacc / (throttle_acc(1, vel) + 1e-9), 1)
-
-
-THROTTLE_ACCEL = 1600
-BREAK_ACCEL = 3500
-
-THROTTLE_MAX_SPEED = 1400
-MAX_CAR_SPEED = 2300
-
-
-def throttle_acc(throttle, vel):
-    if throttle * vel < 0:
-        return -3600 * sign(vel)
-    elif throttle == 0:
-        return -525 * sign(vel)
-    else:
-        return (-THROTTLE_ACCEL / THROTTLE_MAX_SPEED * min(abs(vel), THROTTLE_MAX_SPEED) + THROTTLE_ACCEL) * throttle
 
 
 def quad(a, b, c):
@@ -169,6 +151,3 @@ def render_string(agent, string):
     agent.renderer.draw_line_3d(agent.info.my_car.pos, agent.drive.target_pos, agent.renderer.black())
     agent.renderer.draw_string_2d(20, 20, 3, 3, string, agent.renderer.red())
     agent.renderer.end_rendering()
-
-
-

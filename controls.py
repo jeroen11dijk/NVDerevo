@@ -1,13 +1,11 @@
 from RLUtilities.Maneuvers import Drive, AirDodge
 
-from boost import boost_grabbing_speed, grab_boost
+from boost import grab_boost
 from catching import catching
-from catching import start_catching
 from defending import defending
 from dribble import aim
-from shooting import shooting
-from shooting import start_shooting, can_shoot
-from util import get_closest_pad, can_dodge
+from shooting import shooting, start_shooting, can_shoot
+from util import get_closest_pad, can_dodge, get_speed
 
 
 def controls(agent):
@@ -27,6 +25,11 @@ def controls(agent):
         shooting(agent)
     elif agent.step == "Grabbing Boost":
         grab_boost(agent)
+    elif agent.step == "Recovery":
+        agent.recovery.step(1 / 60)
+        agent.controls = agent.recovery.controls
+        if agent.info.my_car.on_ground:
+            agent.step = "Ballchasing"
     elif agent.step == "Dribbling":
         agent.controls = aim(agent)
         if agent.info.ball.pos[2] < 95:
@@ -46,11 +49,13 @@ def ballChase(agent):
         agent.dodge = AirDodge(agent.info.my_car, 0.1, agent.info.ball.pos)
     if agent.defending:
         agent.step = "Defending"
-    elif agent.info.ball.pos[2] > 250:
-        start_catching(agent)
+    # elif agent.info.ball.pos[2] > 250:
+    #     start_catching(agent)
+    elif not agent.info.my_car.on_ground:
+        agent.step = "Recovery"
     elif can_shoot(agent):
         start_shooting(agent)
     elif agent.boostGrabs:
         agent.step = "Grabbing Boost"
         target = get_closest_pad(agent).pos
-        agent.drive = Drive(agent.info.my_car, target, boost_grabbing_speed(agent, target))
+        agent.drive = Drive(agent.info.my_car, target, get_speed(agent, target))

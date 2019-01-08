@@ -1,6 +1,6 @@
 from RLUtilities.GameInfo import GameInfo, Ball
-from RLUtilities.LinearAlgebra import vec3
-from RLUtilities.Maneuvers import Drive
+from RLUtilities.LinearAlgebra import vec3, dot
+from RLUtilities.Maneuvers import Drive, AerialTurn
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
@@ -17,14 +17,13 @@ class Derevo(BaseAgent):
         self.name = name
         self.team = team
         self.index = index
-        self.info = GameInfo(self.index, self.team)
-        self.controls = None
+        self.info = None
+        self.controls = SimpleControllerState()
         self.kickoff = False
-        self.firstKickOff = True
         self.kickoffStart = None
         self.drive = None
         self.dodge = None
-        self.dribble = None
+        self.recovery = None
         self.bounces = []
         self.boostGrabs = False
         self.step = 0
@@ -33,6 +32,11 @@ class Derevo(BaseAgent):
         self.inFrontOfBall = False
         self.defending = False
         self.p_s = 0.
+
+    def initialize_agent(self):
+        while self.get_field_info().num_boosts == 0:
+            continue
+        self.info = GameInfo(self.index, self.team, self.get_field_info())
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         self.info.read_packet(packet)
@@ -43,11 +47,10 @@ class Derevo(BaseAgent):
         self.inFrontOfBall = in_front_of_ball(self)
         if self.drive is None:
             self.drive = Drive(self.info.my_car, self.info.ball.pos, 1399)
-        if self.kickoff and not prev_kickoff and not self.firstKickOff:
+        if self.recovery is None:
+            self.recovery = AerialTurn(self.info.my_car)
+        if self.kickoff and not prev_kickoff:
             initKickOff(self)
-        elif self.firstKickOff and self.get_field_info().num_boosts > 0:
-            initKickOff(self)
-            self.firstKickOff = False
         if self.kickoff or self.step == "Dodge2":
             kickOff(self)
         else:
@@ -58,6 +61,9 @@ class Derevo(BaseAgent):
         if not packet.game_info.is_round_active:
             self.controls.steer = 0
         render_string(self, str(self.step))
+        if self.drive.target_speed - dot(self.info.my_car.vel, self.info.my_car.forward()) < 10:
+            self.controls.boost = 0
+            self.controls.throttle = 1
         return self.controls
 
 

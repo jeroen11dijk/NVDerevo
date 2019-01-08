@@ -3,8 +3,7 @@ import math
 from RLUtilities.LinearAlgebra import normalize, rotation, vec3, vec2, dot
 from RLUtilities.Maneuvers import Drive
 
-from catching import start_catching
-from util import line_backline_intersect, cap, distance_2d, sign, velocity_2d, get_throttle
+from util import line_backline_intersect, cap, distance_2d, sign, get_speed
 
 
 def defending(agent):
@@ -12,17 +11,12 @@ def defending(agent):
     agent.controls = agent.drive.controls
     target = defending_target(agent)
     agent.drive.target_pos = target
-    target_speed = 2250
-    # agent.drive.target_speed = defending_speed(agent, target)
-    agent.drive.target_speed = target_speed
-    if target_speed - dot(agent.info.my_car.vel, agent.info.my_car.forward()) < 10:
-        agent.controls.boost = 0
-        agent.controls.throttle = 1
-    if agent.info.ball.pos[2] > 250:
-        start_catching(agent)
+    agent.drive.target_speed = get_speed(agent, target)
     if not agent.defending:
         agent.step = "Ballchasing"
         agent.drive = Drive(agent.info.my_car, agent.info.ball.pos, 1399)
+    if not agent.info.my_car.on_ground:
+        agent.step = "Recovery"
 
 
 def defending_target(agent):
@@ -62,14 +56,3 @@ def defending_target(agent):
         location[0] = cap(location[0], -3850, 3850)
         location[1] = location[1] + (-sign(agent.team) * cap(extra, -800, 800))
     return location
-
-
-def defending_speed(agent, location):
-    car = agent.info.my_car
-    local = dot(location - car.pos, car.theta)
-    angle = cap(math.atan2(local[1], local[0]), -3, 3)
-    distance = distance_2d(car.pos, location)
-    if distance > 2.5 * velocity_2d(car.vel):
-        return 2300
-    else:
-        return 2300 - (340 * (angle ** 2))

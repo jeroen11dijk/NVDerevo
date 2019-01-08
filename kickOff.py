@@ -10,20 +10,17 @@ from util import get_closest_small_pad, sign, distance_2d
 def initKickOff(agent):
     if abs(agent.info.my_car.pos[0]) < 250:
         pad = get_closest_small_pad(agent)
-        target = vec3(pad.location.x, pad.location.y, pad.location.z) - sign(agent.team) * vec3(0, 500, 0)
+        target = vec3(pad.pos[0], pad.pos[1], pad.pos[2]) - sign(agent.team) * vec3(0, 500, 0)
         agent.drive = Drive(agent.info.my_car, target, 2400)
         agent.kickoffStart = "Center"
     elif abs(agent.info.my_car.pos[0]) < 1000:
-        # target = agent.info.ball.pos
-        pad = get_the_boost_pad_for_the_kickoff(agent)
-        target = vec3(pad.location.x, pad.location.y, pad.location.z)
+        target = agent.info.ball.pos
         agent.drive = Drive(agent.info.my_car, target, 2400)
         agent.kickoffStart = "offCenter"
-
     else:
         if random.choice([True, False]):
             pad = get_closest_small_pad(agent)
-            vec3_pad = vec3(pad.location.x, pad.location.y, pad.location.z)
+            vec3_pad = vec3(pad.pos[0], pad.pos[1], pad.pos[2])
             car_to_pad = vec3_pad - agent.info.my_car.pos
             target = agent.info.my_car.pos + 1.425 * car_to_pad
             agent.drive = Drive(agent.info.my_car, target, 2300)
@@ -44,7 +41,8 @@ def kickOff(agent):
             agent.controls = agent.drive.controls
             if agent.drive.finished:
                 agent.step = "Dodge1"
-                target = agent.info.ball.pos + sign(agent.team) * vec3(0, 150, 0)
+                # target = agent.info.ball.pos + sign(agent.team) * vec3(0, 150, 0)
+                target = agent.info.ball.pos
                 agent.dodge = AirDodge(agent.info.my_car, 0.075, target)
         elif agent.step == "Dodge1":
             agent.dodge.step(1 / 60)
@@ -109,8 +107,7 @@ def kickOff(agent):
         if agent.step == "Drive":
             agent.drive.step(1 / 60)
             agent.controls = agent.drive.controls
-            # if agent.info.my_car.boost < 15 or agent.drive.finished:
-            if agent.drive.finished:
+            if agent.info.my_car.boost < 15 or agent.drive.finished:
                 agent.step = "Dodge1"
                 agent.dodge = AirDodge(agent.info.my_car, 0.075, agent.info.ball.pos)
         elif agent.step == "Dodge1":
