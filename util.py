@@ -1,18 +1,6 @@
 import math
 
-from RLUtilities.GameInfo import Car
-from RLUtilities.LinearAlgebra import vec3, vec2, dot, normalize, norm
-
-
-def eta_calculator(car: Car, target: vec3):
-    boost_time = car.boost / 33
-    speed = cap(dot(vec2(car.vel), vec2(normalize((target - car.pos)))) + 500 * boost_time ** 2, 1, 2300)
-    distance = distance_2d(car.pos, target)
-    if (distance / speed) < boost_time:
-        speed = cap(dot(vec2(car.vel), vec2(normalize((target - car.pos)))) + 500 * (distance / speed) ** 2, 1, 2300)
-        distance = distance_2d(car.pos, target)
-        return 60 * distance / speed
-    return 60 * distance / speed
+from RLUtilities.LinearAlgebra import vec3, vec2, dot, norm
 
 
 def get_speed(agent, location):
@@ -23,7 +11,18 @@ def get_speed(agent, location):
     if distance > 2.5 * velocity_2d(car.vel):
         return 2250
     else:
-        return 2250 - (375 * (angle ** 2))
+        return 2250 - (400 * (angle ** 2))
+
+
+def get_ballchase_speed(agent, location):
+    car = agent.info.my_car
+    local = dot(location - car.pos, car.theta)
+    angle = cap(math.atan2(local[1], local[0]), -3, 3)
+    distance = distance_2d(car.pos, location)
+    if distance > 2.5 * velocity_2d(car.vel):
+        return 1500
+    else:
+        return 1500 - (375 * (angle ** 2))
 
 
 def distance_2d(a, b):

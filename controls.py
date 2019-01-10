@@ -2,10 +2,12 @@ from RLUtilities.Maneuvers import Drive, AirDodge
 
 from boost import grab_boost
 from catching import catching
+from catching import start_catching
 from defending import defending
 from dribble import aim
+from shadowDefence import shadow
 from shooting import shooting, start_shooting, can_shoot
-from util import get_closest_pad, can_dodge, get_speed
+from util import get_closest_pad, can_dodge, get_speed, get_ballchase_speed, distance_2d
 
 
 def controls(agent):
@@ -15,7 +17,7 @@ def controls(agent):
         agent.dodge.step(1 / 60)
         agent.controls = agent.dodge.controls
         agent.controls.boost = 0
-        if agent.dodge.finished:
+        if agent.dodge.finished and agent.info.my_car.on_ground:
             agent.step = "Ballchasing"
     elif agent.step == "Catching":
         catching(agent)
@@ -25,6 +27,8 @@ def controls(agent):
         shooting(agent)
     elif agent.step == "Grabbing Boost":
         grab_boost(agent)
+    elif agent.step == "Shadowing":
+        shadow(agent)
     elif agent.step == "Recovery":
         agent.recovery.step(1 / 60)
         agent.controls = agent.recovery.controls
@@ -34,13 +38,18 @@ def controls(agent):
         agent.controls = aim(agent)
         if agent.info.ball.pos[2] < 95:
             start_shooting(agent)
+        if distance_2d(agent.info.ball.pos, agent.info.my_car.pos) > 500:
+            agent.step = "Ballchasing"
+        if distance_2d(agent.info.their_goal.center, agent.info.my_car.pos) < 2000 or distance_2d(
+                agent.info.opponents[0].pos, agent.info.my_car.pos) < 1500:
+            agent.step = "Dodge"
+            agent.dodge = AirDodge(agent.info.my_car, 0.25, agent.info.their_goal.center)
     else:
         agent.step = "Ballchasing"
 
 
 def ballChase(agent):
-    if agent.drive.target_speed != 1399:
-        agent.drive.target_speed = 1399
+    agent.drive.target_speed = get_ballchase_speed(agent, agent.info.ball.pos)
     agent.drive.target_pos = agent.info.ball.pos
     agent.drive.step(1 / 60)
     agent.controls = agent.drive.controls
@@ -49,8 +58,10 @@ def ballChase(agent):
         agent.dodge = AirDodge(agent.info.my_car, 0.1, agent.info.ball.pos)
     if agent.defending:
         agent.step = "Defending"
-    # elif agent.info.ball.pos[2] > 250:
-    #     start_catching(agent)
+    elif agent.inFrontOfBall:
+        agent.step = "Shadowing"
+    elif agent.info.ball.pos[2] > 350:
+        start_catching(agent)
     elif not agent.info.my_car.on_ground:
         agent.step = "Recovery"
     elif can_shoot(agent):

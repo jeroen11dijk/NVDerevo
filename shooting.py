@@ -3,7 +3,7 @@ import math
 from RLUtilities.LinearAlgebra import normalize, rotation, vec3, vec2, dot
 from RLUtilities.Maneuvers import Drive, AirDodge
 
-from util import cap, distance_2d, sign, time_z, eta_calculator, line_backline_intersect, get_speed
+from util import cap, distance_2d, sign, time_z, line_backline_intersect, get_speed
 
 
 def start_shooting(agent):
@@ -80,7 +80,7 @@ def should_dodge(agent):
 
 def can_shoot(agent):
     ball = agent.info.ball
-    closer = eta_calculator(agent.info.my_car, ball.pos) < eta_calculator(agent.info.opponents[0], ball.pos)
+    closer = distance_2d(agent.info.my_car.pos, ball.pos) < distance_2d(agent.info.opponents[0].pos, ball.pos)
     on_the_ground = abs(ball.vel[2]) < 150 and time_z(ball) < 1
     if on_the_ground and closer and not agent.inFrontOfBall:
         return True

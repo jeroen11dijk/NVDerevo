@@ -1,13 +1,18 @@
-from RLUtilities.GameInfo import GameInfo, Ball
-from RLUtilities.LinearAlgebra import vec3, dot
+import math
+import random
+
+from RLUtilities.GameInfo import Ball
+from RLUtilities.GameInfo import GameInfo
+from RLUtilities.LinearAlgebra import dot, vec3
 from RLUtilities.Maneuvers import Drive, AerialTurn
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
+from rlbot.utils.game_state_util import Vector3, GameState, BallState, Physics, CarState, Rotator
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 from boost import boost_grabbing_available
 from controls import controls
 from kickOff import initKickOff, kickOff
-from util import in_front_of_ball, render_string, eta_calculator, get_closest_pad, distance_2d
+from util import in_front_of_ball, render_string, get_closest_pad, distance_2d
 
 
 class Derevo(BaseAgent):
@@ -64,6 +69,8 @@ class Derevo(BaseAgent):
         if self.drive.target_speed - dot(self.info.my_car.vel, self.info.my_car.forward()) < 10:
             self.controls.boost = 0
             self.controls.throttle = 1
+        if self.kickoff and not prev_kickoff or self.info.ball.pos[2] < 100:
+            set_state(self)
         return self.controls
 
 
@@ -71,7 +78,7 @@ def predict(agent):
     agent.bounces = []
     agent.boostGrabs = False
     agent.defending = False
-    eta_to_boostpad = round(eta_calculator(agent.info.my_car, get_closest_pad(agent).pos))
+    eta_to_boostpad = round(distance_2d(agent.info.my_car.pos, get_closest_pad(agent).pos) * 60 / 1399)
     ball_prediction = agent.get_ball_prediction_struct()
     for i in range(ball_prediction.num_slices):
         location = vec3(ball_prediction.slices[i].physics.location.x,
@@ -89,3 +96,16 @@ def predict(agent):
             agent.boostGrabs = boost_grabbing_available(agent, ball)
         if agent.info.my_goal.inside(location) or distance_2d(location, agent.info.my_goal.center) < 3000:
             agent.defending = True
+
+
+def set_state(agent):
+    agent.step = "Ballchasing"
+    car_pos = Vector3(random.uniform(-3500, 3500), random.uniform(0, -4000), 25)
+    enemy_car = CarState(physics=Physics(location=Vector3(0, 5120, 25), velocity=Vector3(0, 0, 0)))
+    # enemy_car = CarState(physics=Physics(location=Vector3(10000, 5120, 25), velocity=Vector3(0, 0, 0)))
+    ball_pos = Vector3(car_pos.x, car_pos.y + 500, 500)
+    ball_state = BallState(Physics(location=ball_pos, velocity=Vector3(0, 0, 500)))
+    car_state = CarState(boost_amount=87, physics=Physics(location=car_pos, velocity=Vector3(0, 0, 0),
+                                                          rotation=Rotator(0, math.pi / 2, 0)))
+    game_state = GameState(ball=ball_state, cars={0: car_state, 1: enemy_car})
+    agent.set_game_state(game_state)

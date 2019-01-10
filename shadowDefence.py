@@ -1,5 +1,5 @@
 from RLUtilities.LinearAlgebra import vec3
-from RLUtilities.Maneuvers import Drive, AirDodge
+from RLUtilities.Maneuvers import AirDodge
 
 from util import get_speed, distance_2d, get_closest_small_pad, can_dodge
 
@@ -17,9 +17,10 @@ def shadow(agent):
     if can_dodge(agent, target):
         agent.step = "Dodge"
         agent.dodge = AirDodge(agent.info.my_car, 0.1, target)
-    if not agent.defending:
+    if agent.defending and abs(agent.info.ball.pos[0]) < 2000:
+        agent.step = "Defending"
+    if not agent.inFrontOfBall and not agent.defending:
         agent.step = "Ballchasing"
-        agent.drive = Drive(agent.info.my_car, agent.info.ball.pos, 1399)
 
 
 def shadow_target(agent):
