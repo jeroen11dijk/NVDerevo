@@ -1,9 +1,30 @@
 import math
 
 import numpy as np
-from RLUtilities.LinearAlgebra import dot, angle_between, vec2
+from RLUtilities.LinearAlgebra import dot, angle_between, vec2, norm
+from RLUtilities.Maneuvers import AirDodge
 from RLUtilities.Simulation import Input
-from util import distance_2d, velocity_2d, z0, sign, line_backline_intersect
+
+from shooting import start_shooting
+from util import distance_2d, velocity_2d, z0, line_backline_intersect
+
+
+def dribble(agent):
+    agent.controls = aim(agent)
+    bot_to_target = agent.info.opponents[0].pos - agent.info.my_car.pos
+    local_bot_to_target = dot(bot_to_target, agent.info.my_car.theta)
+    angle_front_to_target = math.atan2(local_bot_to_target[1], local_bot_to_target[0])
+    opponent_is_near = norm(vec2(bot_to_target)) < 2000
+    opponent_is_way = math.radians(-10) < angle_front_to_target < math.radians(10)
+    if agent.info.ball.pos[2] < 95:
+        start_shooting(agent)
+    if distance_2d(agent.info.ball.pos, agent.info.my_car.pos) > 500:
+        agent.step = "Ballchasing"
+    if agent.defending:
+        agent.step = "Defending"
+    if opponent_is_near and opponent_is_way:
+        agent.step = "Dodge"
+        agent.dodge = AirDodge(agent.info.my_car, 0.25, 1000 * agent.info.my_car.up())
 
 
 def aim(agent):

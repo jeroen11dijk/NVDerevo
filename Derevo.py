@@ -4,7 +4,7 @@ import random
 from RLUtilities.GameInfo import Ball
 from RLUtilities.GameInfo import GameInfo
 from RLUtilities.LinearAlgebra import dot, vec3
-from RLUtilities.Maneuvers import Drive, AerialTurn
+from RLUtilities.Maneuvers import Drive, AerialTurn, AirDodge
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.game_state_util import Vector3, GameState, BallState, Physics, CarState, Rotator
 from rlbot.utils.structures.game_data_struct import GameTickPacket
@@ -54,6 +54,8 @@ class Derevo(BaseAgent):
             self.drive = Drive(self.info.my_car, self.info.ball.pos, 1399)
         if self.recovery is None:
             self.recovery = AerialTurn(self.info.my_car)
+        if self.dodge is None:
+            self.dodge = AirDodge(self.info.my_car, 0.25, self.info.ball.pos)
         if self.kickoff and not prev_kickoff:
             initKickOff(self)
         if self.kickoff or self.step == "Dodge2":
@@ -69,8 +71,8 @@ class Derevo(BaseAgent):
         if self.drive.target_speed - dot(self.info.my_car.vel, self.info.my_car.forward()) < 10:
             self.controls.boost = 0
             self.controls.throttle = 1
-        if self.kickoff and not prev_kickoff or self.info.ball.pos[2] < 100:
-            set_state(self)
+        # if self.kickoff and not prev_kickoff or self.info.ball.pos[2] < 100:
+        #     set_state(self)
         return self.controls
 
 

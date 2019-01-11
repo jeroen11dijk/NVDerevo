@@ -3,7 +3,6 @@ import math
 from RLUtilities.LinearAlgebra import normalize, rotation, vec3, vec2, dot
 from RLUtilities.Maneuvers import Drive
 
-from catching import start_catching
 from util import line_backline_intersect, cap, distance_2d, sign, get_speed
 
 
@@ -18,8 +17,6 @@ def defending(agent):
         agent.drive = Drive(agent.info.my_car, agent.info.ball.pos, 1399)
     if not agent.info.my_car.on_ground:
         agent.step = "Recovery"
-    if agent.info.ball.pos[2] > 350:
-        start_catching(agent)
 
 
 def defending_target(agent):
@@ -37,8 +34,6 @@ def defending_target(agent):
         difference = target_to_ball - target_to_car
         error = cap(abs(difference[0]) + abs(difference[1]), 1, 10)
     else:
-        if abs(agent.info.ball.pos[0]) > 2000:
-            return agent.info.my_goal.center
         target_to_ball = normalize(car.pos - ball.pos)
         error = cap(distance_2d(ball.pos, car.pos) / 1000, 0, 1)
 

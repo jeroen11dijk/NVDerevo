@@ -4,10 +4,9 @@ from boost import grab_boost
 from catching import catching
 from catching import start_catching
 from defending import defending
-from dribble import aim
-from shadowDefence import shadow
+from dribble import dribble
 from shooting import shooting, start_shooting, can_shoot
-from util import get_closest_pad, can_dodge, get_speed, get_ballchase_speed, distance_2d
+from util import get_closest_pad, can_dodge, get_speed, get_ballchase_speed
 
 
 def controls(agent):
@@ -27,23 +26,13 @@ def controls(agent):
         shooting(agent)
     elif agent.step == "Grabbing Boost":
         grab_boost(agent)
-    elif agent.step == "Shadowing":
-        shadow(agent)
     elif agent.step == "Recovery":
         agent.recovery.step(1 / 60)
         agent.controls = agent.recovery.controls
         if agent.info.my_car.on_ground:
             agent.step = "Ballchasing"
     elif agent.step == "Dribbling":
-        agent.controls = aim(agent)
-        if agent.info.ball.pos[2] < 95:
-            start_shooting(agent)
-        if distance_2d(agent.info.ball.pos, agent.info.my_car.pos) > 500:
-            agent.step = "Ballchasing"
-        if distance_2d(agent.info.their_goal.center, agent.info.my_car.pos) < 2000 or distance_2d(
-                agent.info.opponents[0].pos, agent.info.my_car.pos) < 1500:
-            agent.step = "Dodge"
-            agent.dodge = AirDodge(agent.info.my_car, 0.25, agent.info.their_goal.center)
+        dribble(agent)
     else:
         agent.step = "Ballchasing"
 
@@ -58,8 +47,6 @@ def ballChase(agent):
         agent.dodge = AirDodge(agent.info.my_car, 0.1, agent.info.ball.pos)
     if agent.defending:
         agent.step = "Defending"
-    elif agent.inFrontOfBall:
-        agent.step = "Shadowing"
     elif agent.info.ball.pos[2] > 350:
         start_catching(agent)
     elif not agent.info.my_car.on_ground:

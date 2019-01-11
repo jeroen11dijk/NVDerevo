@@ -13,6 +13,8 @@ def catching(agent):
         agent.step = "Dribbling"
     if agent.drive.finished or agent.eta - agent.time < 0:
         agent.step = "Ballchasing"
+    if agent.defending:
+        agent.step = "Defending"
 
 
 def start_catching(agent):
