@@ -9,6 +9,7 @@ from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.game_state_util import Vector3, GameState, BallState, Physics, CarState, Rotator
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
+from area import get_area
 from boost import boost_grabbing_available
 from controls import controls
 from kickOff import initKickOff, kickOff
@@ -23,6 +24,7 @@ class Derevo(BaseAgent):
         self.team = team
         self.index = index
         self.info = None
+        self.areas = get_area()
         self.controls = SimpleControllerState()
         self.kickoff = False
         self.kickoffStart = None
@@ -73,6 +75,12 @@ class Derevo(BaseAgent):
             self.controls.throttle = 1
         # if self.kickoff and not prev_kickoff or self.info.ball.pos[2] < 100:
         #     set_state(self)
+        for i in range(len(self.areas)):
+            area = self.areas[i]
+            if area.is_inside(self.info.ball.pos):
+                self.renderer.begin_rendering('The Area')
+                self.renderer.draw_string_2d(20, 1000, 3, 3, area.to_string(self), self.renderer.red())
+                self.renderer.end_rendering()
         return self.controls
 
 

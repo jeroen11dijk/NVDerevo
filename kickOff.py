@@ -1,7 +1,6 @@
-import math
 import random
 
-from RLUtilities.LinearAlgebra import vec3, dot
+from RLUtilities.LinearAlgebra import vec3
 from RLUtilities.Maneuvers import Drive, AirDodge
 
 from util import get_closest_small_pad, sign, distance_2d
@@ -129,20 +128,3 @@ def kickOff(agent):
             agent.controls = agent.dodge.controls
             if agent.dodge.finished:
                 agent.step = "Ballchasing"
-
-
-def get_the_boost_pad_for_the_kickoff(agent):
-    pad = None
-    distance = math.inf
-    for i in range(agent.get_field_info().num_boosts):
-        current = agent.get_field_info().boost_pads[i]
-        current_pos = vec3(current.location.x, current.location.y, current.location.z)
-        bot_to_target = current_pos - agent.info.my_car.pos
-        local_bot_to_target = dot(bot_to_target, agent.info.my_car.theta)
-        angle_front_to_target = math.atan2(local_bot_to_target[1], local_bot_to_target[0])
-        in_front_of_car = -math.radians(45) < angle_front_to_target < math.radians(45)
-        closer = distance_2d(agent.info.my_car.pos, current_pos) < distance
-        if not current.is_full_boost and in_front_of_car and closer:
-            distance = distance_2d(agent.info.my_car.pos, current_pos)
-            pad = current
-    return pad
