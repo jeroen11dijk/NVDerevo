@@ -3,17 +3,17 @@ import random
 
 from RLUtilities.GameInfo import Ball
 from RLUtilities.GameInfo import GameInfo
-from RLUtilities.LinearAlgebra import dot, vec3
+from RLUtilities.LinearAlgebra import dot, vec3, vec2
 from RLUtilities.Maneuvers import Drive, AerialTurn, AirDodge
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.game_state_util import Vector3, GameState, BallState, Physics, CarState, Rotator
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
-from area import get_area
+from area import Area, AreaName
 from boost import boost_grabbing_available
 from controls import controls
 from kickOff import initKickOff, kickOff
-from util import in_front_of_ball, render_string, get_closest_pad, distance_2d
+from util import in_front_of_ball, render_string, get_closest_pad, distance_2d, sign
 
 
 class Derevo(BaseAgent):
@@ -24,7 +24,16 @@ class Derevo(BaseAgent):
         self.team = team
         self.index = index
         self.info = None
-        self.areas = get_area()
+        a = sign(team)
+        self.my_box = Area(AreaName.BOX, vec2(-1788.0, a * 2300.0), vec2(1788.0, a * 5120.0))
+        self.their_box = Area(AreaName.BOX, vec2(-1788.0, sign(team) * 2300.0), vec2(1788.0, a * 5120.0))
+        self.back_left = Area(AreaName.CORNER, vec2(-a * 1788.0, a * 2300.0), vec2(-a * 4096.0, a * 5120.0))
+        self.back_right = Area(AreaName.CORNER, vec2(a * 1788.0, a * 2300.0), vec2(a * 4096.0, a * 5120.0))
+        self.their_left = Area(AreaName.CORNER, vec2(-a * 1788.0, -a * 2300.0), vec2(-a * 4096.0, -a * 5120.0))
+        self.their_right = Area(AreaName.CORNER, vec2(a * 1788.0, a * 2300.0), vec2(a * 4096.0, a * 5120.0))
+        self.right_wall = Area(AreaName.WALL, vec2(-a * 3072.0, -2300.0), vec2(-a * 4096.0, 2300.0))
+        self.left_wall = Area(AreaName.WALL, vec2(a * 3072.0, -2300.0), vec2(a * 4096.0, 2300.0))
+        self.our_half = Area(AreaName.HALF, vec2(3072.0, a * 2300.0), vec2(-3072.0, 0.0))
         self.controls = SimpleControllerState()
         self.kickoff = False
         self.kickoffStart = None
