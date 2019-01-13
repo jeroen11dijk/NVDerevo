@@ -1,22 +1,28 @@
 import math
 
 from RLUtilities.LinearAlgebra import normalize, rotation, vec3, vec2, dot
-from RLUtilities.Maneuvers import Drive
+from RLUtilities.Maneuvers import Drive, AirDodge
 
-from util import line_backline_intersect, cap, distance_2d, sign, get_speed
+from util import line_backline_intersect, cap, distance_2d, sign, get_speed, powerslide, can_dodge
 
 
 def defending(agent):
     agent.drive.step(1 / 60)
     agent.controls = agent.drive.controls
+    powerslide(agent)
     target = defending_target(agent)
     agent.drive.target_pos = target
     agent.drive.target_speed = get_speed(agent, target)
+    if can_dodge(agent, target):
+        agent.step = "Dodge"
+        agent.dodge = AirDodge(agent.info.my_car, 0.1, target)
     if not agent.defending:
         agent.step = "Ballchasing"
         agent.drive = Drive(agent.info.my_car, agent.info.ball.pos, 1399)
     if not agent.info.my_car.on_ground:
         agent.step = "Recovery"
+    if agent.back_corners and agent.inFrontOfBall:
+        agent.step = "Shadowing"
 
 
 def defending_target(agent):
@@ -24,7 +30,7 @@ def defending_target(agent):
     car = agent.info.my_car
     car_to_ball = ball.pos - car.pos
     backline_intersect = line_backline_intersect(agent.info.my_goal.center[1], vec2(car.pos), vec2(car_to_ball))
-    if abs(backline_intersect) < 2000:
+    if abs(backline_intersect) < 2000 and agent.inFrontOfBall:
         if backline_intersect < 0:
             target = agent.info.my_goal.center - vec3(2000, 0, 0)
         else:

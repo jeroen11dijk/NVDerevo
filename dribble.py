@@ -2,7 +2,6 @@ import math
 
 import numpy as np
 from RLUtilities.LinearAlgebra import dot, angle_between, vec2, norm
-from RLUtilities.Maneuvers import AirDodge
 from RLUtilities.Simulation import Input
 
 from shooting import start_shooting
@@ -22,9 +21,9 @@ def dribble(agent):
         agent.step = "Ballchasing"
     if agent.defending:
         agent.step = "Defending"
-    if opponent_is_near and opponent_is_way:
-        agent.step = "Dodge"
-        agent.dodge = AirDodge(agent.info.my_car, 0.25, 1000 * agent.info.my_car.up())
+    # if opponent_is_near and opponent_is_way:
+    #     agent.step = "Dodge"
+    #     agent.dodge = AirDodge(agent.info.my_car, 0.25, 1000 * agent.info.my_car.up())
 
 
 def aim(agent):

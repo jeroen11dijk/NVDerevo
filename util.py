@@ -14,6 +14,14 @@ def get_speed(agent, location):
         return 2250 - (400 * (angle ** 2))
 
 
+def powerslide(agent):
+    target_local = dot(agent.drive.target_pos - agent.info.my_car.pos, agent.info.my_car.theta)
+    phi = math.atan2(target_local[1], target_local[0])
+    if abs(phi) > 1.7:
+        agent.controls.handbrake = 1
+        agent.controls.boost = 0
+
+
 def get_ballchase_speed(agent, location):
     car = agent.info.my_car
     local = dot(location - car.pos, car.theta)
@@ -119,7 +127,8 @@ def can_dodge(agent, target):
     distance_bot_to_target = norm(vec2(bot_to_target))
     good_angle = math.radians(-10) < angle_front_to_target < math.radians(10)
     on_ground = agent.info.my_car.on_ground and agent.info.my_car.pos[2] < 100
-    return good_angle and distance_bot_to_target > 2000 and on_ground
+    going_fast = velocity_2d(agent.info.my_car.vel) > 1000
+    return good_angle and distance_bot_to_target > 2000 and on_ground and going_fast
 
 
 def in_front_of_ball(agent):

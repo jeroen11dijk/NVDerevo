@@ -11,8 +11,10 @@ def catching(agent):
         start_catching(agent)
     if distance_2d(agent.info.my_car.pos, agent.drive.target_pos) < 400:
         agent.step = "Dribbling"
-    if agent.drive.finished or agent.eta - agent.time < 0:
+    if agent.drive.finished or agent.eta - agent.time <= 0:
         agent.step = "Ballchasing"
+    if not agent.info.my_car.on_ground:
+        agent.step = "Recovery"
     if agent.defending:
         agent.step = "Defending"
 

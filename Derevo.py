@@ -13,7 +13,7 @@ from area import Area, AreaName
 from boost import boost_grabbing_available
 from controls import controls
 from kickOff import initKickOff, kickOff
-from util import in_front_of_ball, render_string, get_closest_pad, distance_2d, sign
+from util import in_front_of_ball, render_string, get_closest_pad, distance_2d, sign, line_backline_intersect
 
 
 class Derevo(BaseAgent):
@@ -47,6 +47,7 @@ class Derevo(BaseAgent):
         self.eta = None
         self.inFrontOfBall = False
         self.defending = False
+        self.back_corners = False
         self.p_s = 0.
 
     def initialize_agent(self):
@@ -84,12 +85,6 @@ class Derevo(BaseAgent):
             self.controls.throttle = 1
         # if self.kickoff and not prev_kickoff or self.info.ball.pos[2] < 100:
         #     set_state(self)
-        for i in range(len(self.areas)):
-            area = self.areas[i]
-            if area.is_inside(self.info.ball.pos):
-                self.renderer.begin_rendering('The Area')
-                self.renderer.draw_string_2d(20, 1000, 3, 3, area.to_string(self), self.renderer.red())
-                self.renderer.end_rendering()
         return self.controls
 
 
@@ -97,6 +92,7 @@ def predict(agent):
     agent.bounces = []
     agent.boostGrabs = False
     agent.defending = False
+    agent.back_corners = False
     eta_to_boostpad = round(distance_2d(agent.info.my_car.pos, get_closest_pad(agent).pos) * 60 / 1399)
     ball_prediction = agent.get_ball_prediction_struct()
     for i in range(ball_prediction.num_slices):
@@ -113,8 +109,13 @@ def predict(agent):
             agent.bounces.append((location, i))
         if i == eta_to_boostpad:
             agent.boostGrabs = boost_grabbing_available(agent, ball)
-        if agent.info.my_goal.inside(location) or distance_2d(location, agent.info.my_goal.center) < 3000:
+        car = agent.info.my_car
+        car_to_ball = location - car.pos
+        backline_intersect = line_backline_intersect(agent.info.my_goal.center[1], vec2(car.pos), vec2(car_to_ball))
+        if agent.my_box.is_inside(location):
             agent.defending = True
+        if agent.back_left.is_inside(location) and agent.back_right.is_inside(location):
+            agent.back_corners = True
 
 
 def set_state(agent):

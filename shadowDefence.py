@@ -1,12 +1,13 @@
 from RLUtilities.LinearAlgebra import vec3
 from RLUtilities.Maneuvers import AirDodge
 
-from util import get_speed, distance_2d, get_closest_small_pad, can_dodge
+from util import get_speed, distance_2d, get_closest_small_pad, can_dodge, powerslide
 
 
 def shadow(agent):
     agent.drive.step(1 / 60)
     agent.controls = agent.drive.controls
+    powerslide(agent)
     target = shadow_target(agent)
     pad = get_closest_small_pad(agent)
     pad_pos = vec3(pad.pos[0], pad.pos[1], pad.pos[2])
@@ -17,9 +18,9 @@ def shadow(agent):
     if can_dodge(agent, target):
         agent.step = "Dodge"
         agent.dodge = AirDodge(agent.info.my_car, 0.1, target)
-    if agent.defending and abs(agent.info.ball.pos[0]) < 2000:
+    if agent.defending:
         agent.step = "Defending"
-    if not agent.inFrontOfBall and not agent.defending:
+    if not agent.inFrontOfBall:
         agent.step = "Ballchasing"
 
 

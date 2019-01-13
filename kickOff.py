@@ -62,7 +62,7 @@ def kickOff(agent):
         elif agent.step == "Dodge2":
             agent.dodge.step(1 / 60)
             agent.controls = agent.dodge.controls
-            if agent.dodge.finished:
+            if agent.dodge.finished and agent.info.my_car.on_ground:
                 agent.step = "Ballchasing"
     elif agent.kickoffStart == "Diagonal":
         if agent.step == "Drive":
@@ -74,7 +74,7 @@ def kickOff(agent):
         elif agent.step == "Dodge":
             agent.dodge.step(1 / 60)
             agent.controls = agent.dodge.controls
-            if agent.dodge.finished:
+            if agent.dodge.finished and agent.info.my_car.on_ground:
                 agent.step = "Ballchasing"
     elif agent.kickoffStart == "Center":
         if agent.step == "Drive":
@@ -100,7 +100,7 @@ def kickOff(agent):
         elif agent.step == "Dodge2":
             agent.dodge.step(1 / 60)
             agent.controls = agent.dodge.controls
-            if agent.dodge.finished:
+            if agent.dodge.finished and agent.info.my_car.on_ground:
                 agent.step = "Ballchasing"
     elif agent.kickoffStart == "offCenter":
         if agent.step == "Drive":
@@ -126,5 +126,5 @@ def kickOff(agent):
         elif agent.step == "Dodge2":
             agent.dodge.step(1 / 60)
             agent.controls = agent.dodge.controls
-            if agent.dodge.finished:
+            if agent.dodge.finished and agent.info.my_car.on_ground:
                 agent.step = "Ballchasing"
