@@ -1,7 +1,7 @@
 from RLUtilities.Maneuvers import Drive, AirDodge
 
 from boost import grab_boost
-from catching import catching
+from catching import catching, start_catching
 from defending import defending
 from dribble import dribble
 from shadowDefence import shadow
@@ -45,15 +45,15 @@ def ballChase(agent):
     agent.drive.step(1 / 60)
     agent.controls = agent.drive.controls
     powerslide(agent)
-    if can_dodge(agent, agent.info.ball.pos):
+    if can_dodge(agent, agent.info.ball.pos) and not can_shoot(agent):
         agent.step = "Dodge"
         agent.dodge = AirDodge(agent.info.my_car, 0.1, agent.info.ball.pos)
     elif agent.defending:
         agent.step = "Defending"
     elif agent.inFrontOfBall:
         agent.step = "Shadowing"
-    # elif agent.info.ball.pos[2] > 350:
-    #     start_catching(agent)
+    elif agent.info.ball.pos[2] > 350:
+        start_catching(agent)
     elif not agent.info.my_car.on_ground:
         agent.step = "Recovery"
     elif can_shoot(agent):

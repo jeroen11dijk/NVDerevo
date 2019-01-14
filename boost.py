@@ -1,3 +1,4 @@
+from catching import start_catching
 from shooting import start_shooting, can_shoot
 from util import get_closest_pad, distance_2d, get_speed, powerslide
 
@@ -9,8 +10,8 @@ def grab_boost(agent):
     agent.drive.target_speed = get_speed(agent, agent.drive.target_pos)
     if agent.info.my_car.boost > 90 or not get_closest_pad(agent).is_active or agent.defending:
         agent.step = "Defending"
-    # elif agent.info.ball.pos[2] > 350:
-    #     start_catching(agent)
+    elif agent.info.ball.pos[2] > 350:
+        start_catching(agent)
     elif can_shoot(agent):
         start_shooting(agent)
 

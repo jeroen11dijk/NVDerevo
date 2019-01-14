@@ -13,7 +13,7 @@ from area import Area, AreaName
 from boost import boost_grabbing_available
 from controls import controls
 from kickOff import initKickOff, kickOff
-from util import in_front_of_ball, render_string, get_closest_pad, distance_2d, sign, line_backline_intersect
+from util import in_front_of_ball, render_string, get_closest_pad, distance_2d, sign
 
 
 class Derevo(BaseAgent):
@@ -51,8 +51,8 @@ class Derevo(BaseAgent):
         self.p_s = 0.
 
     def initialize_agent(self):
-        while self.get_field_info().num_boosts == 0:
-            continue
+        # while self.get_field_info().num_boosts == 0:
+        #     continue
         self.info = GameInfo(self.index, self.team, self.get_field_info())
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
@@ -105,13 +105,10 @@ def predict(agent):
         ball = Ball()
         ball.pos = location
         ball.vel = velocity
-        if location[2] < 100:
+        if abs(location[0]) < 3840 and abs(location[1]) < 4940 and location[2] < 95:
             agent.bounces.append((location, i))
         if i == eta_to_boostpad:
             agent.boostGrabs = boost_grabbing_available(agent, ball)
-        car = agent.info.my_car
-        car_to_ball = location - car.pos
-        backline_intersect = line_backline_intersect(agent.info.my_goal.center[1], vec2(car.pos), vec2(car_to_ball))
         if agent.my_box.is_inside(location):
             agent.defending = True
         if agent.back_left.is_inside(location) and agent.back_right.is_inside(location):
@@ -124,7 +121,7 @@ def set_state(agent):
     enemy_car = CarState(physics=Physics(location=Vector3(0, 5120, 25), velocity=Vector3(0, 0, 0)))
     # enemy_car = CarState(physics=Physics(location=Vector3(10000, 5120, 25), velocity=Vector3(0, 0, 0)))
     ball_pos = Vector3(car_pos.x, car_pos.y + 500, 500)
-    ball_state = BallState(Physics(location=ball_pos, velocity=Vector3(0, 0, 500)))
+    ball_state = BallState(Physics(location=ball_pos, velocity=Vector3(0, 100, 500)))
     car_state = CarState(boost_amount=87, physics=Physics(location=car_pos, velocity=Vector3(0, 0, 0),
                                                           rotation=Rotator(0, math.pi / 2, 0)))
     game_state = GameState(ball=ball_state, cars={0: car_state, 1: enemy_car})

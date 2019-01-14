@@ -17,7 +17,7 @@ def dribble(agent):
     opponent_is_way = math.radians(-10) < angle_front_to_target < math.radians(10)
     if agent.info.ball.pos[2] < 95:
         start_shooting(agent)
-    if distance_2d(agent.info.ball.pos, agent.info.my_car.pos) > 500:
+    if distance_2d(agent.info.ball.pos, agent.info.my_car.pos) > 500 and agent.eta - agent.time <= 0:
         agent.step = "Ballchasing"
     if agent.defending:
         agent.step = "Defending"

@@ -127,8 +127,9 @@ def can_dodge(agent, target):
     distance_bot_to_target = norm(vec2(bot_to_target))
     good_angle = math.radians(-10) < angle_front_to_target < math.radians(10)
     on_ground = agent.info.my_car.on_ground and agent.info.my_car.pos[2] < 100
-    going_fast = velocity_2d(agent.info.my_car.vel) > 1000
-    return good_angle and distance_bot_to_target > 2000 and on_ground and going_fast
+    going_fast = velocity_2d(agent.info.my_car.vel) > 1250
+    target_not_in_goal = agent.info.my_goal.inside(target)
+    return good_angle and distance_bot_to_target > 2000 and on_ground and going_fast and target_not_in_goal
 
 
 def in_front_of_ball(agent):

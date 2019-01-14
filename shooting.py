@@ -23,8 +23,8 @@ def shooting(agent):
     if should_dodge(agent):
         agent.step = "Dodge"
         agent.dodge = AirDodge(agent.info.my_car, 0.1, agent.info.ball.pos)
-    # elif agent.info.ball.pos[2] > 350:
-    #     start_catching(agent)
+    elif agent.info.ball.pos[2] > 350:
+        start_catching(agent)
     elif not can_shoot(agent):
         agent.step = "Ballchasing"
         agent.drive = Drive(agent.info.my_car, agent.info.ball.pos, 1399)
