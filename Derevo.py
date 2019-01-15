@@ -51,8 +51,8 @@ class Derevo(BaseAgent):
         self.p_s = 0.
 
     def initialize_agent(self):
-        # while self.get_field_info().num_boosts == 0:
-        #     continue
+        while self.get_field_info().num_boosts == 0:
+            continue
         self.info = GameInfo(self.index, self.team, self.get_field_info())
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
@@ -83,8 +83,8 @@ class Derevo(BaseAgent):
         if self.drive.target_speed - dot(self.info.my_car.vel, self.info.my_car.forward()) < 10:
             self.controls.boost = 0
             self.controls.throttle = 1
-        # if self.kickoff and not prev_kickoff or self.info.ball.pos[2] < 100:
-        #     set_state(self)
+        if self.kickoff and not prev_kickoff or self.info.ball.pos[2] < 100:
+            set_state(self)
         return self.controls
 
 

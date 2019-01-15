@@ -52,7 +52,7 @@ def ballChase(agent):
         agent.step = "Defending"
     elif agent.inFrontOfBall:
         agent.step = "Shadowing"
-    elif agent.info.ball.pos[2] > 350:
+    elif agent.info.ball.pos[2] > 250:
         start_catching(agent)
     elif not agent.info.my_car.on_ground:
         agent.step = "Recovery"

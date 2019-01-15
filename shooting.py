@@ -3,6 +3,7 @@ import math
 from RLUtilities.LinearAlgebra import normalize, rotation, vec3, vec2, dot
 from RLUtilities.Maneuvers import Drive, AirDodge, norm
 
+from catching import start_catching
 from util import cap, distance_2d, sign, time_z, line_backline_intersect, get_speed, powerslide
 
 
@@ -23,7 +24,7 @@ def shooting(agent):
     if should_dodge(agent):
         agent.step = "Dodge"
         agent.dodge = AirDodge(agent.info.my_car, 0.1, agent.info.ball.pos)
-    elif agent.info.ball.pos[2] > 350:
+    elif agent.info.ball.pos[2] > 250:
         start_catching(agent)
     elif not can_shoot(agent):
         agent.step = "Ballchasing"
@@ -91,5 +92,3 @@ def can_shoot(agent):
     if on_the_ground and closer and not agent.inFrontOfBall:
         return True
     return False
-
-
