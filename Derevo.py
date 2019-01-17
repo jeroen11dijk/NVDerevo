@@ -59,9 +59,6 @@ class Derevo(BaseAgent):
         prev_kickoff = self.kickoff
         predict(self)
         self.kickoff = packet.game_info.is_kickoff_pause
-        self.FPS = packet.game_info.seconds_elapsed - self.time
-        if self.FPS == 0:
-            self.FPS = 1 / 60
         self.time = packet.game_info.seconds_elapsed
         self.inFrontOfBall = in_front_of_ball(self)
         if self.drive is None:
