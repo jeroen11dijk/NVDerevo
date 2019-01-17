@@ -9,12 +9,14 @@ def catching(agent):
     catching_speed(agent, agent.drive.target_pos)
     if bounce_changed(agent):
         start_catching(agent)
-    if agent.drive.finished or agent.eta - agent.time <= 1:
+    if agent.eta - agent.time <= 1 and distance_2d(agent.info.ball.pos, agent.info.my_car.pos) < 500:
         agent.step = "Dribbling"
     if not agent.info.my_car.on_ground:
         agent.step = "Recovery"
     if agent.defending:
         agent.step = "Defending"
+    if agent.drive.finished or agent.eta - agent.time <= 0.1:
+        agent.step = "Ballchasing"
 
 
 def start_catching(agent):

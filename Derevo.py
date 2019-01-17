@@ -52,8 +52,6 @@ class Derevo(BaseAgent):
         self.p_s = 0.
 
     def initialize_agent(self):
-        while self.get_field_info().num_boosts == 0:
-            continue
         self.info = GameInfo(self.index, self.team, self.get_field_info())
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
