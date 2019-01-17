@@ -44,6 +44,7 @@ class Derevo(BaseAgent):
         self.boostGrabs = False
         self.step = 0
         self.time = 0
+        self.FPS = 1 / 60
         self.eta = None
         self.inFrontOfBall = False
         self.defending = False
@@ -60,6 +61,9 @@ class Derevo(BaseAgent):
         prev_kickoff = self.kickoff
         predict(self)
         self.kickoff = packet.game_info.is_kickoff_pause
+        self.FPS = packet.game_info.seconds_elapsed - self.time
+        if self.FPS == 0:
+            self.FPS = 1 / 60
         self.time = packet.game_info.seconds_elapsed
         self.inFrontOfBall = in_front_of_ball(self)
         if self.drive is None:
@@ -83,8 +87,8 @@ class Derevo(BaseAgent):
         if self.drive.target_speed - dot(self.info.my_car.vel, self.info.my_car.forward()) < 10:
             self.controls.boost = 0
             self.controls.throttle = 1
-        if self.kickoff and not prev_kickoff or self.info.ball.pos[2] < 100:
-            set_state(self)
+        # if self.kickoff and not prev_kickoff or self.info.ball.pos[2] < 100:
+        #     set_state(self)
         return self.controls
 
 

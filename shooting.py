@@ -15,7 +15,7 @@ def start_shooting(agent):
 
 
 def shooting(agent):
-    agent.drive.step(1 / 60)
+    agent.drive.step(agent.FPS)
     agent.controls = agent.drive.controls
     powerslide(agent)
     target = shooting_target(agent)

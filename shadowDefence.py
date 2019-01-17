@@ -5,7 +5,7 @@ from util import get_speed, distance_2d, get_closest_small_pad, can_dodge, power
 
 
 def shadow(agent):
-    agent.drive.step(1 / 60)
+    agent.drive.step(agent.FPS)
     agent.controls = agent.drive.controls
     powerslide(agent)
     target = shadow_target(agent)

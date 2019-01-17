@@ -13,7 +13,7 @@ def controls(agent):
     if agent.step == "Ballchasing":
         ballChase(agent)
     elif agent.step == "Dodge":
-        agent.dodge.step(1 / 60)
+        agent.dodge.step(agent.FPS)
         agent.controls = agent.dodge.controls
         agent.controls.boost = 0
         if agent.dodge.finished and agent.info.my_car.on_ground:
@@ -29,7 +29,7 @@ def controls(agent):
     elif agent.step == "Grabbing Boost":
         grab_boost(agent)
     elif agent.step == "Recovery":
-        agent.recovery.step(1 / 60)
+        agent.recovery.step(agent.FPS)
         agent.controls = agent.recovery.controls
         if agent.info.my_car.on_ground:
             agent.step = "Ballchasing"
@@ -42,7 +42,7 @@ def controls(agent):
 def ballChase(agent):
     agent.drive.target_speed = get_ballchase_speed(agent, agent.info.ball.pos)
     agent.drive.target_pos = agent.info.ball.pos
-    agent.drive.step(1 / 60)
+    agent.drive.step(agent.FPS)
     agent.controls = agent.drive.controls
     powerslide(agent)
     if can_dodge(agent, agent.info.ball.pos) and not can_shoot(agent):

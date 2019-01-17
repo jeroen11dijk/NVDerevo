@@ -4,7 +4,7 @@ from util import get_closest_pad, distance_2d, get_speed, powerslide
 
 
 def grab_boost(agent):
-    agent.drive.step(1 / 60)
+    agent.drive.step(agent.FPS)
     agent.controls = agent.drive.controls
     powerslide(agent)
     agent.drive.target_speed = get_speed(agent, agent.drive.target_pos)

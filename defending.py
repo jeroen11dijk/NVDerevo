@@ -7,7 +7,7 @@ from util import line_backline_intersect, cap, distance_2d, sign, get_speed, pow
 
 
 def defending(agent):
-    agent.drive.step(1 / 60)
+    agent.drive.step(agent.FPS)
     agent.controls = agent.drive.controls
     powerslide(agent)
     target = defending_target(agent)

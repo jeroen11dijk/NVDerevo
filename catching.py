@@ -4,14 +4,12 @@ from util import velocity_2d, is_reachable, distance_2d
 
 
 def catching(agent):
-    agent.drive.step(1 / 60)
+    agent.drive.step(agent.FPS)
     agent.controls = agent.drive.controls
     catching_speed(agent, agent.drive.target_pos)
     if bounce_changed(agent):
         start_catching(agent)
-    # if agent.eta - agent.time <= 1:
-    #     agent.step = "Dribbling"
-    if agent.drive.finished or agent.eta - agent.time <= 0:
+    if agent.drive.finished or agent.eta - agent.time <= 1:
         agent.step = "Dribbling"
     if not agent.info.my_car.on_ground:
         agent.step = "Recovery"
@@ -24,7 +22,7 @@ def start_catching(agent):
         location = agent.bounces[i][0]
         bounce_time = agent.bounces[i][1]
         if location[2] < 100 and is_reachable(agent, location, bounce_time):
-            agent.eta = agent.time + bounce_time / 60
+            agent.eta = agent.time + bounce_time * 0.5 * agent.FPS
             agent.drive = Drive(agent.info.my_car, location, 1399)
             agent.step = "Catching"
             return
@@ -32,11 +30,9 @@ def start_catching(agent):
 
 
 def bounce_changed(agent):
-    print("==================================")
     target = agent.drive.target_pos
     for i in range(len(agent.bounces)):
-        print(distance_2d(target, agent.bounces[i][0]))
-        if distance_2d(target, agent.bounces[i][0]) < 1:
+        if distance_2d(target, agent.bounces[i][0]) < 10:
             return False
     return True
 
