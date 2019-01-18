@@ -23,8 +23,8 @@ def start_catching(agent):
     for i in range(len(agent.bounces)):
         location = agent.bounces[i][0]
         bounce_time = agent.bounces[i][1]
-        if location[2] < 100 and is_reachable(agent, location, bounce_time):
-            agent.eta = agent.time + bounce_time * 0.5 * agent.FPS
+        if is_reachable(agent, location, bounce_time):
+            agent.eta = agent.time + bounce_time * agent.FPS
             agent.drive = Drive(agent.info.my_car, location, 1399)
             agent.step = "Catching"
             return

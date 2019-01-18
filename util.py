@@ -148,7 +148,10 @@ def boost_needed(initial_speed, goal_speed):
 
 def is_reachable(agent, location, eta):
     distance = distance_2d(agent.info.my_car.pos, location)
-    speed = distance / (eta - agent.time)
+    time = (eta * agent.FPS)
+    if time == 0:
+        return False
+    speed = distance / time
     if speed < 2300:
         if speed < 1399:
             return True

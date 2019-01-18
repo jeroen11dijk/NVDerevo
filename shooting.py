@@ -58,11 +58,11 @@ def shooting_target(agent):
     distance = cap((40 + distance_2d(ball.pos, car.pos) * (error ** 2)) / 1.8, 0, 4000)
     location = ball.pos + vec3((goal_to_ball[0] * distance), goal_to_ball[1] * distance, 0)
 
-    # # this adjusts the target based on the ball velocity perpendicular to the direction we're trying to hit it
-    # multiplier = cap(distance_2d(car.pos, location) / 1500, 0, 2)
-    # distance_modifier = cap(dot(test_vector, ball.vel) * multiplier, -1000, 1000)
-    # modified_vector = vec3(test_vector[0] * distance_modifier, test_vector[1] * distance_modifier, 0)
-    # location += modified_vector
+    # this adjusts the target based on the ball velocity perpendicular to the direction we're trying to hit it
+    multiplier = cap(distance_2d(car.pos, location) / 1500, 0, 2)
+    distance_modifier = cap(dot(test_vector, ball.vel) * multiplier, -1000, 1000)
+    modified_vector = vec3(test_vector[0] * distance_modifier, test_vector[1] * distance_modifier, 0)
+    location += modified_vector
 
     # another target adjustment that applies if the ball is close to the wall
     extra = 3850 - abs(location[0])
