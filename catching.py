@@ -1,60 +1,74 @@
-from RLUtilities.Maneuvers import Drive
+import math
 
-from util import velocity_2d, is_reachable, distance_2d
-
-
-def catching(agent):
-    agent.drive.step(agent.FPS)
-    agent.controls = agent.drive.controls
-    catching_speed(agent, agent.drive.target_pos)
-    if bounce_changed(agent):
-        start_catching(agent)
-    if agent.eta - agent.time <= 1 and distance_2d(agent.info.ball.pos, agent.info.my_car.pos) < 500:
-        agent.step = "Dribbling"
-    if not agent.info.my_car.on_ground:
-        agent.step = "Recovery"
-    if agent.defending:
-        agent.step = "Defending"
-    if agent.drive.finished or agent.eta - agent.time <= 0.1:
-        agent.step = "Ballchasing"
+from RLUtilities.LinearAlgebra import vec3, dot, norm
+from RLUtilities.Simulation import Input
 
 
-def start_catching(agent):
-    for i in range(len(agent.bounces)):
-        location = agent.bounces[i][0]
-        bounce_time = agent.bounces[i][1]
-        if is_reachable(agent, location, bounce_time):
-            agent.eta = agent.time + bounce_time * agent.FPS
-            agent.drive = Drive(agent.info.my_car, location, 1399)
-            agent.step = "Catching"
-            return
-    agent.step = "Ballchasing"
+class Catching:
+    __slots__ = ['car', 'target_pos', 'target_speed', 'controls', 'finished']
 
+    def __init__(self, car, target_pos=vec3(0, 0, 0), target_speed=0):
 
-def bounce_changed(agent):
-    target = agent.drive.target_pos
-    for i in range(len(agent.bounces)):
-        if distance_2d(target, agent.bounces[i][0]) < 10:
-            return False
-    return True
+        self.car = car
+        self.target_pos = target_pos
+        self.target_speed = target_speed
+        self.controls = Input()
 
+        self.finished = False
 
-def catching_speed(agent, location):
-    distance = distance_2d(agent.info.my_car.pos, location)
+    def step(self, dt):
 
-    alpha = 1.3
-    time_left = agent.eta - agent.time
-    avg_vf = distance / time_left
-    target_vf = (1.0 - alpha) * velocity_2d(agent.info.my_car.vel) + alpha * avg_vf
+        max_throttle_speed = 1410
+        max_boost_speed = 2300
 
-    if velocity_2d(agent.info.my_car.vel) < target_vf:
-        agent.controls.throttle = 1.0
-        if target_vf > 1399:
-            agent.controls.boost = 1
+        # get the local coordinates of where the ball is, relative to the car
+        # delta_local[0]: how far in front
+        # delta_local[1]: how far to the left
+        # delta_local[2]: how far above
+        delta_local = dot(self.target_pos - self.car.pos, self.car.theta)
+
+        # angle between car's forward direction and target position
+        phi = math.atan2(delta_local[1], delta_local[0])
+
+        if phi < -math.radians(10):
+            # If the target is more than 10 degrees right from the centre, steer left
+            self.controls.steer = -1
+        elif phi > math.radians(10):
+            # If the target is more than 10 degrees left from the centre, steer right
+            self.controls.steer = 1
         else:
-            agent.controls.boost = 0
-    else:
-        if velocity_2d(agent.info.my_car.vel) - target_vf > 75:
-            agent.controls.throttle = -1.0
+            # If the target is less than 10 degrees from the centre, steer straight
+            self.controls.steer = phi / math.radians(10)
+
+        if abs(phi) < math.radians(3) and not self.car.supersonic:
+            self.controls.boost = True
         else:
-            agent.controls.throttle = 0.0
+            self.controls.boost = False
+
+        if abs(phi) > 1.75:
+            self.controls.handbrake = 1
+        else:
+            self.controls.handbrake = 0
+
+        # forward velocity
+        vf = dot(self.car.vel, self.car.forward())
+
+        if vf < self.target_speed:
+            self.controls.throttle = 1.0
+            if self.target_speed > max_throttle_speed:
+                self.controls.boost = 1
+            else:
+                self.controls.boost = 0
+        else:
+            self.controls.throttle = -1
+            self.controls.boost = 0
+            if norm(delta_local) < 20:
+                self.controls.throttle = -norm(delta_local) / 20
+            if norm(delta_local) < 10:
+                self.controls.throttle = -norm(delta_local) / 10
+
+        if self.car.supersonic:
+            self.controls.boost = False
+
+        if norm(self.car.pos - self.target_pos) < 100:
+            self.finished = True

@@ -1,53 +1,42 @@
 import math
+import time
 
-from RLUtilities.GameInfo import Ball
 from RLUtilities.GameInfo import GameInfo
-from RLUtilities.LinearAlgebra import dot, vec3, vec2
+from RLUtilities.LinearAlgebra import vec3, normalize, vec2, dot, norm
 from RLUtilities.Maneuvers import Drive, AerialTurn, AirDodge
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.game_state_util import Vector3, GameState, BallState, Physics, CarState, Rotator
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
-from area import Area, AreaName
-from boost import boost_grabbing_available
-from controls import controls
+from catching import Catching
+from defending import defending
+from dribble import Dribbling
 from kickOff import initKickOff, kickOff
-from util import in_front_of_ball, render_string, get_closest_pad, distance_2d, sign
+from util import distance_2d, get_bounce, line_backline_intersect
 
 
-class Derevo(BaseAgent):
+class hypebot(BaseAgent):
 
     def __init__(self, name, team, index):
         super().__init__(name, team, index)
         self.name = name
         self.team = team
         self.index = index
+        self.defending = False
         self.info = None
-        a = sign(team)
-        self.my_box = Area(AreaName.BOX, vec2(-1788.0, a * 2300.0), vec2(1788.0, a * 5120.0))
-        self.their_box = Area(AreaName.BOX, vec2(-1788.0, sign(team) * 2300.0), vec2(1788.0, a * 5120.0))
-        self.back_left = Area(AreaName.CORNER, vec2(-a * 1788.0, a * 2300.0), vec2(-a * 4096.0, a * 5120.0))
-        self.back_right = Area(AreaName.CORNER, vec2(a * 1788.0, a * 2300.0), vec2(a * 4096.0, a * 5120.0))
-        self.their_left = Area(AreaName.CORNER, vec2(-a * 1788.0, -a * 2300.0), vec2(-a * 4096.0, -a * 5120.0))
-        self.their_right = Area(AreaName.CORNER, vec2(a * 1788.0, a * 2300.0), vec2(a * 4096.0, a * 5120.0))
-        self.right_wall = Area(AreaName.WALL, vec2(-a * 3072.0, -2300.0), vec2(-a * 4096.0, 2300.0))
-        self.left_wall = Area(AreaName.WALL, vec2(a * 3072.0, -2300.0), vec2(a * 4096.0, 2300.0))
-        self.our_half = Area(AreaName.HALF, vec2(3072.0, a * 2300.0), vec2(-3072.0, 0.0))
-        self.controls = SimpleControllerState()
-        self.kickoff = False
-        self.kickoffStart = None
+        self.bounces = []
         self.drive = None
+        self.catching = None
         self.dodge = None
         self.recovery = None
-        self.bounces = []
-        self.boostGrabs = False
-        self.step = 0
+        self.dribble = None
+        self.controls = SimpleControllerState()
+        self.kickoff = False
+        self.inFrontOfBall = False
+        self.kickoffStart = None
+        self.step = "Catching"
         self.time = 0
         self.FPS = 1 / 60
-        self.eta = None
-        self.inFrontOfBall = False
-        self.defending = False
-        self.back_corners = False
         self.p_s = 0.
 
     def initialize_agent(self):
@@ -55,77 +44,132 @@ class Derevo(BaseAgent):
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         self.info.read_packet(packet)
-        if self.drive is not None:
-            if abs(self.drive.target_pos[0]) > 3840:
-                self.drive.target_pos[0] = 3480
-            if abs(self.drive.target_pos[1]) > 4940:
-                self.drive.target_pos[1] = 4940
+        self.predict()
+        self.set_mechanics()
         prev_kickoff = self.kickoff
-        predict(self)
         self.kickoff = packet.game_info.is_kickoff_pause
-        self.time = packet.game_info.seconds_elapsed
-        self.inFrontOfBall = in_front_of_ball(self)
-        if self.drive is None:
-            self.drive = Drive(self.info.my_car, self.info.ball.pos, 1399)
-        if self.recovery is None:
-            self.recovery = AerialTurn(self.info.my_car)
-        if self.dodge is None:
-            self.dodge = AirDodge(self.info.my_car, 0.25, self.info.ball.pos)
+        self.defending = self.should_defending()
         if self.kickoff and not prev_kickoff:
             initKickOff(self)
         if self.kickoff or self.step == "Dodge2":
             kickOff(self)
         else:
-            if self.drive is None or self.drive.finished:
-                self.step = "Ballchasing"
-                self.drive = Drive(self.info.my_car, self.info.ball.pos, 1399)
-            controls(self)
+            self.get_controls()
+        self.render_string(str(self.step))
+        # about_to_score = distance_2d(self.info.ball.pos, self.info.their_goal.center) < 1000
+        # if self.kickoff and not prev_kickoff or self.info.ball.pos[2] < 100 or about_to_score:
+        #     self.set_state()
+        if prev_kickoff and not self.kickoff:
+            self.time = time.time()
         if not packet.game_info.is_round_active:
             self.controls.steer = 0
-        render_string(self, str(self.step))
-        if self.drive.target_speed - dot(self.info.my_car.vel, self.info.my_car.forward()) < 10:
-            self.controls.boost = 0
-            self.controls.throttle = 1
-        # if self.kickoff and not prev_kickoff or self.info.ball.pos[2] < 100:
-        #     set_state(self)
         return self.controls
 
+    def predict(self):
+        self.bounces = []
+        ball_prediction = self.get_ball_prediction_struct()
+        for i in range(ball_prediction.num_slices):
+            location = vec3(ball_prediction.slices[i].physics.location.x,
+                            ball_prediction.slices[i].physics.location.y,
+                            ball_prediction.slices[i].physics.location.z)
+            prev_ang_vel = ball_prediction.slices[i - 1].physics.angular_velocity
+            prev_normalized_ang_vel = normalize(vec3(prev_ang_vel.x, prev_ang_vel.y, prev_ang_vel.z))
+            current_ang_vel = ball_prediction.slices[i].physics.angular_velocity
+            current_normalized_ang_vel = normalize(vec3(current_ang_vel.x, current_ang_vel.y, current_ang_vel.z))
+            if prev_normalized_ang_vel != current_normalized_ang_vel and location[2] < 125:
+                self.bounces.append((location, i * self.FPS))
 
-def predict(agent):
-    agent.bounces = []
-    agent.boostGrabs = False
-    agent.defending = False
-    agent.back_corners = False
-    eta_to_boostpad = round(distance_2d(agent.info.my_car.pos, get_closest_pad(agent).pos) * 60 / 1399)
-    ball_prediction = agent.get_ball_prediction_struct()
-    for i in range(ball_prediction.num_slices):
-        location = vec3(ball_prediction.slices[i].physics.location.x,
-                        ball_prediction.slices[i].physics.location.y,
-                        ball_prediction.slices[i].physics.location.z)
-        velocity = vec3(ball_prediction.slices[i].physics.velocity.x,
-                        ball_prediction.slices[i].physics.velocity.y,
-                        ball_prediction.slices[i].physics.velocity.z)
-        ball = Ball()
-        ball.pos = location
-        ball.vel = velocity
-        if abs(location[0]) < 3840 and abs(location[1]) < 4940 and location[2] < 100:
-            agent.bounces.append((location, i))
-        if i == eta_to_boostpad:
-            agent.boostGrabs = boost_grabbing_available(agent, ball)
-        if agent.my_box.is_inside(location):
-            agent.defending = True
-        if agent.back_left.is_inside(location) and agent.back_right.is_inside(location):
-            agent.back_corners = True
+    def set_mechanics(self):
+        if self.drive is None:
+            self.drive = Drive(self.info.my_car, self.info.ball.pos, 1399)
+        if self.catching is None:
+            self.catching = Catching(self.info.my_car, self.info.ball.pos, 1399)
+        if self.recovery is None:
+            self.recovery = AerialTurn(self.info.my_car)
+        if self.dodge is None:
+            self.dodge = AirDodge(self.info.my_car, 0.25, self.info.ball.pos)
+        if self.dribble is None:
+            self.dribble = Dribbling(self.info.my_car, self.info.ball, self.info.their_goal)
 
+    def get_controls(self):
+        if self.step == "Catching":
+            target = get_bounce(self)
+            if target is None:
+                self.step = "Defending"
+            else:
+                self.catching.target_pos = target[0]
+                self.catching.target_speed = (distance_2d(self.info.my_car.pos, target[0]) + 50) / target[1]
+                self.catching.step(self.FPS)
+                self.controls = self.catching.controls
+                ball = self.info.ball
+                car = self.info.my_car
+                if distance_2d(ball.pos, car.pos) < 150 and 65 < abs(ball.pos[2] - car.pos[2]) < 127:
+                    self.step = "Dribbling"
+                    self.dribble = Dribbling(self.info.my_car, self.info.ball, self.info.their_goal)
+                if self.defending:
+                    self.step = "Defending"
+                if not self.info.my_car.on_ground:
+                    self.step = "Recovery"
+        elif self.step == "Dribbling":
+            self.dribble.step(self.FPS)
+            self.controls = self.dribble.controls
+            ball = self.info.ball
+            car = self.info.my_car
+            bot_to_opponent = self.info.opponents[0].pos - self.info.my_car.pos
+            local_bot_to_target = dot(bot_to_opponent, self.info.my_car.theta)
+            angle_front_to_target = math.atan2(local_bot_to_target[1], local_bot_to_target[0])
+            opponent_is_near = norm(vec2(bot_to_opponent)) < 2000
+            opponent_is_in_the_way = math.radians(-10) < angle_front_to_target < math.radians(10)
+            if not (distance_2d(ball.pos, car.pos) < 150 and 65 < abs(ball.pos[2] - car.pos[2]) < 127):
+                self.step = "Catching"
+            if self.defending:
+                self.step = "Defending"
+            if opponent_is_near and opponent_is_in_the_way:
+                self.step = "Dodge"
+                self.dodge = AirDodge(self.info.my_car, 0.25, self.info.their_goal.center)
+            if not self.info.my_car.on_ground:
+                self.step = "Recovery"
+        elif self.step == "Defending":
+            defending(self)
+        elif self.step == "Dodge":
+            self.dodge.step(self.FPS)
+            self.controls = self.dodge.controls
+            self.controls.boost = 0
+            if self.dodge.finished and self.info.my_car.on_ground:
+                self.step = "Catching"
+        elif self.step == "Recovery":
+            self.recovery.step(self.FPS)
+            self.controls = self.recovery.controls
+            if self.info.my_car.on_ground:
+                self.step = "Catching"
 
-def set_state(agent):
-    agent.step = "Ballchasing"
-    car_pos = Vector3(0, -1000, 25)
-    # enemy_car = CarState(physics=Physics(location=Vector3(0, 5120, 25), velocity=Vector3(0, 0, 0)))
-    enemy_car = CarState(physics=Physics(location=Vector3(10000, 5120, 25), velocity=Vector3(0, 0, 0)))
-    ball_pos = Vector3(car_pos.x, car_pos.y + 500, 650)
-    ball_state = BallState(Physics(location=ball_pos, velocity=Vector3(650, 650, 500)))
-    car_state = CarState(boost_amount=87, physics=Physics(location=car_pos, velocity=Vector3(0, 0, 0),
-                                                          rotation=Rotator(0, math.pi / 2, 0)))
-    game_state = GameState(ball=ball_state, cars={0: car_state, 1: enemy_car})
-    agent.set_game_state(game_state)
+    def render_string(self, string):
+        self.renderer.begin_rendering('The State')
+        if self.step == "Catching":
+            self.renderer.draw_line_3d(self.info.my_car.pos, self.drive.target_pos, self.renderer.black())
+        elif self.step == "Catching":
+            self.renderer.draw_line_3d(self.info.my_car.pos, self.catching.target_pos, self.renderer.black())
+        self.renderer.draw_line_3d(self.info.my_car.pos, self.bounces[0][0], self.renderer.blue())
+        self.renderer.draw_string_2d(20, 20, 3, 3, string, self.renderer.red())
+        self.renderer.end_rendering()
+
+    def set_state(self):
+        self.step = "Catching"
+        car_pos = Vector3(0, -1000, 25)
+        enemy_car = CarState(physics=Physics(location=Vector3(0, 5120, 25), velocity=Vector3(0, 0, 0)))
+        # enemy_car = CarState(physics=Physics(location=Vector3(10000, 5120, 25), velocity=Vector3(0, 0, 0)))
+        ball_pos = Vector3(car_pos.x, car_pos.y + 500, 650)
+        ball_state = BallState(Physics(location=ball_pos, velocity=Vector3(0, 250, 0)))
+        car_state = CarState(boost_amount=87, physics=Physics(location=car_pos, velocity=Vector3(0, 0, 0),
+                                                              rotation=Rotator(0, math.pi / 2, 0)))
+        game_state = GameState(ball=ball_state, cars={0: car_state, 1: enemy_car})
+        self.set_game_state(game_state)
+
+    def should_defending(self):
+        ball = self.info.ball
+        car = self.info.my_car
+        our_goal = self.info.my_goal.center
+        car_to_ball = ball.pos - car.pos
+        in_front_of_ball = distance_2d(ball.pos, our_goal) < distance_2d(car.pos, our_goal)
+        backline_intersect = line_backline_intersect(self.info.my_goal.center[1], vec2(car.pos), vec2(car_to_ball))
+        return in_front_of_ball and abs(backline_intersect) < 2000

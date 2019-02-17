@@ -1,28 +1,25 @@
 import math
 
 from RLUtilities.LinearAlgebra import normalize, rotation, vec3, vec2, dot
-from RLUtilities.Maneuvers import Drive, AirDodge
+from RLUtilities.Maneuvers import AirDodge
 
 from util import line_backline_intersect, cap, distance_2d, sign, get_speed, powerslide, can_dodge
 
 
 def defending(agent):
-    agent.drive.step(agent.FPS)
-    agent.controls = agent.drive.controls
-    powerslide(agent)
     target = defending_target(agent)
     agent.drive.target_pos = target
     agent.drive.target_speed = get_speed(agent, target)
+    agent.drive.step(agent.FPS)
+    agent.controls = agent.drive.controls
+    powerslide(agent)
     if can_dodge(agent, target):
         agent.step = "Dodge"
         agent.dodge = AirDodge(agent.info.my_car, 0.1, target)
     if not agent.defending:
-        agent.step = "Ballchasing"
-        agent.drive = Drive(agent.info.my_car, agent.info.ball.pos, 1399)
+        agent.step = "Catching"
     if not agent.info.my_car.on_ground:
         agent.step = "Recovery"
-    if agent.back_corners and agent.inFrontOfBall:
-        agent.step = "Shadowing"
 
 
 def defending_target(agent):
@@ -30,18 +27,14 @@ def defending_target(agent):
     car = agent.info.my_car
     car_to_ball = ball.pos - car.pos
     backline_intersect = line_backline_intersect(agent.info.my_goal.center[1], vec2(car.pos), vec2(car_to_ball))
-    if abs(backline_intersect) < 2000 and agent.inFrontOfBall:
-        if backline_intersect < 0:
-            target = agent.info.my_goal.center - vec3(2000, 0, 0)
-        else:
-            target = agent.info.my_goal.center + vec3(2000, 0, 0)
-        target_to_ball = normalize(ball.pos - target)
-        target_to_car = normalize(car.pos - target)
-        difference = target_to_ball - target_to_car
-        error = cap(abs(difference[0]) + abs(difference[1]), 1, 10)
+    if backline_intersect < 0:
+        target = agent.info.my_goal.center - vec3(2000, 0, 0)
     else:
-        target_to_ball = normalize(car.pos - ball.pos)
-        error = cap(distance_2d(ball.pos, car.pos) / 1000, 0, 1)
+        target = agent.info.my_goal.center + vec3(2000, 0, 0)
+    target_to_ball = normalize(ball.pos - target)
+    target_to_car = normalize(car.pos - target)
+    difference = target_to_ball - target_to_car
+    error = cap(abs(difference[0]) + abs(difference[1]), 1, 10)
 
     goal_to_ball_2d = vec2(target_to_ball[0], target_to_ball[1])
     test_vector_2d = dot(rotation(0.5 * math.pi), goal_to_ball_2d)
