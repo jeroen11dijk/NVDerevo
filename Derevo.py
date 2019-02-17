@@ -36,7 +36,7 @@ class hypebot(BaseAgent):
         self.kickoffStart = None
         self.step = "Catching"
         self.time = 0
-        self.FPS = 1 / 60
+        self.FPS = 1 / 120
         self.p_s = 0.
 
     def initialize_agent(self):
@@ -77,7 +77,7 @@ class hypebot(BaseAgent):
             current_ang_vel = ball_prediction.slices[i].physics.angular_velocity
             current_normalized_ang_vel = normalize(vec3(current_ang_vel.x, current_ang_vel.y, current_ang_vel.z))
             if prev_normalized_ang_vel != current_normalized_ang_vel and location[2] < 125:
-                self.bounces.append((location, i * self.FPS))
+                self.bounces.append((location, i * 1 / 60))
 
     def set_mechanics(self):
         if self.drive is None:
