@@ -1,5 +1,4 @@
 import math
-import time
 
 from RLUtilities.GameInfo import GameInfo
 from RLUtilities.LinearAlgebra import vec3, normalize, vec2, dot, norm
@@ -43,6 +42,10 @@ class hypebot(BaseAgent):
         self.info = GameInfo(self.index, self.team, self.get_field_info())
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
+        if packet.game_info.seconds_elapsed - self.time > 0:
+            self.FPS = packet.game_info.seconds_elapsed - self.time
+        self.time = packet.game_info.seconds_elapsed
+        print(1 / self.FPS)
         self.info.read_packet(packet)
         self.predict()
         self.set_mechanics()
@@ -59,8 +62,6 @@ class hypebot(BaseAgent):
         # about_to_score = distance_2d(self.info.ball.pos, self.info.their_goal.center) < 1000
         # if self.kickoff and not prev_kickoff or self.info.ball.pos[2] < 100 or about_to_score:
         #     self.set_state()
-        if prev_kickoff and not self.kickoff:
-            self.time = time.time()
         if not packet.game_info.is_round_active:
             self.controls.steer = 0
         return self.controls
