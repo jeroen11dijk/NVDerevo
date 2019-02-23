@@ -15,23 +15,17 @@ def initKickOff(agent):
         agent.drive = Drive(agent.info.my_car, target, 2400)
         agent.kickoffStart = "offCenter"
     else:
-        # if random.choice([True, False]):
-        #     pad = get_closest_small_pad(agent)
-        #     vec3_pad = vec3(pad.pos[0], pad.pos[1], pad.pos[2])
-        #     car_to_pad = vec3_pad - agent.info.my_car.pos
-        #     target = agent.info.my_car.pos + 1.425 * car_to_pad
-        #     agent.drive = Drive(agent.info.my_car, target, 2300)
-        #     agent.kickoffStart = "Diagonal_Scrub"
-        # else:
-        #     target = agent.info.ball.pos
-        #     agent.drive = Drive(agent.info.my_car, target, 2400)
-        #     agent.kickoffStart = "Diagonal"
-        pad = get_closest_small_pad(agent)
-        vec3_pad = vec3(pad.pos[0], pad.pos[1], pad.pos[2])
-        car_to_pad = vec3_pad - agent.info.my_car.pos
-        target = agent.info.my_car.pos + 1 * car_to_pad
-        agent.drive = Drive(agent.info.my_car, target, 2300)
-        agent.kickoffStart = "Diagonal_Scrub"
+        if random.choice([True, False]):
+            pad = get_closest_small_pad(agent)
+            vec3_pad = vec3(pad.pos[0], pad.pos[1], pad.pos[2])
+            car_to_pad = vec3_pad - agent.info.my_car.pos
+            target = agent.info.my_car.pos + 1 * car_to_pad
+            agent.drive = Drive(agent.info.my_car, target, 2300)
+            agent.kickoffStart = "Diagonal_Scrub"
+        else:
+            target = agent.info.ball.pos
+            agent.drive = Drive(agent.info.my_car, target, 2400)
+            agent.kickoffStart = "Diagonal"
     agent.step = "Drive"
     agent.drive.step(agent.FPS)
     agent.controls = agent.drive.controls
