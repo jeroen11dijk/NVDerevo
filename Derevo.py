@@ -66,9 +66,9 @@ class hypebot(BaseAgent):
         #     self.set_state()
         if prev_kickoff and not self.kickoff:
             self.kickoffTime = time.time()
-        if time.time() - self.kickoffTime > 2:
-            self.kickoffTime = math.inf
-            self.set_kickoff()
+        # if time.time() - self.kickoffTime > 2:
+        #     self.kickoffTime = math.inf
+        #     self.set_kickoff()
         if not packet.game_info.is_round_active:
             self.controls.steer = 0
         self.send_quick_chat(QuickChats.CHAT_EVERYONE, QuickChats.Reactions_Savage)
@@ -101,6 +101,8 @@ class hypebot(BaseAgent):
             self.dribble = Dribbling(self.info.my_car, self.info.ball, self.info.their_goal)
 
     def get_controls(self):
+        if self.step == "Steer" or self.step == "Dodge2":
+            self.step = "Catching"
         if self.step == "Catching":
             target = get_bounce(self)
             if target is None:
