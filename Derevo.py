@@ -1,5 +1,4 @@
 import math
-import time
 
 from RLUtilities.GameInfo import GameInfo
 from RLUtilities.LinearAlgebra import vec3, normalize, vec2, dot, norm
@@ -7,12 +6,12 @@ from RLUtilities.Maneuvers import Drive, AerialTurn, AirDodge
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.game_state_util import Vector3, GameState, BallState, Physics, CarState, Rotator
 from rlbot.utils.structures.game_data_struct import GameTickPacket
-from rlbot.utils.structures.quick_chats import QuickChats
 
 from catching import Catching
 from defending import defending
 from dribble import Dribbling
 from kickOff import initKickOff, kickOff
+from shooting import shooting
 from util import distance_2d, get_bounce, line_backline_intersect, sign
 
 
@@ -61,17 +60,8 @@ class hypebot(BaseAgent):
         else:
             self.get_controls()
         self.render_string(str(self.step))
-        # about_to_score = distance_2d(self.info.ball.pos, self.info.their_goal.center) < 1000
-        # if self.kickoff and not prev_kickoff or self.info.ball.pos[2] < 100 or about_to_score:
-        #     self.set_state()
-        if prev_kickoff and not self.kickoff:
-            self.kickoffTime = time.time()
-        # if time.time() - self.kickoffTime > 2:
-        #     self.kickoffTime = math.inf
-        #     self.set_kickoff()
         if not packet.game_info.is_round_active:
             self.controls.steer = 0
-        self.send_quick_chat(QuickChats.CHAT_EVERYONE, QuickChats.Reactions_Savage)
         return self.controls
 
     def predict(self):
@@ -121,6 +111,9 @@ class hypebot(BaseAgent):
                     self.step = "Defending"
                 if not self.info.my_car.on_ground:
                     self.step = "Recovery"
+                ball = self.info.ball
+                if abs(ball.vel[2]) < 100 and sign(self.team) * ball.vel[1] < 0 and sign(self.team) * ball.pos[1] < 0:
+                    self.step = "Shooting"
         elif self.step == "Dribbling":
             self.dribble.step(self.FPS)
             self.controls = self.dribble.controls
@@ -153,26 +146,17 @@ class hypebot(BaseAgent):
             self.controls = self.recovery.controls
             if self.info.my_car.on_ground:
                 self.step = "Catching"
+        elif self.step == "Shooting":
+            shooting(self)
 
     def render_string(self, string):
         self.renderer.begin_rendering('The State')
         if self.step == "Dodge1":
             self.renderer.draw_line_3d(self.info.my_car.pos, self.dodge.target, self.renderer.black())
         self.renderer.draw_line_3d(self.info.my_car.pos, self.bounces[0][0], self.renderer.blue())
-        self.renderer.draw_string_2d(20, 20, 3, 3, string, self.renderer.red())
+        self.renderer.draw_string_2d(20, 20, 3, 3, string + " " + str(abs(self.info.ball.vel[2])) + " " + str(
+            sign(self.team) * self.info.ball.vel[1]), self.renderer.red())
         self.renderer.end_rendering()
-
-    def set_state(self):
-        self.step = "Catching"
-        car_pos = Vector3(0, -1000, 25)
-        enemy_car = CarState(physics=Physics(location=Vector3(0, 5120, 25), velocity=Vector3(0, 0, 0)))
-        # enemy_car = CarState(physics=Physics(location=Vector3(10000, 5120, 25), velocity=Vector3(0, 0, 0)))
-        ball_pos = Vector3(car_pos.x, car_pos.y + 500, 650)
-        ball_state = BallState(Physics(location=ball_pos, velocity=Vector3(0, 250, 0)))
-        car_state = CarState(boost_amount=87, physics=Physics(location=car_pos, velocity=Vector3(0, 0, 0),
-                                                              rotation=Rotator(0, math.pi / 2, 0)))
-        game_state = GameState(ball=ball_state, cars={0: car_state, 1: enemy_car})
-        self.set_game_state(game_state)
 
     def should_defending(self):
         ball = self.info.ball
@@ -182,9 +166,3 @@ class hypebot(BaseAgent):
         in_front_of_ball = distance_2d(ball.pos, our_goal) < distance_2d(car.pos, our_goal)
         backline_intersect = line_backline_intersect(self.info.my_goal.center[1], vec2(car.pos), vec2(car_to_ball))
         return in_front_of_ball and abs(backline_intersect) < 2000
-
-    def set_kickoff(self):
-        their_goal = self.info.their_goal.center - sign(self.team) * vec3(0, 400, 0)
-        ball_state = BallState(Physics(location=Vector3(their_goal[0], their_goal[1], their_goal[2])))
-        game_state = GameState(ball=ball_state)
-        self.set_game_state(game_state)
