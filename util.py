@@ -1,6 +1,6 @@
 import math
 
-from RLUtilities.LinearAlgebra import vec2, norm, dot, vec3, normalize
+from rlutilities.linear_algebra import vec2, norm, dot, vec3, normalize
 
 
 def distance_2d(a, b):
@@ -8,12 +8,12 @@ def distance_2d(a, b):
 
 
 def get_closest_small_pad(agent):
-    pads = agent.info.small_boost_pads
+    pads = agent.small_boost_pads
     pad = None
     distance = math.inf
     for i in range(len(pads)):
-        if distance_2d(agent.info.my_car.pos, pads[i].pos) < distance:
-            distance = distance_2d(agent.info.my_car.pos, pads[i].pos)
+        if distance_2d(agent.info.my_car.location, pads[i].location) < distance:
+            distance = distance_2d(agent.info.my_car.location, pads[i].location)
             pad = pads[i]
     return pad
 
@@ -32,8 +32,8 @@ def sign(x):
         return 1
 
 
-def velocity_2d(vel):
-    return norm(vec2(vel))
+def velocity_2d(velocity):
+    return norm(vec2(velocity))
 
 
 def boost_needed(initial_speed, goal_speed):
@@ -46,44 +46,36 @@ def boost_needed(initial_speed, goal_speed):
 
 
 def is_reachable(agent, location, eta):
-    distance = distance_2d(agent.info.my_car.pos, location)
+    distance = distance_2d(agent.info.my_car.location, location)
     if eta == 0:
         return False
     speed = distance / eta
     if speed < 2300:
         if speed < 1399:
             return True
-        return agent.info.my_car.boost > boost_needed(velocity_2d(agent.info.my_car.vel), speed)
-
-
-def powerslide(agent):
-    target_local = dot(agent.drive.target_pos - agent.info.my_car.pos, agent.info.my_car.theta)
-    phi = math.atan2(target_local[1], target_local[0])
-    if abs(phi) > 1.7:
-        agent.controls.handbrake = 1
-        agent.controls.boost = 0
+        return agent.info.my_car.boost > boost_needed(velocity_2d(agent.info.my_car.velocity), speed)
 
 
 def get_speed(agent, location):
     car = agent.info.my_car
-    local = dot(location - car.pos, car.theta)
+    local = dot(location - car.location, car.rotation)
     angle = cap(math.atan2(local[1], local[0]), -3, 3)
-    distance = distance_2d(car.pos, location)
-    if distance > 2.5 * velocity_2d(car.vel):
+    distance = distance_2d(car.location, location)
+    if distance > 2.5 * velocity_2d(car.velocity):
         return 2250
     else:
         return 2250 - (400 * (angle ** 2))
 
 
 def can_dodge(agent, target):
-    bot_to_target = target - agent.info.my_car.pos
-    local_bot_to_target = dot(bot_to_target, agent.info.my_car.theta)
+    bot_to_target = target - agent.info.my_car.location
+    local_bot_to_target = dot(bot_to_target, agent.info.my_car.rotation)
     angle_front_to_target = math.atan2(local_bot_to_target[1], local_bot_to_target[0])
     distance_bot_to_target = norm(vec2(bot_to_target))
     good_angle = math.radians(-10) < angle_front_to_target < math.radians(10)
-    on_ground = agent.info.my_car.on_ground and agent.info.my_car.pos[2] < 100
-    going_fast = velocity_2d(agent.info.my_car.vel) > 1250
-    target_not_in_goal = not agent.info.my_goal.inside(target)
+    on_ground = agent.info.my_car.on_ground and agent.info.my_car.location[2] < 100
+    going_fast = velocity_2d(agent.info.my_car.velocity) > 1250
+    target_not_in_goal = not agent.my_goal.inside(target)
     return good_angle and distance_bot_to_target > 2000 and on_ground and going_fast and target_not_in_goal
 
 
@@ -98,7 +90,7 @@ def cap(x, low, high):
 
 def get_bounce(agent):
     for i in range(len(agent.bounces)):
-        goal_to_ball = normalize(z0(agent.bounces[i][0] - agent.info.their_goal.center))
+        goal_to_ball = normalize(z0(agent.bounces[i][0] - agent.their_goal.center))
         target = agent.bounces[i][0] + 40 * goal_to_ball
         if is_reachable(agent, target, agent.bounces[i][1]):
             return [target, agent.bounces[i][1]]
@@ -108,21 +100,21 @@ def z0(vector):
     return vec3(vector[0], vector[1], 0)
 
 # def speed(agent, location):
-#     distance = distance_2d(agent.info.my_car.pos, location)
+#     distance = distance_2d(agent.info.my_car.location, location)
 #
 #     alpha = 1.3
 #     time_left = agent.eta - agent.time
 #     avg_vf = distance / time_left
-#     target_vf = (1.0 - alpha) * velocity_2d(agent.info.my_car.vel) + alpha * avg_vf
+#     target_vf = (1.0 - alpha) * velocity_2d(agent.info.my_car.velocity) + alpha * avg_vf
 #
-#     if velocity_2d(agent.info.my_car.vel) < target_vf:
+#     if velocity_2d(agent.info.my_car.velocity) < target_vf:
 #         agent.controls.throttle = 1.0
 #         if target_vf > 1399:
 #             agent.controls.boost = 1
 #         else:
 #             agent.controls.boost = 0
 #     else:
-#         if velocity_2d(agent.info.my_car.vel) - target_vf > 75:
+#         if velocity_2d(agent.info.my_car.velocity) - target_vf > 75:
 #             agent.controls.throttle = -1.0
 #         else:
 #             agent.controls.throttle = 0.0

@@ -1,9 +1,9 @@
 import math
 
 import numpy as np
-from RLUtilities.LinearAlgebra import dot, angle_between, vec2
-from RLUtilities.Simulation import Input
 
+from rlutilities.linear_algebra import dot, angle_between, vec2
+from rlutilities.simulation import Input
 from util import distance_2d, velocity_2d, z0, line_backline_intersect
 
 
@@ -23,17 +23,18 @@ class Dribbling:
     def step(self, dt):
         # direction of ball relative to center of car (where should we aim)
         # direction of ball relative to yaw of car (where should we aim verse where we are aiming)
-        local_bot_to_ball = dot(self.ball.pos - self.car.pos, self.car.theta)
+        local_bot_to_ball = dot(self.ball.location - self.car.location, self.car.rotation)
         angle_front_to_ball = math.atan2(local_bot_to_ball[1], local_bot_to_ball[0])
         # distance between bot and ball
-        distance = distance_2d(self.car.pos, self.ball.pos)
+        distance = distance_2d(self.car.location, self.ball.location)
         # direction of ball velocity relative to yaw of car (which way the ball is moving verse which way we are moving)
-        if velocity_2d(self.ball.vel) < 1e-10:
-            angle_car_forward_to_ball_vel = 0
+        if velocity_2d(self.ball.velocity) < 1e-10:
+            angle_car_forward_to_ball_velocity = 0
         else:
-            angle_car_forward_to_ball_vel = angle_between(z0(self.car.forward()), z0(self.ball.vel))
+            angle_car_forward_to_ball_velocity = angle_between(z0(self.car.forward()), z0(self.ball.velocity))
         # magnitude of ball_bot_angle (squared)
-        ball_bot_diff = (self.ball.vel[0] ** 2 + self.ball.vel[1] ** 2) - (self.car.vel[0] ** 2 + self.car.vel[1] ** 2)
+        ball_bot_diff = (self.ball.velocity[0] ** 2 + self.ball.velocity[1] ** 2) - (
+                    self.car.velocity[0] ** 2 + self.car.velocity[1] ** 2)
         # p is the distance between ball and car
         # i is the magnitude of the ball's velocity (squared) the i term would normally
         # be the integral of p over time, but the ball's velocity is essentially that number
@@ -49,15 +50,15 @@ class Dribbling:
         distance_x = math.fabs(distance * math.sin(angle_front_to_ball))
         # ball moving forward WRT car yaw?
         forward = False
-        if math.fabs(angle_car_forward_to_ball_vel) < math.radians(90):
+        if math.fabs(angle_car_forward_to_ball_velocity) < math.radians(90):
             forward = True
         # first we give the distance values signs
         if forward:
             d = ball_bot_diff
-            i = (self.ball.vel[0] ** 2 + self.ball.vel[1] ** 2)
+            i = (self.ball.velocity[0] ** 2 + self.ball.velocity[1] ** 2)
         else:
             d = -ball_bot_diff
-            i = -(self.ball.vel[0] ** 2 + self.ball.vel[1] ** 2)
+            i = -(self.ball.velocity[0] ** 2 + self.ball.velocity[1] ** 2)
 
         if math.fabs(math.degrees(angle_front_to_ball)) < 90:
             p = distance_y
@@ -72,7 +73,7 @@ class Dribbling:
         bias_v = 600000  # 600000
 
         # just the basic PID if the ball is too low
-        if self.ball.pos[2] < 120:
+        if self.ball.location[2] < 120:
             correction = np.tanh((20 * p + .0015 * i + .006 * d) / 500)
         # if the ball is on top of the car we use our bias (the bias is in velocity units squared)
         else:
@@ -99,9 +100,9 @@ class Dribbling:
         # d_s is actually -d_s ...whoops
         d_s = -d_s
         max_bias = 35
-        backline_intersect = line_backline_intersect(self.goal.center[1], vec2(self.car.pos),
+        backline_intersect = line_backline_intersect(self.goal.center[1], vec2(self.car.location),
                                                      vec2(self.car.forward()))
-        if abs(backline_intersect) < 1000 or self.ball.pos[2] > 200:
+        if abs(backline_intersect) < 1000 or self.ball.location[2] > 200:
             bias = 0
         # Right of the ball
         elif -850 > backline_intersect:

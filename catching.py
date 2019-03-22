@@ -1,33 +1,33 @@
 import math
 
-from RLUtilities.LinearAlgebra import vec3, dot, norm
-from RLUtilities.Simulation import Input
+from rlutilities.linear_algebra import *
+from rlutilities.simulation import Input
 
 
 class Catching:
-    __slots__ = ['car', 'target_pos', 'target_speed', 'controls', 'finished']
+    __slots__ = ['car', 'target_location', 'target_speed', 'controls', 'finished']
 
-    def __init__(self, car, target_pos=vec3(0, 0, 0), target_speed=0):
+    def __init__(self, car, target_location=vec3(0, 0, 0), target_speed=0):
 
         self.car = car
-        self.target_pos = target_pos
+        self.target_location = target_location
         self.target_speed = target_speed
         self.controls = Input()
 
         self.finished = False
 
-    def step(self, dt):
+    def step(self):
 
         max_throttle_speed = 1410
-        max_boost_speed = 2300
+        # max_boost_speed = 2300
 
         # get the local coordinates of where the ball is, relative to the car
         # delta_local[0]: how far in front
         # delta_local[1]: how far to the left
         # delta_local[2]: how far above
-        delta_local = dot(self.target_pos - self.car.pos, self.car.theta)
+        delta_local = dot(self.target_location - self.car.location, self.car.rotation)
 
-        # angle between car's forward direction and target position
+        # angle between car's forward direction and target locationition
         phi = math.atan2(delta_local[1], delta_local[0])
 
         if phi < -math.radians(10):
@@ -51,7 +51,7 @@ class Catching:
             self.controls.handbrake = 0
 
         # forward velocity
-        vf = dot(self.car.vel, self.car.forward())
+        vf = dot(self.car.velocity, self.car.forward())
 
         if vf < self.target_speed:
             self.controls.throttle = 1.0
@@ -70,5 +70,5 @@ class Catching:
         if self.car.supersonic:
             self.controls.boost = False
 
-        if norm(self.car.pos - self.target_pos) < 100:
+        if norm(self.car.location - self.target_location) < 100:
             self.finished = True
