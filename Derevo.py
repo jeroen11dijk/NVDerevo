@@ -129,6 +129,7 @@ class hypebot(BaseAgent):
                 self.step = "Defending"
             if opponent_is_near and opponent_is_in_the_way:
                 self.step = "Dodge"
+                self.dodge = Dodge(self.info.my_car)
                 self.dodge.duration = 0.25
                 self.dodge.target = self.their_goal.center
         elif self.step == "Defending":
