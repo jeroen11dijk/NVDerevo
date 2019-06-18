@@ -1,6 +1,6 @@
 import math
 
-from rlutilities.linear_algebra import *
+from rlutilities.linear_algebra import vec3, norm, dot
 from rlutilities.simulation import Input
 
 

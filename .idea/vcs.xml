@@ -3,7 +3,6 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../Other Bots/small_fry" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/../../RLBotTraining" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../../RLUtilities" vcs="Git" />
   </component>
 </project>
