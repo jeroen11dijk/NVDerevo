@@ -1,7 +1,8 @@
-from rlutilities.linear_algebra import vec3
-from rlutilities.mechanics import Dodge, Drive
+import random
 
-from util import get_closest_small_pad, sign, distance_2d
+from rlutilities.linear_algebra import vec3, normalize
+from rlutilities.mechanics import Dodge, Drive
+from util import get_closest_small_pad, sign, distance_2d, z0
 
 
 def initKickOff(agent):
@@ -19,18 +20,63 @@ def initKickOff(agent):
         agent.drive.speed = 2400
         agent.kickoffStart = "offCenter"
     else:
-        target = agent.info.ball.location
-        agent.drive = Drive(agent.info.my_car)
-        agent.drive.target = target
-        agent.drive.speed = 2400
-        agent.kickoffStart = "Diagonal"
+        if random.choice([True, False]):
+            pad = get_closest_small_pad(agent)
+            vec3_pad = vec3(pad.location[0], pad.location[1], pad.location[2])
+            car_to_pad = vec3_pad - agent.info.my_car.location
+            target = agent.info.my_car.location + 1 * car_to_pad
+            agent.drive = Drive(agent.info.my_car)
+            agent.drive.target = target
+            agent.drive.speed = 2400
+            agent.kickoffStart = "Diagonal_Scrub"
+        else:
+            target = agent.info.ball.location
+            agent.drive = Drive(agent.info.my_car)
+            agent.drive.target = target
+            agent.drive.speed = 2400
+            agent.kickoffStart = "Diagonal"
     agent.step = "Drive"
     agent.drive.step(agent.FPS)
     agent.controls = agent.drive.controls
 
 
 def kickOff(agent):
-    if agent.kickoffStart == "Diagonal":
+    if agent.kickoffStart == "Diagonal_Scrub":
+        if agent.step == "Drive":
+            agent.drive.step(agent.FPS)
+            agent.controls = agent.drive.controls
+            if agent.drive.finished:
+                agent.step = "Dodge1"
+                # target = agent.info.ball.location
+                target = normalize(z0(agent.info.my_car.forward())) * 1000
+                agent.dodge = Dodge(agent.info.my_car)
+                agent.dodge.duration = 0.075
+                agent.dodge.target = target
+        elif agent.step == "Dodge1":
+            agent.dodge.step(agent.FPS)
+            agent.controls = agent.dodge.controls
+            if agent.dodge.finished:
+                agent.step = "Steer"
+                target = agent.info.ball.location
+                agent.drive = Drive(agent.info.my_car)
+                agent.drive.target = target
+                agent.drive.speed = 1399
+        elif agent.step == "Steer":
+            agent.drive.step(agent.FPS)
+            agent.controls = agent.drive.controls
+            # if agent.info.my_car.on_ground:
+            #     agent.drive.speed = 2400
+            if distance_2d(agent.info.ball.location, agent.info.my_car.location) < 750:
+                agent.step = "Dodge2"
+                agent.dodge = Dodge(agent.info.my_car)
+                agent.dodge.duration = 0.075
+                agent.dodge.target = agent.info.ball.location
+        elif agent.step == "Dodge2":
+            agent.dodge.step(agent.FPS)
+            agent.controls = agent.dodge.controls
+            if agent.dodge.finished and agent.info.my_car.on_ground:
+                agent.step = "Catching"
+    elif agent.kickoffStart == "Diagonal":
         if agent.step == "Drive":
             agent.drive.step(agent.FPS)
             agent.controls = agent.drive.controls

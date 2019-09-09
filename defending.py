@@ -1,21 +1,14 @@
 import math
+
 from rlutilities.linear_algebra import normalize, rotation, vec3, vec2, dot
 from rlutilities.mechanics import Dodge
-
-from util import line_backline_intersect, cap, distance_2d, sign, get_speed, can_dodge, closest_to_the_target
+from util import line_backline_intersect, cap, distance_2d, sign, get_speed, can_dodge
 
 
 def defending(agent):
-    if agent.closest_to_ball:
-        target = defending_target(agent)
-        agent.drive.target = target
-        agent.drive.speed = get_speed(agent, target)
-    else:
-        target = agent.my_goal.center + 0.66 * (agent.info.ball.location - agent.my_goal.center)
-        if not closest_to_the_target(agent, target):
-            target = agent.my_goal.center + 0.33 * (agent.info.ball.location - agent.my_goal.center)
-        agent.drive.target = target
-        agent.drive.speed = get_speed(agent, target)
+    target = defending_target(agent)
+    agent.drive.target = target
+    agent.drive.speed = get_speed(agent, target)
     agent.drive.step(agent.FPS)
     agent.controls = agent.drive.controls
     if can_dodge(agent, target):

@@ -1,9 +1,7 @@
 import math
+
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
-from rlutilities.linear_algebra import norm, normalize, vec2, vec3, dot
-from rlutilities.mechanics import Drive, Dodge
-from rlutilities.simulation import Game, Ball
 
 from Boost import init_boostpads, update_boostpads
 from Goal import Goal
@@ -11,8 +9,11 @@ from catching import Catching
 from defending import defending
 from dribble import Dribbling
 from kickOff import initKickOff, kickOff
+from rlutilities.linear_algebra import norm, normalize, vec2, vec3, dot
+from rlutilities.mechanics import Drive, Dodge
+from rlutilities.simulation import Game, Ball
 from shooting import shooting
-from util import distance_2d, get_bounce, line_backline_intersect, sign, get_closest_big_pad
+from util import distance_2d, get_bounce, line_backline_intersect, sign
 
 
 class hypebot(BaseAgent):
@@ -34,14 +35,11 @@ class hypebot(BaseAgent):
         self.kickoff = False
         self.inFrontOfBall = False
         self.kickoffStart = None
-        self.step = "Defending"
+        self.step = "Catching"
         self.time = 0
         self.FPS = 1 / 120
         self.my_goal = None
         self.their_goal = None
-        self.teammates = []
-        self.has_to_go = False
-        self.closest_to_ball = False
 
     def initialize_agent(self):
         self.my_goal = Goal(self.team, self.get_field_info())
@@ -51,10 +49,6 @@ class hypebot(BaseAgent):
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         if packet.game_info.seconds_elapsed - self.time > 0:
             self.FPS = packet.game_info.seconds_elapsed - self.time
-        self.teammates = []
-        for i in range(self.info.num_cars):
-            if self.info.cars[i].team == self.team and i != self.index:
-                self.teammates.append(i)
         self.time = packet.game_info.seconds_elapsed
         self.info.read_game_information(packet, self.get_rigid_body_tick(), self.get_field_info())
         update_boostpads(self, packet)
@@ -63,28 +57,13 @@ class hypebot(BaseAgent):
         prev_kickoff = self.kickoff
         self.kickoff = packet.game_info.is_kickoff_pause
         self.defending = self.should_defending()
-        self.closest_to_ball = self.closest_to_the_ball()
         if self.kickoff and not prev_kickoff:
-            if len(self.teammates) > 0:
-                if self.closest_to_ball:
-                    initKickOff(self)
-                    self.has_to_go = True
-                else:
-                    self.drive.target = get_closest_big_pad(self).location
-                    self.drive.speed = 1399
-            else:
-                initKickOff(self)
-                self.has_to_go = True
-        if (self.kickoff or self.step == "Dodge2") and self.has_to_go:
+            initKickOff(self)
+        if self.kickoff or self.step == "Dodge2":
             kickOff(self)
-        elif self.kickoff and not self.has_to_go:
-            self.drive.step(self.FPS)
-            self.drive.step(self.FPS)
-            self.controls = self.drive.controls
         else:
-            if self.has_to_go:
-                self.has_to_go = False
             self.get_controls()
+        self.render_string(str(self.step))
         if not packet.game_info.is_round_active:
             self.controls.steer = 0
         return self.controls
@@ -164,9 +143,13 @@ class hypebot(BaseAgent):
         elif self.step == "Shooting":
             shooting(self)
 
-    def render_string(self):
+    def render_string(self, string):
         self.renderer.begin_rendering('The State')
-        self.renderer.draw_line_3d(self.info.my_car.location, self.drive.target, self.renderer.blue())
+        if self.step == "Dodge1":
+            self.renderer.draw_line_3d(self.info.my_car.location, self.dodge.target, self.renderer.black())
+        self.renderer.draw_line_3d(self.info.my_car.location, self.bounces[0][0], self.renderer.blue())
+        self.renderer.draw_string_2d(20, 20, 3, 3, string + " " + str(abs(self.info.ball.velocity[2])) + " " + str(
+            sign(self.team) * self.info.ball.velocity[1]), self.renderer.red())
         self.renderer.end_rendering()
 
     def should_defending(self):
@@ -176,11 +159,4 @@ class hypebot(BaseAgent):
         car_to_ball = ball.location - car.location
         in_front_of_ball = distance_2d(ball.location, our_goal) < distance_2d(car.location, our_goal)
         backline_intersect = line_backline_intersect(self.my_goal.center[1], vec2(car.location), vec2(car_to_ball))
-        return (in_front_of_ball and abs(backline_intersect) < 2000) or not self.closest_to_ball
-
-    def closest_to_the_ball(self):
-        dist_to_ball = math.inf
-        for i in range(len(self.teammates)):
-            if distance_2d(self.info.cars[self.teammates[i]].location, self.info.ball.location) < dist_to_ball:
-                dist_to_ball = distance_2d(self.info.cars[self.teammates[i]].location, self.info.ball.location)
-        return distance_2d(self.info.my_car.location, self.info.ball.location) <= dist_to_ball
+        return in_front_of_ball and abs(backline_intersect) < 2000
