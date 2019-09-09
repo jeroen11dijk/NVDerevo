@@ -18,6 +18,17 @@ def get_closest_small_pad(agent):
     return pad
 
 
+def get_closest_big_pad(agent):
+    pads = agent.boost_pads
+    pad = None
+    distance = math.inf
+    for i in range(len(pads)):
+        if distance_2d(agent.info.my_car.location, pads[i].location) < distance:
+            distance = distance_2d(agent.info.my_car.location, pads[i].location)
+            pad = pads[i]
+    return pad
+
+
 def line_backline_intersect(y, origin, direction):
     if abs(direction[1]) < 1e-10:
         direction[1] = 1e-10
@@ -98,23 +109,3 @@ def get_bounce(agent):
 
 def z0(vector):
     return vec3(vector[0], vector[1], 0)
-
-# def speed(agent, location):
-#     distance = distance_2d(agent.info.my_car.location, location)
-#
-#     alpha = 1.3
-#     time_left = agent.eta - agent.time
-#     avg_vf = distance / time_left
-#     target_vf = (1.0 - alpha) * velocity_2d(agent.info.my_car.velocity) + alpha * avg_vf
-#
-#     if velocity_2d(agent.info.my_car.velocity) < target_vf:
-#         agent.controls.throttle = 1.0
-#         if target_vf > 1399:
-#             agent.controls.boost = 1
-#         else:
-#             agent.controls.boost = 0
-#     else:
-#         if velocity_2d(agent.info.my_car.velocity) - target_vf > 75:
-#             agent.controls.throttle = -1.0
-#         else:
-#             agent.controls.throttle = 0.0

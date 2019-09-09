@@ -1,4 +1,4 @@
-from rlutilities.linear_algebra import *
+from rlutilities.linear_algebra import vec3
 
 
 class Goal:
@@ -6,12 +6,12 @@ class Goal:
     HEIGHT = 640.0
     DISTANCE = 5120.0
 
-    def __init__(self, team, fieldInfo=None):
+    def __init__(self, team, field_info=None):
 
         self.team = team
         self.sign = -1 if team == 0 else 1
-        for i in range(len(fieldInfo.goals)):
-            current = fieldInfo.goals[i]
+        for i in range(len(field_info.goals)):
+            current = field_info.goals[i]
             current_pos = current.location
             if current.team_num == team:
                 self.center = vec3(current_pos.x, current_pos.y, current_pos.z)

@@ -8,7 +8,7 @@ from Goal import Goal
 from catching import Catching
 from defending import defending
 from dribble import Dribbling
-from kickOff import initKickOff, kickOff
+from kickOff import init_kickoff, kickOff
 from rlutilities.linear_algebra import norm, normalize, vec2, vec3, dot
 from rlutilities.mechanics import Drive, Dodge
 from rlutilities.simulation import Game, Ball
@@ -37,7 +37,7 @@ class hypebot(BaseAgent):
         self.kickoffStart = None
         self.step = "Catching"
         self.time = 0
-        self.FPS = 1 / 120
+        self.FPS = 1 / 60
         self.my_goal = None
         self.their_goal = None
 
@@ -58,7 +58,7 @@ class hypebot(BaseAgent):
         self.kickoff = packet.game_info.is_kickoff_pause
         self.defending = self.should_defending()
         if self.kickoff and not prev_kickoff:
-            initKickOff(self)
+            init_kickoff(self)
         if self.kickoff or self.step == "Dodge2":
             kickOff(self)
         else:
