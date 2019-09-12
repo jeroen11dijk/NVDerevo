@@ -1,7 +1,9 @@
+"""Module to keep track of all the boost pads."""
 from rlutilities.linear_algebra import vec3
 
 
 class BoostPad:
+    """Class to keep track of all the boost pads."""
 
     def __init__(self, index, location, is_active, timer):
         self.index = index
@@ -11,6 +13,7 @@ class BoostPad:
 
 
 def init_boostpads(agent):
+    """Method to initialize the boost pads."""
     agent.boost_pads = []
     agent.small_boost_pads = []
     field_info = agent.get_field_info()
@@ -25,6 +28,7 @@ def init_boostpads(agent):
 
 
 def update_boostpads(agent, packet):
+    """Method to update the boost pads."""
     for i in range(0, len(agent.boost_pads)):
         boost_pad = packet.game_boosts[agent.boost_pads[i].index]
         agent.boost_pads[i].is_active = boost_pad.is_active

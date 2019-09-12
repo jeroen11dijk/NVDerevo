@@ -1,13 +1,15 @@
+""""Module that handles the dribbling strategy"""
 import math
 
 import numpy as np
 
 from rlutilities.linear_algebra import dot, angle_between, vec2
 from rlutilities.simulation import Input
-from util import distance_2d, velocity_2d, z0, line_backline_intersect
+from util import distance_2d, velocity_2d, z_0, line_backline_intersect
 
 
 class Dribbling:
+    """"Class that handles the shooting strategy"""
     __slots__ = ['ball', 'car', 'goal', 'p_s', 'controls', 'finished']
 
     def __init__(self, car, ball, goal):
@@ -20,7 +22,8 @@ class Dribbling:
 
         self.finished = False
 
-    def step(self, dt):
+    def step(self):
+        """"Gives output for the dribbling strategy"""
         # direction of ball relative to center of car (where should we aim)
         # direction of ball relative to yaw of car (where should we aim verse where we are aiming)
         local_bot_to_ball = dot(self.ball.location - self.car.location, self.car.rotation)
@@ -31,7 +34,7 @@ class Dribbling:
         if velocity_2d(self.ball.velocity) < 1e-10:
             angle_car_forward_to_ball_velocity = 0
         else:
-            angle_car_forward_to_ball_velocity = angle_between(z0(self.car.forward()), z0(self.ball.velocity))
+            angle_car_forward_to_ball_velocity = angle_between(z_0(self.car.forward()), z_0(self.ball.velocity))
         # magnitude of ball_bot_angle (squared)
         ball_bot_diff = (self.ball.velocity[0] ** 2 + self.ball.velocity[1] ** 2) - (
                     self.car.velocity[0] ** 2 + self.car.velocity[1] ** 2)

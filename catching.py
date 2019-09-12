@@ -1,3 +1,4 @@
+""""Module that handles the catching strategy"""
 import math
 
 from rlutilities.linear_algebra import *
@@ -5,6 +6,7 @@ from rlutilities.simulation import Input
 
 
 class Catching:
+    """"Class that handles the defending strategy"""
     __slots__ = ['car', 'target_location', 'target_speed', 'controls', 'finished']
 
     def __init__(self, car, target_location=vec3(0, 0, 0), target_speed=0):
@@ -17,7 +19,7 @@ class Catching:
         self.finished = False
 
     def step(self):
-
+        """"Gives output for the catching strategy"""
         max_throttle_speed = 1410
         # max_boost_speed = 2300
 

@@ -1,14 +1,15 @@
+"""Main module"""
 import math
 
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
-from Boost import init_boostpads, update_boostpads
-from Goal import Goal
+from boost import init_boostpads, update_boostpads
+from goal import Goal
 from catching import Catching
 from defending import defending
 from dribble import Dribbling
-from kickOff import init_kickoff, kickOff
+from kick_off import init_kickoff, kick_off
 from rlutilities.linear_algebra import norm, normalize, vec2, vec3, dot
 from rlutilities.mechanics import Drive, Dodge
 from rlutilities.simulation import Game, Ball
@@ -16,9 +17,11 @@ from shooting import shooting
 from util import distance_2d, get_bounce, line_backline_intersect, sign
 
 
-class hypebot(BaseAgent):
+class Hypebot(BaseAgent):
+    """Main bot class"""
 
     def __init__(self, name, team, index):
+        """Initializing all parameters of the bot"""
         super().__init__(name, team, index)
         Game.set_mode("soccar")
         self.info = Game(index, team)
@@ -33,22 +36,24 @@ class hypebot(BaseAgent):
         self.dribble = None
         self.controls = SimpleControllerState()
         self.kickoff = False
-        self.inFrontOfBall = False
-        self.kickoffStart = None
+        self.in_front_off_the_ball = False
+        self.kickoff_Start = None
         self.step = "Catching"
         self.time = 0
-        self.FPS = 1 / 60
+        self.fps = 1 / 60
         self.my_goal = None
         self.their_goal = None
 
     def initialize_agent(self):
+        """Initializing all parameters whch require the field info"""
         self.my_goal = Goal(self.team, self.get_field_info())
         self.their_goal = Goal(1 - self.team, self.get_field_info())
         init_boostpads(self)
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
+        """The main method which receives the packets and outputs the controls"""
         if packet.game_info.seconds_elapsed - self.time > 0:
-            self.FPS = packet.game_info.seconds_elapsed - self.time
+            self.fps = packet.game_info.seconds_elapsed - self.time
         self.time = packet.game_info.seconds_elapsed
         self.info.read_game_information(packet, self.get_rigid_body_tick(), self.get_field_info())
         update_boostpads(self, packet)
@@ -60,7 +65,7 @@ class hypebot(BaseAgent):
         if self.kickoff and not prev_kickoff:
             init_kickoff(self)
         if self.kickoff or self.step == "Dodge2":
-            kickOff(self)
+            kick_off(self)
         else:
             self.get_controls()
         self.render_string(str(self.step))
@@ -69,6 +74,7 @@ class hypebot(BaseAgent):
         return self.controls
 
     def predict(self):
+        """Method which uses ball prediction to fill in future data"""
         self.bounces = []
         prediction = Ball(self.info.ball)
         for i in range(360):
@@ -79,6 +85,7 @@ class hypebot(BaseAgent):
                 self.bounces.append((vec3(prediction.location), i * 1 / 60))
 
     def set_mechanics(self):
+        """Setting all the mechanics to not none"""
         if self.drive is None:
             self.drive = Drive(self.info.my_car)
         if self.catching is None:
@@ -89,6 +96,7 @@ class hypebot(BaseAgent):
             self.dribble = Dribbling(self.info.my_car, self.info.ball, self.their_goal)
 
     def get_controls(self):
+        """Decides what strategy to uses and gives corresponding output"""
         if self.step == "Steer" or self.step == "Dodge2":
             self.step = "Catching"
         if self.step == "Catching":
@@ -113,7 +121,7 @@ class hypebot(BaseAgent):
                         ball.location[1] < 0:
                     self.step = "Shooting"
         elif self.step == "Dribbling":
-            self.dribble.step(self.FPS)
+            self.dribble.step()
             self.controls = self.dribble.controls
             ball = self.info.ball
             car = self.info.my_car
@@ -135,7 +143,7 @@ class hypebot(BaseAgent):
         elif self.step == "Defending":
             defending(self)
         elif self.step == "Dodge":
-            self.dodge.step(self.FPS)
+            self.dodge.step(self.fps)
             self.controls = self.dodge.controls
             self.controls.boost = 0
             if self.dodge.finished and self.info.my_car.on_ground:
@@ -144,6 +152,7 @@ class hypebot(BaseAgent):
             shooting(self)
 
     def render_string(self, string):
+        """Rendering method mainly used to show the current state"""
         self.renderer.begin_rendering('The State')
         if self.step == "Dodge1":
             self.renderer.draw_line_3d(self.info.my_car.location, self.dodge.target, self.renderer.black())
@@ -153,6 +162,7 @@ class hypebot(BaseAgent):
         self.renderer.end_rendering()
 
     def should_defending(self):
+        """Method which returns a boolean regarding whether we should defend or not"""
         ball = self.info.ball
         car = self.info.my_car
         our_goal = self.my_goal.center

@@ -1,9 +1,11 @@
+""""Module that handles the kickoffs"""
 from rlutilities.linear_algebra import vec3
 from rlutilities.mechanics import Dodge, Drive
 from util import get_closest_small_pad, sign, distance_2d
 
 
 def init_kickoff(agent):
+    """"Method that initializes the kickoff"""
     if abs(agent.info.my_car.location[0]) < 250:
         pad = get_closest_small_pad(agent)
         target = vec3(pad.location[0], pad.location[1], pad.location[2]) - sign(agent.team) * vec3(0, 500, 0)
@@ -24,14 +26,15 @@ def init_kickoff(agent):
         agent.drive.speed = 2400
         agent.kickoffStart = "Diagonal"
     agent.step = "Drive"
-    agent.drive.step(agent.FPS)
+    agent.drive.step(agent.fps)
     agent.controls = agent.drive.controls
 
 
-def kickOff(agent):
+def kick_off(agent):
+    """"Module that performs the kickoffs"""
     if agent.kickoffStart == "Diagonal":
         if agent.step == "Drive":
-            agent.drive.step(agent.FPS)
+            agent.drive.step(agent.fps)
             agent.controls = agent.drive.controls
             if distance_2d(agent.info.ball.location, agent.info.my_car.location) < 850:
                 agent.step = "Dodge"
@@ -39,13 +42,13 @@ def kickOff(agent):
                 agent.dodge.duration = 0.075
                 agent.dodge.target = agent.info.ball.location
         elif agent.step == "Dodge":
-            agent.dodge.step(agent.FPS)
+            agent.dodge.step(agent.fps)
             agent.controls = agent.dodge.controls
             if agent.dodge.finished and agent.info.my_car.on_ground:
                 agent.step = "Catching"
     elif agent.kickoffStart == "Center":
         if agent.step == "Drive":
-            agent.drive.step(agent.FPS)
+            agent.drive.step(agent.fps)
             agent.controls = agent.drive.controls
             if agent.drive.finished:
                 agent.step = "Dodge1"
@@ -53,7 +56,7 @@ def kickOff(agent):
                 agent.dodge.duration = 0.075
                 agent.dodge.target = agent.info.ball.location
         elif agent.step == "Dodge1":
-            agent.dodge.step(agent.FPS)
+            agent.dodge.step(agent.fps)
             agent.controls = agent.dodge.controls
             agent.controls.boost = 0
             if agent.dodge.finished and agent.info.my_car.on_ground:
@@ -63,7 +66,7 @@ def kickOff(agent):
                 agent.drive.target = target
                 agent.drive.speed = 2400
         elif agent.step == "Steer":
-            agent.drive.step(agent.FPS)
+            agent.drive.step(agent.fps)
             agent.controls = agent.drive.controls
             if agent.drive.finished:
                 agent.step = "Dodge2"
@@ -71,13 +74,13 @@ def kickOff(agent):
                 agent.dodge.duration = 0.075
                 agent.dodge.target = agent.info.ball.location
         elif agent.step == "Dodge2":
-            agent.dodge.step(agent.FPS)
+            agent.dodge.step(agent.fps)
             agent.controls = agent.dodge.controls
             if agent.dodge.finished and agent.info.my_car.on_ground:
                 agent.step = "Catching"
     elif agent.kickoffStart == "offCenter":
         if agent.step == "Drive":
-            agent.drive.step(agent.FPS)
+            agent.drive.step(agent.fps)
             agent.controls = agent.drive.controls
             if agent.info.my_car.boost < 15 or agent.drive.finished:
                 agent.step = "Dodge1"
@@ -85,7 +88,7 @@ def kickOff(agent):
                 agent.dodge.duration = 0.075
                 agent.dodge.target = agent.info.ball.location
         elif agent.step == "Dodge1":
-            agent.dodge.step(agent.FPS)
+            agent.dodge.step(agent.fps)
             agent.controls = agent.dodge.controls
             agent.controls.boost = 0
             if agent.dodge.finished and agent.info.my_car.on_ground:
@@ -95,7 +98,7 @@ def kickOff(agent):
                 agent.drive.target = target
                 agent.drive.speed = 2400
         elif agent.step == "Steer":
-            agent.drive.step(agent.FPS)
+            agent.drive.step(agent.fps)
             agent.controls = agent.drive.controls
             if distance_2d(agent.info.ball.location, agent.info.my_car.location) < 850:
                 agent.step = "Dodge2"
@@ -103,7 +106,7 @@ def kickOff(agent):
                 agent.dodge.duration = 0.075
                 agent.dodge.target = agent.info.ball.location
         elif agent.step == "Dodge2":
-            agent.dodge.step(agent.FPS)
+            agent.dodge.step(agent.fps)
             agent.controls = agent.dodge.controls
             if agent.dodge.finished and agent.info.my_car.on_ground:
                 agent.step = "Catching"

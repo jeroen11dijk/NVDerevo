@@ -1,7 +1,9 @@
+"""Module to keep track of the goals."""
 from rlutilities.linear_algebra import vec3
 
 
 class Goal:
+    """Class to keep track of the goals."""
     WIDTH = 1784.0
     HEIGHT = 640.0
     DISTANCE = 5120.0
@@ -32,8 +34,8 @@ class Goal:
                     ]
                 break
 
-    def inside(self, p):
+    def inside(self, pos):
+        """Check whether we are inside our goal"""
         if self.team == 0:
-            return p[1] < -Goal.DISTANCE
-        else:
-            return p[1] > Goal.DISTANCE
+            return pos[1] < -Goal.DISTANCE
+        return pos[1] > Goal.DISTANCE
