@@ -1,18 +1,21 @@
 """Main module"""
 import math
-
-from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
+from queue import Empty
+from rlutilities.linear_algebra import *
+from rlbot.agents.base_agent import BaseAgent
+from rlbot.agents.base_agent import SimpleControllerState
+from rlbot.matchcomms.common_uses.reply import reply_to
+from rlbot.matchcomms.common_uses.set_attributes_message import handle_set_attributes_message
 from rlbot.utils.structures.game_data_struct import GameTickPacket
-
-from boost import init_boostpads, update_boostpads
-from goal import Goal
-from catching import Catching
-from defending import defending
-from dribble import Dribbling
-from kick_off import init_kickoff, kick_off
 from rlutilities.linear_algebra import norm, normalize, vec2, vec3, dot
 from rlutilities.mechanics import Drive, Dodge
 from rlutilities.simulation import Game, Ball
+
+from boost import init_boostpads, update_boostpads
+from defending import defending
+from dribble import Dribbling
+from goal import Goal
+from kick_off import init_kickoff, kick_off
 from shooting import shooting
 from util import distance_2d, get_bounce, line_backline_intersect, sign
 
@@ -36,6 +39,7 @@ class Hypebot(BaseAgent):
         self.dribble = None
         self.controls = SimpleControllerState()
         self.kickoff = False
+        self.prev_kickoff = False
         self.in_front_off_the_ball = False
         self.kickoff_Start = None
         self.step = "Catching"
@@ -59,12 +63,16 @@ class Hypebot(BaseAgent):
         update_boostpads(self, packet)
         self.predict()
         self.set_mechanics()
-        prev_kickoff = self.kickoff
-        self.kickoff = packet.game_info.is_kickoff_pause
+        self.handle_match_comms()
+        # self.prev_kickoff = self.kickoff
+        # self.kickoff = packet.game_info.is_kickoff_pause
         self.defending = self.should_defending()
-        if self.kickoff and not prev_kickoff:
+        if self.kickoff and not self.prev_kickoff:
+            if not self.close_to_kickoff_spawn():
+                return
             init_kickoff(self)
-        if self.kickoff or self.step == "Dodge2":
+            self.prev_kickoff = True
+        elif self.kickoff or self.step == "Dodge2":
             kick_off(self)
         else:
             self.get_controls()
@@ -89,7 +97,7 @@ class Hypebot(BaseAgent):
         if self.drive is None:
             self.drive = Drive(self.info.my_car)
         if self.catching is None:
-            self.catching = Catching(self.info.my_car, self.info.ball.location, 1399)
+            self.catching = Drive(self.info.my_car)
         if self.dodge is None:
             self.dodge = Dodge(self.info.my_car)
         if self.dribble is None:
@@ -104,9 +112,9 @@ class Hypebot(BaseAgent):
             if target is None:
                 self.step = "Defending"
             else:
-                self.catching.target_location = target[0]
-                self.catching.target_speed = (distance_2d(self.info.my_car.location, target[0]) + 50) / target[1]
-                self.catching.step()
+                self.catching.target = target[0]
+                self.catching.speed = (distance_2d(self.info.my_car.location, target[0]) + 50) / target[1]
+                self.catching.step(self.info.time_delta)
                 self.controls = self.catching.controls
                 ball = self.info.ball
                 car = self.info.my_car
@@ -151,14 +159,26 @@ class Hypebot(BaseAgent):
         elif self.step == "Shooting":
             shooting(self)
 
+    def handle_match_comms(self):
+        try:
+            msg = self.matchcomms.incoming_broadcast.get_nowait()
+        except Empty:
+            return
+        if handle_set_attributes_message(msg, self, allowed_keys=['kickoff', 'prev_kickoff']):
+            reply_to(self.matchcomms, msg)
+        else:
+            self.logger.debug(f'Unhandled message: {msg}')
+
     def render_string(self, string):
         """Rendering method mainly used to show the current state"""
         self.renderer.begin_rendering('The State')
         if self.step == "Dodge1":
             self.renderer.draw_line_3d(self.info.my_car.location, self.dodge.target, self.renderer.black())
-        self.renderer.draw_line_3d(self.info.my_car.location, self.bounces[0][0], self.renderer.blue())
-        self.renderer.draw_string_2d(20, 20, 3, 3, string + " " + str(abs(self.info.ball.velocity[2])) + " " + str(
-            sign(self.team) * self.info.ball.velocity[1]), self.renderer.red())
+        self.renderer.draw_line_3d(self.info.my_car.location, self.drive.target, self.renderer.blue())
+        if self.kickoff_Start is None:
+            self.renderer.draw_string_2d(20, 20, 3, 3, string, self.renderer.red())
+        else:
+            self.renderer.draw_string_2d(20, 20, 3, 3, string + " " + self.kickoff_Start, self.renderer.red())
         self.renderer.end_rendering()
 
     def should_defending(self):
@@ -170,3 +190,12 @@ class Hypebot(BaseAgent):
         in_front_of_ball = distance_2d(ball.location, our_goal) < distance_2d(car.location, our_goal)
         backline_intersect = line_backline_intersect(self.my_goal.center[1], vec2(car.location), vec2(car_to_ball))
         return in_front_of_ball and abs(backline_intersect) < 2000
+
+    def close_to_kickoff_spawn(self):
+        one = distance_2d(self.info.my_car.location, vec3(-2048, -2560, 18)) < 10
+        two = distance_2d(self.info.my_car.location, vec3(2048, -2560, 18)) < 10
+        three = distance_2d(self.info.my_car.location, vec3(-256, -3840, 18)) < 10
+        four = distance_2d(self.info.my_car.location, vec3(256, -3840, 18)) < 10
+        five = distance_2d(self.info.my_car.location, vec3(0, -4608, 18)) < 10
+        return one or two or three or four or five
+

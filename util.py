@@ -9,13 +9,13 @@ def distance_2d(vec_a, vec_b):
     return norm(vec2(vec_a - vec_b))
 
 
-def get_closest_small_pad(agent):
+def get_closest_small_pad(agent, location):
     """Gets the small boostpad closest to the bot"""
     pads = agent.small_boost_pads
     closest_pad = None
     distance = math.inf
     for pad in pads:
-        if distance_2d(agent.info.my_car.location, pad.location) < distance:
+        if distance_2d(location, pad.location) < distance:
             distance = distance_2d(agent.info.my_car.location, pad.location)
             closest_pad = pad
     return closest_pad
@@ -120,3 +120,7 @@ def get_bounce(agent):
 def z_0(vector):
     """Returns a vec3 with 0 on the z-axis"""
     return vec3(vector[0], vector[1], 0)
+
+
+def lerp(a, b, t):
+    return a + (b - a) * t
