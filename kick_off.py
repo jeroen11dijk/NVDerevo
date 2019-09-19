@@ -11,19 +11,21 @@ def init_kickoff(agent):
     """"Method that initializes the kickoff"""
     if abs(agent.info.my_car.location[0]) < 250:
         pad = get_closest_small_pad(agent, vec3(0, sign(agent.team) * 4608, 18))
-        target = vec3(pad.location[0], pad.location[1], pad.location[2])
+        target = vec3(pad.location[0], pad.location[1], pad.location[2]) + sign(agent.team) * vec3(20, 0, 0)
         agent.drive = Drive(agent.info.my_car)
         agent.drive.target = target
         agent.drive.speed = 2400
         agent.kickoffStart = "Center"
     elif abs(agent.info.my_car.location[0]) < 1000:
-        target = vec3(0.0, sign(agent.team) * 2816.0, 70.0) + -sign(agent.team) * vec3(0, 250, 0)
+        target = vec3(0.0, sign(agent.team) * 2816.0, 70.0) + sign(agent.team) * vec3(0, 300, 0)
         agent.drive = Drive(agent.info.my_car)
         agent.drive.target = target
         agent.drive.speed = 2400
         agent.kickoffStart = "offCenter"
     else:
-        target = agent.info.ball.location
+        # ball_location = agent.info.ball.location + vec3(0, -sign(agent.team) * 600, 0)
+        # target = agent.info.my_car.location + 750 * normalize(ball_location - agent.info.my_car.location)
+        target = agent.info.my_car.location + 300 * agent.info.my_car.forward()
         agent.drive = Drive(agent.info.my_car)
         agent.drive.target = target
         agent.drive.speed = 2400
@@ -34,17 +36,66 @@ def init_kickoff(agent):
 
 
 def kick_off(agent):
+    t = distance_2d(agent.info.ball.location, agent.info.my_car.location) / 2200
+    batmobile_resting = 18.65
+    robbies_constant = (agent.info.ball.location - vec3(0, 0, 92.75 - batmobile_resting) - agent.info.my_car.location - agent.info.my_car.velocity * t) * 2 * t ** -2
     """"Module that performs the kickoffs"""
     if agent.kickoffStart == "Diagonal":
         if agent.step == "Drive":
             agent.drive.step(agent.fps)
             agent.controls = agent.drive.controls
-            if distance_2d(agent.info.ball.location, agent.info.my_car.location) < 500:
-                agent.step = "Dodge"
+            if agent.drive.finished:
+                ball_location = agent.info.ball.location + vec3(0, -sign(agent.team) * 500, 0)
+                target = agent.info.my_car.location + 250 * normalize(ball_location - agent.info.my_car.location)
+                agent.drive = Drive(agent.info.my_car)
+                agent.drive.target = target
+                agent.drive.speed = 2400
+                agent.step = "Drive1"
+        if agent.step == "Drive1":
+            agent.drive.step(agent.fps)
+            agent.controls = agent.drive.controls
+            if agent.drive.finished:
+                agent.dodge = Dodge(agent.info.my_car)
+                agent.turn = AerialTurn(agent.info.my_car)
+                agent.dodge.duration = 0.05
+                agent.dodge.delay = 0.3
+                agent.dodge.target = vec3(dot(rotation(math.radians(sign(agent.info.my_car.location[0]) * 60)),
+                                              vec2(agent.info.my_car.forward())) * 10000)
+                agent.dodge.preorientation = dot(
+                    axis_to_rotation(vec3(0, 0, math.radians(-sign(agent.info.my_car.location[0]) * 30))),
+                    agent.info.my_car.rotation)
+                agent.timer = 0.0
+                agent.step = "Dodge1"
+        elif agent.step == "Dodge1":
+            agent.timer += agent.info.time_delta
+            if agent.timer > 0.8:
+                lerp_var = lerp(normalize(robbies_constant), normalize(
+                    agent.info.ball.location - vec3(0, 0, 92.75 - batmobile_resting) - agent.info.my_car.location),
+                                0.8)
+                agent.turn.target = look_at(lerp_var, vec3(0, 0, 1))
+                agent.turn.step(agent.info.time_delta)
+                agent.controls = agent.turn.controls
+                if agent.info.my_car.on_ground:
+                    agent.step = "Steer"
+                    target = agent.info.ball.location
+                    agent.drive = Drive(agent.info.my_car)
+                    agent.drive.target = target
+                    agent.drive.speed = 2400
+            else:
+                agent.dodge.step(agent.info.time_delta)
+                agent.controls = agent.dodge.controls
+            # robbies_constant = (agent.info.ball.location - agent.info.my_car.location - agent.info.my_car.velocity)
+            agent.controls.boost = dot(normalize(xy(agent.info.my_car.forward())), normalize(xy(robbies_constant))) > (
+                0.3 if agent.info.my_car.on_ground else 0.1)
+        elif agent.step == "Steer":
+            agent.drive.step(agent.fps)
+            agent.controls = agent.drive.controls
+            if distance_2d(agent.info.ball.location, agent.info.my_car.location) < 800:
+                agent.step = "Dodge2"
                 agent.dodge = Dodge(agent.info.my_car)
                 agent.dodge.duration = 0.075
                 agent.dodge.target = agent.info.ball.location
-        elif agent.step == "Dodge":
+        elif agent.step == "Dodge2":
             agent.dodge.step(agent.fps)
             agent.controls = agent.dodge.controls
             if agent.dodge.finished and agent.info.my_car.on_ground:
@@ -80,7 +131,7 @@ def kick_off(agent):
                 agent.dodge.step(agent.info.time_delta)
                 agent.controls = agent.dodge.controls
                 agent.controls.boost = 1
-            robbies_constant = (agent.info.ball.location - agent.info.my_car.location - agent.info.my_car.velocity)
+            # robbies_constant = (agent.info.ball.location - agent.info.my_car.location - agent.info.my_car.velocity)
             agent.controls.boost = dot(normalize(xy(agent.info.my_car.forward())), normalize(xy(robbies_constant))) > (0.3 if agent.info.my_car.on_ground else 0.1)
         elif agent.step == "Steer":
             agent.drive.step(agent.info.time_delta)
@@ -97,27 +148,22 @@ def kick_off(agent):
         if agent.step == "Drive":
             agent.drive.step(agent.fps)
             agent.controls = agent.drive.controls
-            if distance_2d(agent.info.my_car.location, agent.drive.target) < 600:
+            if distance_2d(agent.info.my_car.location, agent.drive.target) < 650:
                 agent.dodge = Dodge(agent.info.my_car)
                 agent.turn = AerialTurn(agent.info.my_car)
                 agent.dodge.duration = 0.05
                 agent.dodge.delay = 0.4
-                agent.dodge.target = vec3(dot(rotation(math.radians(-sign(agent.info.my_car.location[0]) * 45)), vec2(agent.info.my_car.forward())) * 10000)
+                agent.dodge.target = vec3(dot(rotation(math.radians(-sign(agent.info.my_car.location[0]) * 100)), vec2(agent.info.my_car.forward())) * 10000)
                 agent.dodge.preorientation = dot(axis_to_rotation(vec3(0, 0, math.radians(sign(agent.info.my_car.location[0]) * 30))), agent.info.my_car.rotation)
                 agent.timer = 0.0
                 agent.step = "Dodge1"
         elif agent.step == "Dodge1":
             agent.timer += agent.info.time_delta
             if agent.timer > 0.8:
-                t = distance_2d(agent.info.ball.location, agent.info.my_car.location) / 2200
-                robbies_constant = (agent.info.ball.location - agent.info.my_car.location - agent.info.my_car.velocity * t) * 2 * t ** -2
-                lerp_var = lerp(normalize(robbies_constant), normalize(agent.info.ball.location - agent.info.my_car.location), 0.25)
+                lerp_var = lerp(normalize(robbies_constant), normalize(agent.info.ball.location - vec3(0, 0, 92.75 - batmobile_resting) - agent.info.my_car.location), 0.25)
                 agent.turn.target = look_at(lerp_var, vec3(0, 0, 1))
-                # agent.turn.target = look_at(xy(agent.info.ball.location - agent.info.my_car.location), vec3(0, 0, 1))
                 agent.turn.step(agent.info.time_delta)
                 agent.controls = agent.turn.controls
-                # agent.controls.pitch = 0
-                agent.controls.roll = 0
                 if agent.info.my_car.on_ground:
                     agent.step = "Steer"
                     target = agent.info.ball.location
@@ -127,12 +173,12 @@ def kick_off(agent):
             else:
                 agent.dodge.step(agent.info.time_delta)
                 agent.controls = agent.dodge.controls
-            robbies_constant = (agent.info.ball.location - agent.info.my_car.location - agent.info.my_car.velocity)
+            # robbies_constant = (agent.info.ball.location - agent.info.my_car.location - agent.info.my_car.velocity)
             agent.controls.boost = dot(normalize(xy(agent.info.my_car.forward())), normalize(xy(robbies_constant))) > (0.3 if agent.info.my_car.on_ground else 0.1)
         elif agent.step == "Steer":
             agent.drive.step(agent.fps)
             agent.controls = agent.drive.controls
-            if distance_2d(agent.info.ball.location, agent.info.my_car.location) < 850:
+            if distance_2d(agent.info.ball.location, agent.info.my_car.location) < 800:
                 agent.step = "Dodge2"
                 agent.dodge = Dodge(agent.info.my_car)
                 agent.dodge.duration = 0.075

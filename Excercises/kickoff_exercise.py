@@ -25,11 +25,11 @@ class SpawnLocation:
 
 class Spawns():
     """Default Kickoffs Spawns (BLUE)"""
-    CORNER_R = SpawnLocation(Vector3(-2048, -2560, 18), Rotator(0, 0.25*pi, 0))
-    CORNER_L = SpawnLocation(Vector3(2048, -2560, 18), Rotator(0, 0.75*pi, 0))
-    BACK_R = SpawnLocation(Vector3(-256, -3840, 18), Rotator(0, 0.5*pi, 0))
-    BACK_L = SpawnLocation(Vector3(256.0, -3840, 18), Rotator(0, 0.5*pi, 0))
-    STRAIGHT = SpawnLocation(Vector3(0, -4608, 18), Rotator(0, 0.5*pi, 0))
+    CORNER_R = SpawnLocation(Vector3(-2048, -2560, 18), Rotator(0, 0.25 * pi, 0))
+    CORNER_L = SpawnLocation(Vector3(2048, -2560, 18), Rotator(0, 0.75 * pi, 0))
+    BACK_R = SpawnLocation(Vector3(-256, -3840, 18), Rotator(0, 0.5 * pi, 0))
+    BACK_L = SpawnLocation(Vector3(256.0, -3840, 18), Rotator(0, 0.5 * pi, 0))
+    STRAIGHT = SpawnLocation(Vector3(0, -4608, 18), Rotator(0, 0.5 * pi, 0))
 
 
 @dataclass
@@ -42,7 +42,7 @@ class KickoffExercise(TrainingExercise):
         """Flip the orange spawns around to get the correct location and combine the two spawns."""
         orange_spawns = [
             SpawnLocation(Vector3(-spawn.pos.x, -spawn.pos.y, spawn.pos.z),
-            Rotator(spawn.rot.pitch, spawn.rot.yaw+pi, spawn.rot.roll))
+                          Rotator(spawn.rot.pitch, spawn.rot.yaw + pi, spawn.rot.roll))
             for spawn in self.orange_spawns]
         self.spawns = self.blue_spawns + orange_spawns
 
@@ -52,7 +52,6 @@ class KickoffExercise(TrainingExercise):
         ])
 
     def make_game_state(self, rng: SeededRandomNumberGenerator) -> GameState:
-
         num_players = self.match_config.num_players
         assert num_players == len(self.spawns), 'Number of players does not match the number of spawns.'
 
@@ -77,21 +76,21 @@ class KickoffExercise(TrainingExercise):
             )
         )
 
-        game_state = GameState(ball=ball_state, cars=car_states, console_commands=['Set WorldInfo TimeDilation 0.2'])
+        # game_state = GameState(ball=ball_state, cars=car_states, console_commands=['Set WorldInfo TimeDilation 0.5'])
+        game_state = GameState(ball=ball_state, cars=car_states, console_commands=['Set WorldInfo TimeDilation 1'])
         return game_state
 
 
 def make_default_playlist() -> Playlist:
-
     # Choose which spawns you want to test.
     exercises = [
-        #KickoffExercise('Both Corners', blue_spawns=[Spawns.CORNER_R, Spawns.CORNER_L], orange_spawns = []),
-        #KickoffExercise('Right Corner 50/50', blue_spawns=[Spawns.CORNER_R], orange_spawns = [Spawns.CORNER_R]),
-        # KickoffExercise('Right Corner', blue_spawns=[Spawns.CORNER_R], orange_spawns = [Spawns.CORNER_R]),
-        # KickoffExercise('Left Corner', blue_spawns=[Spawns.CORNER_L], orange_spawns = [Spawns.CORNER_L]),
-        KickoffExercise('Back Right', blue_spawns=[Spawns.BACK_R], orange_spawns = [Spawns.BACK_R]),
-        KickoffExercise('Back Left', blue_spawns=[Spawns.BACK_L], orange_spawns = [Spawns.BACK_L]),
-        KickoffExercise('Straight', blue_spawns=[Spawns.STRAIGHT], orange_spawns = [Spawns.STRAIGHT]),
+        # KickoffExercise('Both Corners', blue_spawns=[Spawns.CORNER_R, Spawns.CORNER_L], orange_spawns = []),
+        # KickoffExercise('Right Corner 50/50', blue_spawns=[Spawns.CORNER_R], orange_spawns = [Spawns.CORNER_R]),
+        KickoffExercise('Right Corner', blue_spawns=[Spawns.CORNER_R], orange_spawns=[Spawns.CORNER_R]),
+        KickoffExercise('Left Corner', blue_spawns=[Spawns.CORNER_L], orange_spawns=[Spawns.CORNER_L]),
+        KickoffExercise('Back Right', blue_spawns=[Spawns.BACK_R], orange_spawns=[Spawns.BACK_R]),
+        KickoffExercise('Back Left', blue_spawns=[Spawns.BACK_L], orange_spawns=[Spawns.BACK_L]),
+        KickoffExercise('Straight', blue_spawns=[Spawns.STRAIGHT], orange_spawns=[Spawns.STRAIGHT]),
     ]
 
     for ex in exercises:
@@ -99,7 +98,8 @@ def make_default_playlist() -> Playlist:
 
         # Replace with path to your bot or bots.
         ex.match_config.player_configs = \
-        [PlayerConfig.bot_config(Path('../Derevo.cfg'), Team.BLUE) for _ in ex.blue_spawns] + \
-        [PlayerConfig.bot_config(Path('C://Users//Jeroen van Dijk//Documents//Wildfire//python//wildfire.cfg'), Team.ORANGE) for _ in ex.orange_spawns]
+            [PlayerConfig.bot_config(Path('../Derevo.cfg'), Team.BLUE) for _ in ex.blue_spawns] + \
+            [PlayerConfig.bot_config(Path('C://Users//Jeroen van Dijk//Documents//Beast//beastbot.cfg'),
+                                     Team.ORANGE) for _ in ex.orange_spawns]
 
     return exercises
