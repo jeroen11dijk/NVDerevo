@@ -63,13 +63,13 @@ class Hypebot(BaseAgent):
         update_boostpads(self, packet)
         self.predict()
         self.set_mechanics()
-        self.handle_match_comms()
-        # self.prev_kickoff = self.kickoff
-        # self.kickoff = packet.game_info.is_kickoff_pause
+        # self.handle_match_comms()
+        self.prev_kickoff = self.kickoff
+        self.kickoff = packet.game_info.is_kickoff_pause
         self.defending = self.should_defending()
         if self.kickoff and not self.prev_kickoff:
-            if not self.close_to_kickoff_spawn():
-                return
+            # if not self.close_to_kickoff_spawn():
+            #     return
             init_kickoff(self)
             self.prev_kickoff = True
         elif self.kickoff or self.step == "Dodge2":
@@ -105,7 +105,7 @@ class Hypebot(BaseAgent):
 
     def get_controls(self):
         """Decides what strategy to uses and gives corresponding output"""
-        if self.step == "Steer" or self.step == "Dodge2":
+        if self.step == "Steer" or self.step == "Dodge2" or self.step == "Dodge1":
             self.step = "Catching"
         if self.step == "Catching":
             target = get_bounce(self)

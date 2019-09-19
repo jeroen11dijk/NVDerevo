@@ -99,7 +99,7 @@ def make_default_playlist() -> Playlist:
         # Replace with path to your bot or bots.
         ex.match_config.player_configs = \
             [PlayerConfig.bot_config(Path('../Derevo.cfg'), Team.BLUE) for _ in ex.blue_spawns] + \
-            [PlayerConfig.bot_config(Path('C://Users//Jeroen van Dijk//Documents//Beast//beastbot.cfg'),
+            [PlayerConfig.bot_config(Path('C://Users//Jeroen van Dijk//Documents//Gosling//Gosling.cfg'),
                                      Team.ORANGE) for _ in ex.orange_spawns]
 
     return exercises
