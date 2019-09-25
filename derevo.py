@@ -198,4 +198,3 @@ class Hypebot(BaseAgent):
         four = distance_2d(self.info.my_car.location, vec3(256, -3840, 18)) < 10
         five = distance_2d(self.info.my_car.location, vec3(0, -4608, 18)) < 10
         return one or two or three or four or five
-
