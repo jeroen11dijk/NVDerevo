@@ -47,6 +47,7 @@ class Hypebot(BaseAgent):
         self.fps = 1 / 60
         self.my_goal = None
         self.their_goal = None
+        self.ball_bouncing = False
 
     def initialize_agent(self):
         """Initializing all parameters whch require the field info"""
@@ -84,13 +85,16 @@ class Hypebot(BaseAgent):
     def predict(self):
         """Method which uses ball prediction to fill in future data"""
         self.bounces = []
+        self.ball_bouncing = False
         ball_prediction = self.get_ball_prediction_struct()
         if ball_prediction is not None:
             prev_ang_velocity = normalize(self.info.ball.angular_velocity)
             for i in range(ball_prediction.num_slices):
                 prediction_slice = ball_prediction.slices[i]
                 physics = prediction_slice.physics
-                if physics.location.z > 150: continue
+                if physics.location.z > 150:
+                    self.ball_bouncing = True
+                    continue
                 current_ang_velocity = normalize(vec3(physics.angular_velocity.x, physics.angular_velocity.y, physics.angular_velocity.z))
                 if physics.location.z < 125 and prev_ang_velocity != current_ang_velocity:
                     self.bounces.append((vec3(physics.location.x, physics.location.y, physics.location.z), prediction_slice.game_seconds - self.time))
@@ -112,6 +116,8 @@ class Hypebot(BaseAgent):
         """Decides what strategy to uses and gives corresponding output"""
         if self.step == "Steer" or self.step == "Dodge2" or self.step == "Dodge1":
             self.step = "Catching"
+        if self.step == "Catching" and not self.ball_bouncing:
+            self.step = "Shooting" if (self.info.ball.location[1] - self.info.my_car.location[1]) * (1 if self.info.my_car else -1) > 0 else "Shooting"
         if self.step == "Catching":
             target = get_bounce(self)
             if target is None:
