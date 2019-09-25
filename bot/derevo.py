@@ -117,7 +117,7 @@ class Hypebot(BaseAgent):
         if self.step == "Steer" or self.step == "Dodge2" or self.step == "Dodge1":
             self.step = "Catching"
         if self.step == "Catching" and not self.ball_bouncing:
-            self.step = "Shooting" if (self.info.ball.location[1] - self.info.my_car.location[1]) * (1 if self.info.my_car else -1) > 0 else "Shooting"
+            self.step = "Shooting" if (self.info.ball.location[1] - self.info.my_car.location[1]) * sign(self.info.my_car.team) < 0 else "Shooting"
         if self.step == "Catching":
             target = get_bounce(self)
             if target is None:
