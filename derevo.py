@@ -84,13 +84,18 @@ class Hypebot(BaseAgent):
     def predict(self):
         """Method which uses ball prediction to fill in future data"""
         self.bounces = []
-        prediction = Ball(self.info.ball)
-        for i in range(360):
-            prev_ang_velocity = normalize(prediction.angular_velocity)
-            prediction.step(0.016666)
-            current_ang_velocity = normalize(prediction.angular_velocity)
-            if prev_ang_velocity != current_ang_velocity and prediction.location[2] < 125:
-                self.bounces.append((vec3(prediction.location), i * 1 / 60))
+        ball_prediction = self.get_ball_prediction_struct()
+        if ball_prediction is not None:
+            prev_ang_velocity = normalize(self.info.ball.angular_velocity)
+            for i in range(ball_prediction.num_slices):
+                prediction_slice = ball_prediction.slices[i]
+                physics = prediction_slice.physics
+                if physics.location.z > 150: continue
+                current_ang_velocity = normalize(vec3(physics.angular_velocity.x, physics.angular_velocity.y, physics.angular_velocity.z))
+                if physics.location.z < 125 and prev_ang_velocity != current_ang_velocity:
+                    self.bounces.append((vec3(physics.location.x, physics.location.y, physics.location.z), prediction_slice.game_seconds - self.time))
+                    if len(self.bounces) > 15: return
+                prev_ang_velocity = current_ang_velocity
 
     def set_mechanics(self):
         """Setting all the mechanics to not none"""
