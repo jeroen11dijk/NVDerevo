@@ -1,7 +1,6 @@
 """Main module"""
 import math
 from queue import Empty
-from rlutilities.linear_algebra import *
 from rlbot.agents.base_agent import BaseAgent
 from rlbot.agents.base_agent import SimpleControllerState
 from rlbot.matchcomms.common_uses.reply import reply_to
@@ -178,7 +177,7 @@ class Hypebot(BaseAgent):
         if handle_set_attributes_message(msg, self, allowed_keys=['kickoff', 'prev_kickoff']):
             reply_to(self.matchcomms, msg)
         else:
-            self.logger.debug(f'Unhandled message: {msg}')
+            self.logger.debug('Unhandled message: {msg}')
 
     def render_string(self, string):
         """Rendering method mainly used to show the current state"""
@@ -203,9 +202,16 @@ class Hypebot(BaseAgent):
         return in_front_of_ball and abs(backline_intersect) < 2000
 
     def close_to_kickoff_spawn(self):
-        one = distance_2d(self.info.my_car.location, vec3(-2048, -2560, 18)) < 10
-        two = distance_2d(self.info.my_car.location, vec3(2048, -2560, 18)) < 10
-        three = distance_2d(self.info.my_car.location, vec3(-256, -3840, 18)) < 10
-        four = distance_2d(self.info.my_car.location, vec3(256, -3840, 18)) < 10
-        five = distance_2d(self.info.my_car.location, vec3(0, -4608, 18)) < 10
-        return one or two or three or four or five
+        blue_one = distance_2d(self.info.my_car.location, vec3(-2048, -2560, 18)) < 10
+        blue_two = distance_2d(self.info.my_car.location, vec3(2048, -2560, 18)) < 10
+        blue_three = distance_2d(self.info.my_car.location, vec3(-256, -3840, 18)) < 10
+        blue_four = distance_2d(self.info.my_car.location, vec3(256, -3840, 18)) < 10
+        blue_five = distance_2d(self.info.my_car.location, vec3(0, -4608, 18)) < 10
+        blue = blue_one or blue_two or blue_three or blue_four or blue_five
+        orange_one = distance_2d(self.info.my_car.location, vec3(-2048, 2560, 18)) < 10
+        orange_two = distance_2d(self.info.my_car.location, vec3(2048, 2560, 18)) < 10
+        orange_three = distance_2d(self.info.my_car.location, vec3(-256, 3840, 18)) < 10
+        orange_four = distance_2d(self.info.my_car.location, vec3(256, 3840, 18)) < 10
+        orange_five = distance_2d(self.info.my_car.location, vec3(0, 4608, 18)) < 10
+        orange = orange_one or orange_two or orange_three or orange_four or orange_five
+        return orange or blue
