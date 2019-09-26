@@ -48,7 +48,7 @@ class KickoffExercise(TrainingExercise):
 
     def on_briefing(self) -> Optional[Grade]:
         _ = send_and_wait_for_replies(self.get_matchcomms(), [
-            make_set_attributes_message(0, {'kickoff': True, 'prev_kickoff': False}),
+            make_set_attributes_message(1, {'kickoff': True, 'prev_kickoff': False}),
         ])
 
     def make_game_state(self, rng: SeededRandomNumberGenerator) -> GameState:
@@ -98,8 +98,8 @@ def make_default_playlist() -> Playlist:
 
         # Replace with path to your bot or bots.
         ex.match_config.player_configs = \
-            [PlayerConfig.bot_config(Path('../Derevo.cfg'), Team.BLUE) for _ in ex.blue_spawns] + \
-            [PlayerConfig.bot_config(Path('C://Users//Jeroen van Dijk//Documents//Gosling//Gosling.cfg'),
+            [PlayerConfig.bot_config(Path('C://Users//Jeroen van Dijk//Documents//Wildfire//python//wildfire.cfg'), Team.BLUE) for _ in ex.blue_spawns] + \
+            [PlayerConfig.bot_config(Path('../Derevo.cfg'),
                                      Team.ORANGE) for _ in ex.orange_spawns]
 
     return exercises
