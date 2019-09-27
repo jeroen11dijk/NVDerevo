@@ -4,6 +4,7 @@ import math
 from rlutilities.linear_algebra import normalize, rotation, vec3, vec2, dot
 from rlutilities.mechanics import Dodge
 from util import line_backline_intersect, cap, distance_2d, sign, get_speed, can_dodge
+from steps import Step
 
 
 def defending(agent):
@@ -14,12 +15,12 @@ def defending(agent):
     agent.drive.step(agent.fps)
     agent.controls = agent.drive.controls
     if can_dodge(agent, target):
-        agent.step = "Dodge"
+        agent.step = Step.Dodge
         agent.dodge = Dodge(agent.info.my_car)
         agent.dodge.duration = 0.1
         agent.dodge.target = target
     if not agent.defending:
-        agent.step = "Catching"
+        agent.step = Step.Catching
 
 
 def defending_target(agent):

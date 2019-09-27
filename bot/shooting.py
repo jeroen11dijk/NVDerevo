@@ -4,11 +4,12 @@ import math
 from rlutilities.linear_algebra import normalize, rotation, vec3, vec2, dot, norm
 from rlutilities.mechanics import Dodge
 from util import cap, distance_2d, sign, line_backline_intersect, get_speed
+from steps import Step
 
 
 def start_shooting(agent):
     """"Method that is run the frame I choose the shooting strategy"""
-    agent.step = "Shooting"
+    agent.step = Step.Shooting
     target = shooting_target(agent)
     speed = get_speed(agent, target)
     agent.drive.target = target
@@ -23,13 +24,13 @@ def shooting(agent):
     agent.drive.target = target
     agent.drive.speed = get_speed(agent, target)
     if should_dodge(agent):
-        agent.step = "Dodge"
+        agent.step = Step.Dodge
         agent.dodge = Dodge(agent.info.my_car)
         agent.dodge.duration = 0.1
         agent.dodge.target = agent.info.ball.location
     elif not (abs(agent.info.ball.velocity[2]) < 100
               and sign(agent.team) * agent.info.ball.velocity[1] < 0):
-        agent.step = "Catching"
+        agent.step = Step.Catching
         agent.drive.target = agent.info.ball.location
         agent.drive.speed = 1399
 
