@@ -17,6 +17,7 @@ from goal import Goal
 from kick_off import init_kickoff, kick_off
 from shooting import shooting
 from util import distance_2d, get_bounce, line_backline_intersect, sign
+from steps import Step
 
 
 class Hypebot(BaseAgent):
@@ -41,7 +42,7 @@ class Hypebot(BaseAgent):
         self.prev_kickoff = False
         self.in_front_off_the_ball = False
         self.kickoff_Start = None
-        self.step = "Catching"
+        self.step = Step.Catching
         self.time = 0
         self.fps = 1 / 60
         self.my_goal = None
@@ -73,11 +74,11 @@ class Hypebot(BaseAgent):
             #     return
             init_kickoff(self)
             self.prev_kickoff = True
-        elif self.kickoff or self.step == "Dodge2":
+        elif self.kickoff or self.step is Step.Dodge_2:
             kick_off(self)
         else:
             self.get_controls()
-        self.render_string(str(self.step))
+        self.render_string(self.step.name)
         if not packet.game_info.is_round_active:
             self.controls.steer = 0
         return self.controls
@@ -114,14 +115,14 @@ class Hypebot(BaseAgent):
 
     def get_controls(self):
         """Decides what strategy to uses and gives corresponding output"""
-        if self.step == "Steer" or self.step == "Dodge2" or self.step == "Dodge1":
-            self.step = "Catching"
-        if self.step == "Catching" and not self.ball_bouncing:
-            self.step = "Shooting" if (self.info.ball.location[1] - self.info.my_car.location[1]) * sign(self.info.my_car.team) < 0 else "Defending"
-        if self.step == "Catching":
+        if self.step is Step.Steer or self.step is Step.Dodge_2 or self.step is Step.Dodge_1:
+            self.step = Step.Catching
+        if self.step is Step.Catching and not self.ball_bouncing:
+            self.step = Step.Shooting if (self.info.ball.location[1] - self.info.my_car.location[1]) * sign(self.info.my_car.team) < 0 else Step.Defending
+        if self.step is Step.Catching:
             target = get_bounce(self)
             if target is None:
-                self.step = "Defending"
+                self.step = Step.Defending
             else:
                 self.catching.target = target[0]
                 self.catching.speed = (distance_2d(self.info.my_car.location, target[0]) + 50) / target[1]
@@ -131,15 +132,15 @@ class Hypebot(BaseAgent):
                 car = self.info.my_car
                 if distance_2d(ball.location, car.location) < 150 and 65 < abs(
                         ball.location[2] - car.location[2]) < 127:
-                    self.step = "Dribbling"
+                    self.step = Step.Dribbling
                     self.dribble = Dribbling(self.info.my_car, self.info.ball, self.their_goal)
                 if self.defending:
-                    self.step = "Defending"
+                    self.step = Step.Defending
                 ball = self.info.ball
                 if abs(ball.velocity[2]) < 100 and sign(self.team) * ball.velocity[1] < 0 and sign(self.team) * \
                         ball.location[1] < 0:
-                    self.step = "Shooting"
-        elif self.step == "Dribbling":
+                    self.step = Step.Shooting
+        elif self.step is Step.Dribbling:
             self.dribble.step()
             self.controls = self.dribble.controls
             ball = self.info.ball
@@ -151,23 +152,23 @@ class Hypebot(BaseAgent):
             opponent_is_in_the_way = math.radians(-10) < angle_front_to_target < math.radians(10)
             if not (distance_2d(ball.location, car.location) < 150 and 65 < abs(
                     ball.location[2] - car.location[2]) < 127):
-                self.step = "Catching"
+                self.step = Step.Catching
             if self.defending:
-                self.step = "Defending"
+                self.step = Step.Defending
             if opponent_is_near and opponent_is_in_the_way:
-                self.step = "Dodge"
+                self.step = Step.Dodge
                 self.dodge = Dodge(self.info.my_car)
                 self.dodge.duration = 0.25
                 self.dodge.target = self.their_goal.center
-        elif self.step == "Defending":
+        elif self.step is Step.Defending:
             defending(self)
-        elif self.step == "Dodge":
+        elif self.step is Step.Dodge:
             self.dodge.step(self.fps)
             self.controls = self.dodge.controls
             self.controls.boost = 0
             if self.dodge.finished and self.info.my_car.on_ground:
-                self.step = "Catching"
-        elif self.step == "Shooting":
+                self.step = Step.Catching
+        elif self.step is Step.Shooting:
             shooting(self)
 
     def handle_match_comms(self):
@@ -183,7 +184,7 @@ class Hypebot(BaseAgent):
     def render_string(self, string):
         """Rendering method mainly used to show the current state"""
         self.renderer.begin_rendering('The State')
-        if self.step == "Dodge1":
+        if self.step is Step.Dodge_1:
             self.renderer.draw_line_3d(self.info.my_car.location, self.dodge.target, self.renderer.black())
         self.renderer.draw_line_3d(self.info.my_car.location, self.drive.target, self.renderer.blue())
         if self.kickoff_Start is None:
