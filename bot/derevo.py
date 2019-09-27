@@ -8,7 +8,7 @@ from rlbot.matchcomms.common_uses.set_attributes_message import handle_set_attri
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 from rlutilities.linear_algebra import norm, normalize, vec2, vec3, dot
 from rlutilities.mechanics import Drive, Dodge
-from rlutilities.simulation import Game, Ball
+from rlutilities.simulation import Game
 
 from boost import init_boostpads, update_boostpads
 from defending import defending
@@ -58,6 +58,7 @@ class Hypebot(BaseAgent):
         """The main method which receives the packets and outputs the controls"""
         if packet.game_info.seconds_elapsed - self.time > 0:
             self.fps = packet.game_info.seconds_elapsed - self.time
+        print(self.info.time_delta)
         self.time = packet.game_info.seconds_elapsed
         self.info.read_game_information(packet, self.get_rigid_body_tick(), self.get_field_info())
         update_boostpads(self, packet)

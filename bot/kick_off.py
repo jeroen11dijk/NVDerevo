@@ -1,6 +1,6 @@
 """"Module that handles the kickoffs"""
-from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, Drive, AerialTurn
+from rlutilities.linear_algebra import *
 
 import math
 
