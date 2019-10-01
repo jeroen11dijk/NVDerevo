@@ -3,15 +3,18 @@ import math
 
 from rlutilities.linear_algebra import normalize, rotation, vec3, vec2, dot
 from rlutilities.mechanics import Dodge
-from util import line_backline_intersect, cap, distance_2d, sign, get_speed, can_dodge, velocity_2d
+
+from util import line_backline_intersect, cap, distance_2d, sign, get_speed, can_dodge, velocity_forward
 from steps import Step
+from halfflip import HalfFlip
 
 
 def defending(agent):
     """"Method that gives output for the defending strategy"""
     target = defending_target(agent)
     agent.drive.target = target
-    current_speed = velocity_2d(agent.info.my_car.velocity)
+    distance = distance_2d(agent.info.my_car.location, target)
+    vf = velocity_forward(agent.info.my_car)
     agent.drive.speed = get_speed(agent, target)
     agent.drive.step(agent.fps)
     agent.controls = agent.drive.controls
@@ -22,14 +25,16 @@ def defending(agent):
         agent.dodge.target = target
     if not agent.defending:
         agent.step = (Step.Catching if agent.ball_bouncing else Step.Shooting)
-    elif agent.drive.speed > current_speed + 300 and 1200 < current_speed < 2000 and agent.info.my_car.boost <= 5\
-              and agent.info.my_car.location[2] < 80\
-              and distance_2d(agent.info.my_car.location, target) > (current_speed + 500) * 1.6:
-        # Dodge towards the shooting target for speed
+    elif (distance > (abs(vf) + 500) * 1.5 or (vf < -900 and distance < 600)) and agent.info.my_car.location[2] < 80 and\
+            (agent.drive.speed > abs(vf) + 300 and 1200 < abs(vf) < 2000 and agent.info.my_car.boost <= 25) or vf < -900:
+        # Dodge towards the target for speed
         agent.step = Step.Dodge
-        agent.dodge = Dodge(agent.info.my_car)
-        agent.dodge.duration = 0.1
-        agent.dodge.target = target
+        if vf > -900:
+            agent.dodge = Dodge(agent.info.my_car)
+            agent.dodge.duration = 0.1
+            agent.dodge.target = target
+        else:
+            agent.dodge = HalfFlip(agent.info.my_car)
 
 
 def defending_target(agent):

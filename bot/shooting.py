@@ -3,8 +3,10 @@ import math
 
 from rlutilities.linear_algebra import normalize, rotation, vec3, vec2, dot, norm
 from rlutilities.mechanics import Dodge
-from util import cap, distance_2d, sign, line_backline_intersect, get_speed, velocity_2d
+
+from util import cap, distance_2d, sign, line_backline_intersect, get_speed, velocity_forward
 from steps import Step
+from halfflip import HalfFlip
 
 
 def start_shooting(agent):
@@ -22,26 +24,30 @@ def shooting(agent):
     agent.controls = agent.drive.controls
     target = shooting_target(agent)
     agent.drive.target = target
-    current_speed = velocity_2d(agent.info.my_car.velocity)
+    distance = distance_2d(agent.info.my_car.location, target)
+    vf = velocity_forward(agent.info.my_car)
     agent.drive.speed = get_speed(agent, target)
     if should_dodge(agent):
-        agent.step = Step.Dodge
+        '''agent.step = Step.Dodge
         agent.dodge = Dodge(agent.info.my_car)
         agent.dodge.duration = 0.1
-        agent.dodge.target = agent.info.ball.location
+        agent.dodge.target = agent.info.ball.location'''
+        pass
     elif agent.ball_bouncing and not (abs(agent.info.ball.velocity[2]) < 100
               and sign(agent.team) * agent.info.ball.velocity[1] < 0):
         agent.step = Step.Catching
         agent.drive.target = agent.info.ball.location
         agent.drive.speed = 1399
-    elif agent.drive.speed > current_speed + 300 and 1200 < current_speed < 2000 and agent.info.my_car.boost <= 5\
-              and agent.info.my_car.location[2] < 80\
-              and distance_2d(agent.info.my_car.location, target) > (current_speed + 500) * 1.6:
-        # Dodge towards the shooting target for speed
+    elif (distance > (abs(vf) + 500) * 1.5 or (vf < -900 and distance < 600)) and agent.info.my_car.location[2] < 80 and\
+            (agent.drive.speed > abs(vf) + 300 and 1200 < abs(vf) < 2000 and agent.info.my_car.boost <= 25) or vf < -900:
+        # Dodge towards the target for speed
         agent.step = Step.Dodge
-        agent.dodge = Dodge(agent.info.my_car)
-        agent.dodge.duration = 0.1
-        agent.dodge.target = target
+        if vf > -900:
+            agent.dodge = Dodge(agent.info.my_car)
+            agent.dodge.duration = 0.1
+            agent.dodge.target = target
+        else:
+            agent.dodge = HalfFlip(agent.info.my_car)
 
 
 def shooting_target(agent):

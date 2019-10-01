@@ -6,7 +6,7 @@ from rlutilities.mechanics import Drive as RLUDrive
 
 from util import sign, cap
 
-class CustomDrive():
+class CustomDrive:
     
     def __init__(self, car):
         self.car = car
@@ -31,10 +31,11 @@ class CustomDrive():
         reverse = (cos(angle) < 0)
         if reverse:
             self.controls.throttle = (-self.controls.throttle - 1) / 2
+            #self.controls.throttle = -1
             angle = -self.invert_angle(angle)
             self.controls.steer = cap(angle * 3, -1, 1)
             self.controls.boost = False
-        self.controls.handbrake = (abs(angle) > radians(80))
+        self.controls.handbrake = (abs(angle) > radians(75))
 
 
     def update_rlu_drive(self):

@@ -19,6 +19,7 @@ from shooting import shooting
 from util import distance_2d, get_bounce, line_backline_intersect, sign, velocity_2d
 from steps import Step
 from custom_drive import CustomDrive as Drive
+from halfflip import HalfFlip
 
 
 class Hypebot(BaseAgent):
@@ -60,7 +61,7 @@ class Hypebot(BaseAgent):
         """The main method which receives the packets and outputs the controls"""
         if packet.game_info.seconds_elapsed - self.time > 0:
             self.fps = packet.game_info.seconds_elapsed - self.time
-        print(self.info.time_delta)
+        #print(self.info.time_delta)
         self.time = packet.game_info.seconds_elapsed
         self.info.read_game_information(packet, self.get_rigid_body_tick(), self.get_field_info())
         update_boostpads(self, packet)
@@ -167,6 +168,7 @@ class Hypebot(BaseAgent):
             self.dodge.step(self.fps)
             if self.dodge.finished and self.info.my_car.on_ground:
                 self.step = Step.Catching
+                self.dodge = None
             else:
                 self.controls = self.dodge.controls
                 self.controls.boost = 0
@@ -192,6 +194,7 @@ class Hypebot(BaseAgent):
         self.renderer.draw_line_3d(self.info.my_car.location, self.drive.target, self.renderer.blue())
         if self.kickoff_Start is None:
             self.renderer.draw_string_2d(20, 20, 3, 3, string, self.renderer.red())
+            self.renderer.draw_string_2d(20, 50, 1, 1, str(type(self.dodge)), self.renderer.blue())
         else:
             self.renderer.draw_string_2d(20, 20, 3, 3, string + " " + self.kickoff_Start, self.renderer.red())
         self.renderer.end_rendering()
