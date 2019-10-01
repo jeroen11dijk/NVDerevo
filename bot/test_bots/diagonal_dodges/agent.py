@@ -1,10 +1,11 @@
 import sys
+from pathlib import Path
 
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
-sys.path.insert(1, 'C:/Users/Jeroen van Dijk/Documents/RLBotPythonExample-master/NV Derevo/bot')
+sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, AerialTurn, Drive
 from rlutilities.simulation import Game
