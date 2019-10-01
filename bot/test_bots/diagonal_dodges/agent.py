@@ -1,10 +1,13 @@
-from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
-from rlbot.utils.structures.game_data_struct import GameTickPacket
-from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator
+import sys
 
+from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
+from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator
+from rlbot.utils.structures.game_data_struct import GameTickPacket
+
+sys.path.insert(1, 'C:/Users/Jeroen van Dijk/Documents/RLBotPythonExample-master/NV Derevo/bot')
 from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, AerialTurn, Drive
-from rlutilities.simulation import Game, Ball, Car
+from rlutilities.simulation import Game
 
 import math
 
@@ -39,7 +42,6 @@ class self(BaseAgent):
         self.controls = SimpleControllerState()
         next_state = self.state
         if self.state == State.RESET:
-
             self.timer = 0.0
 
             # put the car in the middle of the field
@@ -71,7 +73,6 @@ class self(BaseAgent):
                 next_state = State.INITIALIZE
 
         if self.state == State.INITIALIZE:
-
             pad = self.get_closest_small_pad()
             # target = vec3(pad[0], pad[1], pad[2]) - sign(self.team) * vec3(0, 500, 0)
             target = vec3(pad[0], pad[1], pad[2])
@@ -94,7 +95,8 @@ class self(BaseAgent):
                     self.dodge.duration = 0.15
                     self.dodge.delay = 0.4
                     self.dodge.target = vec3(dot(rotation(math.radians(-60)), vec2(self.game.my_car.forward())) * 10000)
-                    self.dodge.preorientation = dot(axis_to_rotation(vec3(0, 0, math.radians(40))), self.game.my_car.rotation)
+                    self.dodge.preorientation = dot(axis_to_rotation(vec3(0, 0, math.radians(40))),
+                                                    self.game.my_car.rotation)
                     self.timer = 0.0
                     self.step = "Dodge1"
             elif self.step == "Dodge1":

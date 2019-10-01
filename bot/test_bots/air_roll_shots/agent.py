@@ -1,13 +1,14 @@
 import math
-import random
-import matplotlib.pyplot as plt
-from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
-from rlbot.utils.structures.game_data_struct import GameTickPacket
-from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator
+import sys
 
+from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
+from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator
+from rlbot.utils.structures.game_data_struct import GameTickPacket
+
+sys.path.insert(1, 'C:/Users/Jeroen van Dijk/Documents/RLBotPythonExample-master/NV Derevo/bot')
 from rlutilities.linear_algebra import *
-from rlutilities.mechanics import FollowPath, Dodge, AerialTurn, Drive
-from rlutilities.simulation import Game, Navigator
+from rlutilities.mechanics import Dodge, AerialTurn, Drive
+from rlutilities.simulation import Game
 
 
 class State:
@@ -95,7 +96,7 @@ class MyAgent(BaseAgent):
             self.drive.step(self.game.time_delta)
             self.controls = self.drive.controls
 
-            if norm((vec2(self.game.my_car.location - self.game.ball.location))) < 0.9*1400:
+            if norm((vec2(self.game.my_car.location - self.game.ball.location))) < 0.9 * 1400:
                 self.dodge = Dodge(self.game.my_car)
                 self.turn = AerialTurn(self.game.my_car)
 
