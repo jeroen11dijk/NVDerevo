@@ -16,7 +16,7 @@ from dribble import Dribbling
 from goal import Goal
 from kick_off import init_kickoff, kick_off
 from shooting import shooting
-from util import distance_2d, get_bounce, line_backline_intersect, sign
+from util import distance_2d, get_bounce, line_backline_intersect, sign, velocity_2d
 from steps import Step
 
 
@@ -164,10 +164,12 @@ class Hypebot(BaseAgent):
             defending(self)
         elif self.step is Step.Dodge:
             self.dodge.step(self.fps)
-            self.controls = self.dodge.controls
-            self.controls.boost = 0
             if self.dodge.finished and self.info.my_car.on_ground:
                 self.step = Step.Catching
+            else:
+                self.controls = self.dodge.controls
+                self.controls.boost = 0
+                self.controls.throttle = velocity_2d(self.info.my_car.velocity) < 500
         elif self.step is Step.Shooting:
             shooting(self)
 

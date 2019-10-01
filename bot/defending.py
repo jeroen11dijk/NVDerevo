@@ -3,7 +3,7 @@ import math
 
 from rlutilities.linear_algebra import normalize, rotation, vec3, vec2, dot
 from rlutilities.mechanics import Dodge
-from util import line_backline_intersect, cap, distance_2d, sign, get_speed, can_dodge
+from util import line_backline_intersect, cap, distance_2d, sign, get_speed, can_dodge, velocity_2d
 from steps import Step
 
 
