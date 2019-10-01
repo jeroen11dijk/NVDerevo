@@ -7,7 +7,7 @@ from rlbot.matchcomms.common_uses.reply import reply_to
 from rlbot.matchcomms.common_uses.set_attributes_message import handle_set_attributes_message
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 from rlutilities.linear_algebra import norm, normalize, vec2, vec3, dot
-from rlutilities.mechanics import Drive, Dodge
+from rlutilities.mechanics import Dodge
 from rlutilities.simulation import Game
 
 from boost import init_boostpads, update_boostpads
@@ -18,6 +18,7 @@ from kick_off import init_kickoff, kick_off
 from shooting import shooting
 from util import distance_2d, get_bounce, line_backline_intersect, sign, velocity_2d
 from steps import Step
+from custom_drive import CustomDrive as Drive
 
 
 class Hypebot(BaseAgent):
