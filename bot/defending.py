@@ -3,7 +3,7 @@ import math
 
 from rlutilities.linear_algebra import normalize, rotation, vec3, vec2, dot
 from rlutilities.mechanics import Dodge
-from util import line_backline_intersect, cap, distance_2d, sign, get_speed, can_dodge
+from util import line_backline_intersect, cap, distance_2d, sign, get_speed, can_dodge, velocity_2d
 from steps import Step
 
 
@@ -11,6 +11,7 @@ def defending(agent):
     """"Method that gives output for the defending strategy"""
     target = defending_target(agent)
     agent.drive.target = target
+    current_speed = velocity_2d(agent.info.my_car.velocity)
     agent.drive.speed = get_speed(agent, target)
     agent.drive.step(agent.fps)
     agent.controls = agent.drive.controls
@@ -20,7 +21,15 @@ def defending(agent):
         agent.dodge.duration = 0.1
         agent.dodge.target = target
     if not agent.defending:
-        agent.step = Step.Catching
+        agent.step = (Step.Catching if agent.ball_bouncing else Step.Shooting)
+    elif agent.drive.speed > current_speed + 300 and 1200 < current_speed < 2000 and agent.info.my_car.boost <= 5\
+              and agent.info.my_car.location[2] < 80\
+              and distance_2d(agent.info.my_car.location, target) > (current_speed + 500) * 1.6:
+        # Dodge towards the shooting target for speed
+        agent.step = Step.Dodge
+        agent.dodge = Dodge(agent.info.my_car)
+        agent.dodge.duration = 0.1
+        agent.dodge.target = target
 
 
 def defending_target(agent):
@@ -29,10 +38,7 @@ def defending_target(agent):
     car = agent.info.my_car
     car_to_ball = ball.location - car.location
     backline_intersect = line_backline_intersect(agent.my_goal.center[1], vec2(car.location), vec2(car_to_ball))
-    if backline_intersect < 0:
-        target = agent.my_goal.center - vec3(2000, 0, 0)
-    else:
-        target = agent.my_goal.center + vec3(2000, 0, 0)
+    target = agent.my_goal.center + vec3(sign(backline_intersect) * max(abs(ball.location[0]), 1500), 0, 0)
     target_to_ball = normalize(ball.location - target)
     # Subtract target to car vector
     difference = target_to_ball - normalize(car.location - target)

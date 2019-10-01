@@ -3,7 +3,7 @@ import math
 
 from rlutilities.linear_algebra import normalize, rotation, vec3, vec2, dot, norm
 from rlutilities.mechanics import Dodge
-from util import cap, distance_2d, sign, line_backline_intersect, get_speed
+from util import cap, distance_2d, sign, line_backline_intersect, get_speed, velocity_2d
 from steps import Step
 
 
@@ -22,17 +22,26 @@ def shooting(agent):
     agent.controls = agent.drive.controls
     target = shooting_target(agent)
     agent.drive.target = target
+    current_speed = velocity_2d(agent.info.my_car.velocity)
     agent.drive.speed = get_speed(agent, target)
     if should_dodge(agent):
         agent.step = Step.Dodge
         agent.dodge = Dodge(agent.info.my_car)
         agent.dodge.duration = 0.1
         agent.dodge.target = agent.info.ball.location
-    elif not (abs(agent.info.ball.velocity[2]) < 100
+    elif agent.ball_bouncing and not (abs(agent.info.ball.velocity[2]) < 100
               and sign(agent.team) * agent.info.ball.velocity[1] < 0):
         agent.step = Step.Catching
         agent.drive.target = agent.info.ball.location
         agent.drive.speed = 1399
+    elif agent.drive.speed > current_speed + 300 and 1200 < current_speed < 2000 and agent.info.my_car.boost <= 5\
+              and agent.info.my_car.location[2] < 80\
+              and distance_2d(agent.info.my_car.location, target) > (current_speed + 500) * 1.6:
+        # Dodge towards the shooting target for speed
+        agent.step = Step.Dodge
+        agent.dodge = Dodge(agent.info.my_car)
+        agent.dodge.duration = 0.1
+        agent.dodge.target = target
 
 
 def shooting_target(agent):
@@ -42,9 +51,9 @@ def shooting_target(agent):
     car_to_ball = ball.location - car.location
     backline_intersect = line_backline_intersect(
         agent.their_goal.center[1], vec2(car.location), vec2(car_to_ball))
-    if -500 < backline_intersect < 500:
+    if abs(backline_intersect) < 700:
         goal_to_ball = normalize(car.location - ball.location)
-        error = cap(distance_2d(ball.location, car.location) / 1000, 0, 1)
+        error = 0
     else:
         # Right of the ball
         if -500 > backline_intersect:
@@ -55,7 +64,7 @@ def shooting_target(agent):
         goal_to_ball = normalize(ball.location - target)
         # Subtract the goal to car vector
         difference = goal_to_ball - normalize(car.location - target)
-        error = cap(abs(difference[0]) + abs(difference[1]), 1, 10)
+        error = cap(abs(difference[0]) + abs(difference[1]), 0, 5)
 
     goal_to_ball_2d = vec2(goal_to_ball[0], goal_to_ball[1])
     test_vector_2d = dot(rotation(0.5 * math.pi), goal_to_ball_2d)
@@ -89,6 +98,6 @@ def should_dodge(agent):
     bot_to_target = agent.info.ball.location - car.location
     local_bot_to_target = dot(bot_to_target, agent.info.my_car.rotation)
     angle_front_to_target = math.atan2(local_bot_to_target[1], local_bot_to_target[0])
-    close_to_ball = norm(vec2(bot_to_target)) < 850
-    good_angle = math.radians(-10) < angle_front_to_target < math.radians(10)
+    close_to_ball = norm(vec2(bot_to_target)) < 750
+    good_angle = abs(angle_front_to_target) < math.radians(15)
     return close_to_ball and close_to_goal and aiming_for_goal and good_angle
