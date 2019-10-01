@@ -11,6 +11,7 @@ def defending(agent):
     """"Method that gives output for the defending strategy"""
     target = defending_target(agent)
     agent.drive.target = target
+    current_speed = velocity_2d(agent.info.my_car.velocity)
     agent.drive.speed = get_speed(agent, target)
     agent.drive.step(agent.fps)
     agent.controls = agent.drive.controls
@@ -21,6 +22,14 @@ def defending(agent):
         agent.dodge.target = target
     if not agent.defending:
         agent.step = (Step.Catching if agent.ball_bouncing else Step.Shooting)
+    elif agent.drive.speed > current_speed + 300 and 1200 < current_speed < 2000 and agent.info.my_car.boost <= 5\
+              and agent.info.my_car.location[2] < 80\
+              and distance_2d(agent.info.my_car.location, target) > (current_speed + 500) * 1.6:
+        # Dodge towards the shooting target for speed
+        agent.step = Step.Dodge
+        agent.dodge = Dodge(agent.info.my_car)
+        agent.dodge.duration = 0.1
+        agent.dodge.target = target
 
 
 def defending_target(agent):
