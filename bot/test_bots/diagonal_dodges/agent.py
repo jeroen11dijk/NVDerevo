@@ -1,3 +1,4 @@
+import math
 import sys
 from pathlib import Path
 
@@ -9,8 +10,6 @@ sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, AerialTurn, Drive
 from rlutilities.simulation import Game
-
-import math
 
 
 class State:
