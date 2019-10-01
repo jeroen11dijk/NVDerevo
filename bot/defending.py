@@ -20,7 +20,7 @@ def defending(agent):
         agent.dodge.duration = 0.1
         agent.dodge.target = target
     if not agent.defending:
-        agent.step = Step.Catching
+        agent.step = (Step.Catching if agent.ball_bouncing else Step.Shooting)
 
 
 def defending_target(agent):
@@ -29,10 +29,7 @@ def defending_target(agent):
     car = agent.info.my_car
     car_to_ball = ball.location - car.location
     backline_intersect = line_backline_intersect(agent.my_goal.center[1], vec2(car.location), vec2(car_to_ball))
-    if backline_intersect < 0:
-        target = agent.my_goal.center - vec3(2000, 0, 0)
-    else:
-        target = agent.my_goal.center + vec3(2000, 0, 0)
+    target = agent.my_goal.center + vec3(sign(backline_intersect) * max(abs(ball.location[0]), 1500), 0, 0)
     target_to_ball = normalize(ball.location - target)
     # Subtract target to car vector
     difference = target_to_ball - normalize(car.location - target)

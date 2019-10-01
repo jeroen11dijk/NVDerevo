@@ -28,7 +28,7 @@ def shooting(agent):
         agent.dodge = Dodge(agent.info.my_car)
         agent.dodge.duration = 0.1
         agent.dodge.target = agent.info.ball.location
-    elif not (abs(agent.info.ball.velocity[2]) < 100
+    elif agent.ball_bouncing and not (abs(agent.info.ball.velocity[2]) < 100
               and sign(agent.team) * agent.info.ball.velocity[1] < 0):
         agent.step = Step.Catching
         agent.drive.target = agent.info.ball.location
