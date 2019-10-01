@@ -72,10 +72,3 @@ def make_default_playlist() -> Playlist:
         ]
 
     return exercises
-
-
-
-
-
-
-    
