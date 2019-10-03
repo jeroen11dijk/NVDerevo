@@ -1,6 +1,5 @@
 import math
 import sys
-from copy import copy
 from pathlib import Path
 
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
@@ -112,9 +111,11 @@ class MyAgent(BaseAgent):
             # if self.game.time == self.game.latest_touch
             self.dodge.step(self.game.time_delta)
             self.controls = self.dodge.controls
-            print(packet.game_cars[0].hitbox.height / 2)
+
+            if packet.game_ball.latest_touch.time_seconds == self.game.time:
+                print("packet", self.timer)
+
             if self.dodge.finished and self.game.my_car.on_ground:
-                print(self.time, self.height)
                 next_state = State.RESET
 
         self.timer += self.game.time_delta
@@ -132,7 +133,6 @@ class MyAgent(BaseAgent):
 
         self.renderer.draw_string_2d(50, 50, 3, 3, str(self.drive.arrival_time - self.game.my_car.time), red)
         self.renderer.end_rendering()
-
 
     def simulate(self):
         print("======================================================")
