@@ -97,43 +97,22 @@ class MyAgent(BaseAgent):
             # self.render()
             self.drive.step(self.game.time_delta)
             self.controls = self.drive.controls
-            print(self.game.my_car.location)
-            print(self.game.my_car.velocity)
             if norm((vec2(self.game.my_car.location - self.game.ball.location))) < 0.9 * 1400:
                 self.dodge = Dodge(self.game.my_car)
                 self.turn = AerialTurn(self.game.my_car)
 
                 self.dodge.duration = 0.9
                 self.dodge.target = self.game.ball.location
-                car = Car(self.game.my_car)
-                dodge = Dodge(car)
-                dodge.duration = 0.9
-                dodge.target = self.game.ball.location
                 # self.dodge.preorientation = look_at(-0.1 * f - u, -1.0 * u)
                 self.timer = 0
-                print("======================================================")
-                print(car.location)
-                print(car.velocity)
-                print(self.dodge.timer)
-                for i in range(13):
-                    dodge.step(1 / 60)
-                    car.step(dodge.controls, 1 / 60)
-                    print(i * 1 / 60, car.location[2])
-                print(car.location)
-                print(self.dodge.timer)
-                print("======================================================")
+                self.simulate()
                 next_state = State.DODGING
 
         if self.state == State.DODGING:
-            if self.game.my_car.location[2] > self.height:
-                self.height = self.game.my_car.location[2]
-                self.time = self.timer
-            if 0.199 < self.timer < 0.201:
-                print(self.timer, self.game.my_car.location[2])
             # if self.game.time == self.game.latest_touch
             self.dodge.step(self.game.time_delta)
             self.controls = self.dodge.controls
-
+            print(packet.game_cars[0].hitbox.height / 2)
             if self.dodge.finished and self.game.my_car.on_ground:
                 print(self.time, self.height)
                 next_state = State.RESET
@@ -153,3 +132,21 @@ class MyAgent(BaseAgent):
 
         self.renderer.draw_string_2d(50, 50, 3, 3, str(self.drive.arrival_time - self.game.my_car.time), red)
         self.renderer.end_rendering()
+
+
+    def simulate(self):
+        print("======================================================")
+        car = Car(self.game.my_car)
+        dodge = Dodge(car)
+        dodge.duration = 0.9
+        dodge.target = self.game.ball.location
+        print(car.location)
+        print(car.velocity)
+        print(self.dodge.timer)
+        for i in range(13):
+            dodge.step(1 / 60)
+            car.step(dodge.controls, 1 / 60)
+            print(i * 1 / 60, car.location[2])
+        print(car.location)
+        print(self.dodge.timer)
+        print("======================================================")

@@ -39,7 +39,7 @@ dodge.duration = 0.9
 dodge.target = vec3(0, 0, 234)
 
 batmobile = obb()
-batmobile.half_width = vec3(114.41, 42.335, 14.695)
+batmobile.half_width = vec3(64.4098892211914, 42.335182189941406, 14.697200775146484)
 batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
 batmobile.orientation = car.rotation
 
