@@ -25,13 +25,14 @@ class State:
 class MyAgent(BaseAgent):
 
     def __init__(self, name, team, index):
+        super().__init__(name, team, index)
         self.game = Game(index, team)
         self.name = name
         self.controls = SimpleControllerState()
 
         self.timer = 0.0
 
-        self.drive = None
+        self.drive = Drive(self.game.my_car)
         self.navigator = None
         self.dodge = None
         self.turn = None
@@ -95,7 +96,6 @@ class MyAgent(BaseAgent):
             next_state = State.DRIVING
 
         if self.state == State.DRIVING:
-            # self.render()
             self.drive.step(self.game.time_delta)
             self.controls = self.drive.controls
             if norm((vec2(self.game.my_car.location - self.game.ball.location))) < 0.9 * 1400:
@@ -125,17 +125,6 @@ class MyAgent(BaseAgent):
         self.state = next_state
 
         return self.controls
-
-    def render(self):
-        vertices = self.drive.path.points
-
-        self.renderer.begin_rendering("path")
-        red = self.renderer.create_color(255, 255, 255, 255)
-        for i in range(0, len(vertices) - 1):
-            self.renderer.draw_line_3d(vertices[i], vertices[i + 1], red)
-
-        self.renderer.draw_string_2d(50, 50, 3, 3, str(self.drive.arrival_time - self.game.my_car.time), red)
-        self.renderer.end_rendering()
 
     def simulate(self):
         car = Car(self.game.my_car)
