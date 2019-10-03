@@ -52,5 +52,6 @@ for i in range(600):
     batmobile.orientation = car.rotation
     if intersect(ball.hitbox(), batmobile):
         print(i/60)
+        break
 print(car.location)
 print(dodge.timer)

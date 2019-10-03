@@ -6,10 +6,12 @@ from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
+from jump_sim import ball
+
 sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, AerialTurn, Drive
-from rlutilities.simulation import Game, Car
+from rlutilities.simulation import Game, Car, obb, intersect
 
 
 class State:
@@ -135,18 +137,22 @@ class MyAgent(BaseAgent):
         self.renderer.end_rendering()
 
     def simulate(self):
-        print("======================================================")
         car = Car(self.game.my_car)
         dodge = Dodge(car)
         dodge.duration = 0.9
         dodge.target = self.game.ball.location
-        print(car.location)
-        print(car.velocity)
-        print(self.dodge.timer)
-        for i in range(13):
+
+        batmobile = obb()
+        batmobile.half_width = vec3(64.4098892211914, 42.335182189941406, 14.697200775146484)
+        batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
+        batmobile.orientation = car.rotation
+        print("======================================")
+        for i in range(60):
             dodge.step(1 / 60)
             car.step(dodge.controls, 1 / 60)
-            print(i * 1 / 60, car.location[2])
-        print(car.location)
-        print(self.dodge.timer)
-        print("======================================================")
+            batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
+            batmobile.orientation = car.rotation
+            if intersect(ball.hitbox(), batmobile):
+                print(i / 60)
+                break
+        print("======================================")
