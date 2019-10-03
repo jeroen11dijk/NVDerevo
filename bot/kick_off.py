@@ -1,12 +1,12 @@
 """"Module that handles the kickoffs"""
-from rlutilities.mechanics import Dodge, AerialTurn, Drive
+from rlutilities.mechanics import Dodge, AerialTurn
 from rlutilities.linear_algebra import *
 
 import math
 
 from util import get_closest_small_pad, sign, distance_2d, lerp
 from steps import Step
-#from custom_drive import CustomDrive as Drive
+from custom_drive import CustomDrive as Drive
 
 
 def init_kickoff(agent):

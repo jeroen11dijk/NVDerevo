@@ -16,6 +16,7 @@ class CustomDrive:
         self.finished = False
         self.rlu_drive = RLUDrive(self.car)
         self.update_rlu_drive()
+        self.power_turn = True #Handbrake while reversing to turn around quickly
 
 
     def step(self, dt: float):
@@ -30,12 +31,15 @@ class CustomDrive:
         self.controls = self.rlu_drive.controls
         reverse = (cos(angle) < 0)
         if reverse:
-            self.controls.throttle = (-self.controls.throttle - 1) / 2
-            #self.controls.throttle = -1
             angle = -self.invert_angle(angle)
+            if self.power_turn:
+                self.controls.throttle = (-self.controls.throttle - 1) / 2
+                angle *= -1
+            else:
+                self.controls.throttle = -1
             self.controls.steer = cap(angle * 3, -1, 1)
             self.controls.boost = False
-        self.controls.handbrake = (abs(angle) > radians(75))
+        self.controls.handbrake = (abs(angle) > radians(70))
 
 
     def update_rlu_drive(self):

@@ -19,20 +19,21 @@ class HalfFlip:
 
     def step(self, dt: float):
         self.controls = SimpleControllerState()
-        
+
+        self.aerial_turn.step(dt)
+        aerial_turn_controls = self.aerial_turn.controls
+                
         if self.timer < 0.7:
             self.controls.jump = True
             if 0.075 < self.timer < 0.1:
                 self.controls.jump = False
-            #self.controls.pitch = (-1 if self.car.double_jumped else 1)
-            self.controls.pitch = (-1 if self.timer > 0.3 else 1)
-            self.controls.roll = 0
-            self.controls.yaw = 0
-        elif self.car.on_ground or self.timer > 1.8:
-            self.finished = True
+            self.controls.pitch = (-1 if self.timer > 0.425 else 1)
+            self.controls.roll = aerial_turn_controls.roll
         else:
-            self.aerial_turn.step(dt)
-            self.controls = self.aerial_turn.controls
-            self.controls.boost = (dot(self.car.forward(), self.direction) > 0.7)
+            self.controls = aerial_turn_controls
+            if (self.car.on_ground and self.timer > 0.25) or self.timer > 1.1:
+                self.finished = True
+
+        self.controls.boost = (dot(self.car.forward(), self.direction) > 0.8)
 
         self.timer += dt

@@ -20,13 +20,14 @@ def start_shooting(agent):
 
 def shooting(agent):
     """"Method that gives the output for the shooting strategy"""
-    agent.drive.step(agent.fps)
-    agent.controls = agent.drive.controls
     target = shooting_target(agent)
     agent.drive.target = target
     distance = distance_2d(agent.info.my_car.location, target)
     vf = velocity_forward(agent.info.my_car)
+    dodge_overshoot = distance < (abs(vf) + 500) * 1.5
     agent.drive.speed = get_speed(agent, target)
+    agent.drive.step(agent.fps)
+    agent.controls = agent.drive.controls
     if should_dodge(agent):
         agent.step = Step.Dodge
         agent.dodge = Dodge(agent.info.my_car)
@@ -37,16 +38,16 @@ def shooting(agent):
         agent.step = Step.Catching
         agent.drive.target = agent.info.ball.location
         agent.drive.speed = 1399
-    elif (distance > (abs(vf) + 500) * 1.5 or (vf < -900 and distance < 600)) and agent.info.my_car.location[2] < 80 and\
-            (agent.drive.speed > abs(vf) + 300 and 1200 < abs(vf) < 2000 and agent.info.my_car.boost <= 25) or vf < -900:
+    elif vf < -900 and (not dodge_overshoot or distance < 600):
+        agent.step = Step.HalfFlip
+        agent.halfflip = HalfFlip(agent.info.my_car)
+    elif not dodge_overshoot and agent.info.my_car.location[2] < 80 and\
+            (agent.drive.speed > abs(vf) + 300 and 1200 < abs(vf) < 2000 and agent.info.my_car.boost <= 25):
         # Dodge towards the target for speed
         agent.step = Step.Dodge
-        if vf > -900:
-            agent.dodge = Dodge(agent.info.my_car)
-            agent.dodge.duration = 0.1
-            agent.dodge.target = target
-        else:
-            agent.dodge = HalfFlip(agent.info.my_car)
+        agent.dodge = Dodge(agent.info.my_car)
+        agent.dodge.duration = 0.1
+        agent.dodge.target = target
 
 
 def shooting_target(agent):

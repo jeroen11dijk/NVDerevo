@@ -38,6 +38,7 @@ class Hypebot(BaseAgent):
         self.drive = None
         self.catching = None
         self.dodge = None
+        self.halfflip = None
         self.dribble = None
         self.controls = SimpleControllerState()
         self.kickoff = False
@@ -95,7 +96,7 @@ class Hypebot(BaseAgent):
             for i in range(ball_prediction.num_slices):
                 prediction_slice = ball_prediction.slices[i]
                 physics = prediction_slice.physics
-                if physics.location.z > 150:
+                if physics.location.z > 180:
                     self.ball_bouncing = True
                     continue
                 current_ang_velocity = normalize(vec3(physics.angular_velocity.x, physics.angular_velocity.y, physics.angular_velocity.z))
@@ -117,11 +118,13 @@ class Hypebot(BaseAgent):
 
     def get_controls(self):
         """Decides what strategy to uses and gives corresponding output"""
+        self.drive.power_turn = False
         if self.step is Step.Steer or self.step is Step.Dodge_2 or self.step is Step.Dodge_1:
             self.step = Step.Catching
         if self.step is Step.Catching and not self.ball_bouncing:
             self.step = Step.Shooting if (self.info.ball.location[1] - self.info.my_car.location[1]) * sign(self.info.my_car.team) < 0 else Step.Defending
         if self.step is Step.Catching:
+            self.drive.power_turn = True #Enable power turning for catching, since we don't halfflip
             target = get_bounce(self)
             if target is None:
                 self.step = Step.Defending
@@ -164,14 +167,17 @@ class Hypebot(BaseAgent):
                 self.dodge.target = self.their_goal.center
         elif self.step is Step.Defending:
             defending(self)
-        elif self.step is Step.Dodge:
-            self.dodge.step(self.fps)
-            if self.dodge.finished and self.info.my_car.on_ground:
-                self.step = Step.Catching
-                self.dodge = None
+        elif self.step is Step.Dodge or self.step is Step.HalfFlip:
+            halfflipping = self.step is Step.HalfFlip
+            if halfflipping:
+                self.halfflip.step(self.fps)
             else:
-                self.controls = self.dodge.controls
-                self.controls.boost = 0
+                self.dodge.step(self.fps)
+            if (self.halfflip.finished if halfflipping else self.dodge.finished) and self.info.my_car.on_ground:
+                self.step = Step.Catching
+            else:
+                self.controls = (self.halfflip.controls if halfflipping else self.dodge.controls)
+                if not halfflipping: self.controls.boost = False
                 self.controls.throttle = velocity_2d(self.info.my_car.velocity) < 500
         elif self.step is Step.Shooting:
             shooting(self)
@@ -194,7 +200,6 @@ class Hypebot(BaseAgent):
         self.renderer.draw_line_3d(self.info.my_car.location, self.drive.target, self.renderer.blue())
         if self.kickoff_Start is None:
             self.renderer.draw_string_2d(20, 20, 3, 3, string, self.renderer.red())
-            self.renderer.draw_string_2d(20, 50, 1, 1, str(type(self.dodge)), self.renderer.blue())
         else:
             self.renderer.draw_string_2d(20, 20, 3, 3, string + " " + self.kickoff_Start, self.renderer.red())
         self.renderer.end_rendering()
