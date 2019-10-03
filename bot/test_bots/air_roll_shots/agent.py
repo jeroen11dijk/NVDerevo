@@ -1,5 +1,6 @@
 import math
 import sys
+from copy import copy
 from pathlib import Path
 
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
@@ -9,7 +10,7 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, AerialTurn, Drive
-from rlutilities.simulation import Game
+from rlutilities.simulation import Game, Car
 
 
 class State:
@@ -94,24 +95,42 @@ class MyAgent(BaseAgent):
 
         if self.state == State.DRIVING:
             # self.render()
-
             self.drive.step(self.game.time_delta)
             self.controls = self.drive.controls
-
+            print(self.game.my_car.location)
+            print(self.game.my_car.velocity)
             if norm((vec2(self.game.my_car.location - self.game.ball.location))) < 0.9 * 1400:
                 self.dodge = Dodge(self.game.my_car)
                 self.turn = AerialTurn(self.game.my_car)
 
                 self.dodge.duration = 0.9
                 self.dodge.target = self.game.ball.location
+                car = Car(self.game.my_car)
+                dodge = Dodge(car)
+                dodge.duration = 0.9
+                dodge.target = self.game.ball.location
                 # self.dodge.preorientation = look_at(-0.1 * f - u, -1.0 * u)
                 self.timer = 0
+                print("======================================================")
+                print(car.location)
+                print(car.velocity)
+                print(self.dodge.timer)
+                for i in range(13):
+                    dodge.step(1 / 60)
+                    car.step(dodge.controls, 1 / 60)
+                    print(i * 1 / 60, car.location[2])
+                print(car.location)
+                print(self.dodge.timer)
+                print("======================================================")
                 next_state = State.DODGING
 
         if self.state == State.DODGING:
             if self.game.my_car.location[2] > self.height:
                 self.height = self.game.my_car.location[2]
                 self.time = self.timer
+            if 0.199 < self.timer < 0.201:
+                print(self.timer, self.game.my_car.location[2])
+            # if self.game.time == self.game.latest_touch
             self.dodge.step(self.game.time_delta)
             self.controls = self.dodge.controls
 
