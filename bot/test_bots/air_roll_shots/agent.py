@@ -116,6 +116,7 @@ class MyAgent(BaseAgent):
 
             if packet.game_ball.latest_touch.time_seconds == self.game.time:
                 print("packet", self.timer)
+                print("======================================")
 
             if self.dodge.finished and self.game.my_car.on_ground:
                 next_state = State.RESET
@@ -153,6 +154,5 @@ class MyAgent(BaseAgent):
             batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
             batmobile.orientation = car.rotation
             if intersect(ball.hitbox(), batmobile):
-                print(i / 60)
+                print("predicted value", i / 60)
                 break
-        print("======================================")
