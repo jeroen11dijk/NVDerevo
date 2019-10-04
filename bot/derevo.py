@@ -7,7 +7,7 @@ from rlbot.matchcomms.common_uses.reply import reply_to
 from rlbot.matchcomms.common_uses.set_attributes_message import handle_set_attributes_message
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 from rlutilities.linear_algebra import norm, normalize, vec2, vec3, dot
-from rlutilities.mechanics import Drive, Dodge
+from rlutilities.mechanics import Dodge
 from rlutilities.simulation import Game
 
 from boost import init_boostpads, update_boostpads
@@ -18,6 +18,8 @@ from kick_off import init_kickoff, kick_off
 from shooting import shooting
 from util import distance_2d, get_bounce, line_backline_intersect, sign, velocity_2d
 from steps import Step
+from custom_drive import CustomDrive as Drive
+from halfflip import HalfFlip
 
 
 class Hypebot(BaseAgent):
@@ -36,6 +38,7 @@ class Hypebot(BaseAgent):
         self.drive = None
         self.catching = None
         self.dodge = None
+        self.halfflip = None
         self.dribble = None
         self.controls = SimpleControllerState()
         self.kickoff = False
@@ -59,7 +62,7 @@ class Hypebot(BaseAgent):
         """The main method which receives the packets and outputs the controls"""
         if packet.game_info.seconds_elapsed - self.time > 0:
             self.fps = packet.game_info.seconds_elapsed - self.time
-        print(self.info.time_delta)
+        #print(self.info.time_delta)
         self.time = packet.game_info.seconds_elapsed
         self.info.read_game_information(packet, self.get_rigid_body_tick(), self.get_field_info())
         update_boostpads(self, packet)
@@ -93,7 +96,7 @@ class Hypebot(BaseAgent):
             for i in range(ball_prediction.num_slices):
                 prediction_slice = ball_prediction.slices[i]
                 physics = prediction_slice.physics
-                if physics.location.z > 150:
+                if physics.location.z > 180:
                     self.ball_bouncing = True
                     continue
                 current_ang_velocity = normalize(vec3(physics.angular_velocity.x, physics.angular_velocity.y, physics.angular_velocity.z))
@@ -115,11 +118,13 @@ class Hypebot(BaseAgent):
 
     def get_controls(self):
         """Decides what strategy to uses and gives corresponding output"""
+        self.drive.power_turn = False
         if self.step is Step.Steer or self.step is Step.Dodge_2 or self.step is Step.Dodge_1:
             self.step = Step.Catching
         if self.step is Step.Catching and not self.ball_bouncing:
             self.step = Step.Shooting if (self.info.ball.location[1] - self.info.my_car.location[1]) * sign(self.info.my_car.team) < 0 else Step.Defending
         if self.step is Step.Catching:
+            self.drive.power_turn = True #Enable power turning for catching, since we don't halfflip
             target = get_bounce(self)
             if target is None:
                 self.step = Step.Defending
@@ -162,13 +167,17 @@ class Hypebot(BaseAgent):
                 self.dodge.target = self.their_goal.center
         elif self.step is Step.Defending:
             defending(self)
-        elif self.step is Step.Dodge:
-            self.dodge.step(self.fps)
-            if self.dodge.finished and self.info.my_car.on_ground:
+        elif self.step is Step.Dodge or self.step is Step.HalfFlip:
+            halfflipping = self.step is Step.HalfFlip
+            if halfflipping:
+                self.halfflip.step(self.fps)
+            else:
+                self.dodge.step(self.fps)
+            if (self.halfflip.finished if halfflipping else self.dodge.finished) and self.info.my_car.on_ground:
                 self.step = Step.Catching
             else:
-                self.controls = self.dodge.controls
-                self.controls.boost = 0
+                self.controls = (self.halfflip.controls if halfflipping else self.dodge.controls)
+                if not halfflipping: self.controls.boost = False
                 self.controls.throttle = velocity_2d(self.info.my_car.velocity) < 500
         elif self.step is Step.Shooting:
             shooting(self)

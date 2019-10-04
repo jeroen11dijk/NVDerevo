@@ -53,6 +53,10 @@ def velocity_2d(velocity):
     return norm(vec2(velocity))
 
 
+def velocity_forward(car):
+    return dot(car.forward(), car.velocity)
+
+
 def boost_needed(initial_speed, goal_speed):
     """Returns the boost amount you need to reach the target speed given the initial speed"""
     p_1 = 6.31e-06

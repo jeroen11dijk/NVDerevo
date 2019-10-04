@@ -12,3 +12,4 @@ class Step(Enum):
     Dodge = 7
     Dodge_1 = 8
     Dodge_2 = 9
+    HalfFlip = 10
