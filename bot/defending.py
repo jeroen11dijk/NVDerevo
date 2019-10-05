@@ -38,7 +38,6 @@ def defending(agent):
         agent.dodge.target = target
             
 
-
 def defending_target(agent):
     """"Method that gives the target for the shooting strategy"""
     ball = agent.info.ball
