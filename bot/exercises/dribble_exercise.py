@@ -68,7 +68,7 @@ def make_default_playlist() -> Playlist:
 
     for ex in exercises:
         ex.match_config.player_configs = [
-            PlayerConfig.bot_config(Path(__file__).absolute().parent.parent / 'Calculator.cfg', Team.BLUE)
+            PlayerConfig.bot_config(Path(__file__).absolute().parent.parent.parent / 'Derevo.cfg', Team.BLUE)
         ]
 
     return exercises

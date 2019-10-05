@@ -48,6 +48,8 @@ def shooting(agent):
         agent.dodge = Dodge(agent.info.my_car)
         agent.dodge.duration = 0.1
         agent.dodge.target = target
+    elif agent.defending:
+        agent.step = Step.Defending
 
 
 def shooting_target(agent):

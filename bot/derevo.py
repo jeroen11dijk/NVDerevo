@@ -62,7 +62,6 @@ class Hypebot(BaseAgent):
         """The main method which receives the packets and outputs the controls"""
         if packet.game_info.seconds_elapsed - self.time > 0:
             self.fps = packet.game_info.seconds_elapsed - self.time
-        #print(self.info.time_delta)
         self.time = packet.game_info.seconds_elapsed
         self.info.read_game_information(packet, self.get_rigid_body_tick(), self.get_field_info())
         update_boostpads(self, packet)
@@ -70,7 +69,7 @@ class Hypebot(BaseAgent):
         self.set_mechanics()
         # self.handle_match_comms()
         self.prev_kickoff = self.kickoff
-        self.kickoff = packet.game_info.is_kickoff_pause
+        self.kickoff = packet.game_info.is_kickoff_pause and distance_2d(self.info.ball.location, vec3(0, 0, 0)) < 100
         self.defending = self.should_defending()
         if self.kickoff and not self.prev_kickoff:
             # if not self.close_to_kickoff_spawn():
@@ -99,9 +98,11 @@ class Hypebot(BaseAgent):
                 if physics.location.z > 180:
                     self.ball_bouncing = True
                     continue
-                current_ang_velocity = normalize(vec3(physics.angular_velocity.x, physics.angular_velocity.y, physics.angular_velocity.z))
+                current_ang_velocity = normalize(
+                    vec3(physics.angular_velocity.x, physics.angular_velocity.y, physics.angular_velocity.z))
                 if physics.location.z < 125 and prev_ang_velocity != current_ang_velocity:
-                    self.bounces.append((vec3(physics.location.x, physics.location.y, physics.location.z), prediction_slice.game_seconds - self.time))
+                    self.bounces.append((vec3(physics.location.x, physics.location.y, physics.location.z),
+                                         prediction_slice.game_seconds - self.time))
                     if len(self.bounces) > 15: return
                 prev_ang_velocity = current_ang_velocity
 
@@ -119,12 +120,14 @@ class Hypebot(BaseAgent):
     def get_controls(self):
         """Decides what strategy to uses and gives corresponding output"""
         self.drive.power_turn = False
-        if self.step is Step.Steer or self.step is Step.Dodge_2 or self.step is Step.Dodge_1:
+        if self.step is Step.Steer or self.step is Step.Dodge_2 or self.step is Step.Dodge_1 or self.step is Step.Drive:
             self.step = Step.Catching
         if self.step is Step.Catching and not self.ball_bouncing:
-            self.step = Step.Shooting if (self.info.ball.location[1] - self.info.my_car.location[1]) * sign(self.info.my_car.team) < 0 else Step.Defending
+            self.step = Step.Shooting if (self.info.ball.location[1] - self.info.my_car.location[1]) * sign(
+                self.info.my_car.team) < 0 else Step.Defending
         if self.step is Step.Catching:
-            self.drive.power_turn = True #Enable power turning for catching, since we don't halfflip
+            # Enable power turning for catching, since we don't halfflip
+            self.drive.power_turn = True
             target = get_bounce(self)
             if target is None:
                 self.step = Step.Defending
