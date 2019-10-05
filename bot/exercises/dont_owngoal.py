@@ -16,6 +16,7 @@ def make_default_playlist() -> Playlist:
         # The length of players in the match_config needs to match the number or spawns.
 
         # Replace with path to your bot or bots.
-        ex.match_config.player_configs = [PlayerConfig.bot_config(Path(__file__).absolute().parent.parent.parent / 'Derevo.cfg', Team.BLUE)]
+        ex.match_config.player_configs = [
+            PlayerConfig.bot_config(Path(__file__).absolute().parent.parent.parent / 'Derevo.cfg', Team.BLUE)]
 
     return exercises

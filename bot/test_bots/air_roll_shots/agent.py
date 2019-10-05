@@ -121,7 +121,6 @@ class MyAgent(BaseAgent):
             if packet.game_ball.latest_touch.time_seconds == self.game.time:
                 print("packet", self.timer, self.game.my_car.location)
                 print("======================================")
-
             if self.dodge.finished and self.game.my_car.on_ground:
                 next_state = State.RESET
 
