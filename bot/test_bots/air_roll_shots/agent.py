@@ -1,12 +1,11 @@
 import math
+import time
 import sys
 from pathlib import Path
 
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator
 from rlbot.utils.structures.game_data_struct import GameTickPacket
-
-from jump_sim import ball
 
 sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 from rlutilities.linear_algebra import *
@@ -106,16 +105,21 @@ class MyAgent(BaseAgent):
                 self.dodge.target = self.game.ball.location
                 # self.dodge.preorientation = look_at(-0.1 * f - u, -1.0 * u)
                 self.timer = 0
+                begin = time.time()
                 self.simulate()
+                print("simulating took: ", time.time() - begin)
                 next_state = State.DODGING
 
         if self.state == State.DODGING:
+            print(round(self.timer * 60))
+            if round(self.timer * 60) == 1:
+                print("location at 1: ", self.game.my_car.location)
             # if self.game.time == self.game.latest_touch
             self.dodge.step(self.game.time_delta)
             self.controls = self.dodge.controls
 
             if packet.game_ball.latest_touch.time_seconds == self.game.time:
-                print("packet", self.timer)
+                print("packet", self.timer, self.game.my_car.location)
                 print("======================================")
 
             if self.dodge.finished and self.game.my_car.on_ground:
@@ -136,12 +140,17 @@ class MyAgent(BaseAgent):
         batmobile.half_width = vec3(64.4098892211914, 42.335182189941406, 14.697200775146484)
         batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
         batmobile.orientation = car.rotation
-        print("======================================")
+        # print("======================================")
+        # print("car location", car.location)
+        # print("car velocity", car.velocity)
+        # print("car angular_velocity", car.angular_velocity)
+        # print("car rotation", car.rotation)
         for i in range(60):
+            # print("ingame sim: ", i / 60, "car pos: ", car.location)
             dodge.step(1 / 60)
             car.step(dodge.controls, 1 / 60)
             batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
             batmobile.orientation = car.rotation
-            if intersect(ball.hitbox(), batmobile):
-                print("predicted value", i / 60)
+            if intersect(self.game.ball.hitbox(), batmobile):
+                print("ingame sim intersect at: ", i / 60)
                 break
