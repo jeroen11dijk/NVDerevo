@@ -1,5 +1,6 @@
 import math
 import random
+import time
 import sys
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, AerialTurn, Drive
-from rlutilities.simulation import Game, Car, obb, intersect
+from rlutilities.simulation import Game, Car, obb, intersect, Ball, sphere
 
 
 class State:
@@ -53,8 +54,6 @@ class MyAgent(BaseAgent):
 
             # put the car in the middle of the field
             car_state = CarState(physics=Physics(
-                # location=Vector3(random.randint(-1000, 1000), random.randint(-2000, 500), 18),
-                # location=Vector3(-2500, -2500, 18),
                 location=Vector3(0, -2500, 18),
                 velocity=Vector3(0, 0, 0),
                 rotation=Rotator(0, math.pi / 2, 0),
@@ -64,8 +63,8 @@ class MyAgent(BaseAgent):
             # put the ball in the middle of the field
 
             ball_state = BallState(physics=Physics(
-                location=Vector3(0, 0, random.randint(93, 234)),
-                velocity=Vector3(0, 0, 0),
+                location=Vector3(0, 0, 93),
+                velocity=Vector3(0, random.randint(-250, 800), random.randint(700, 800)),
                 rotation=Rotator(0, 0, 0),
                 angular_velocity=Vector3(0, 0, 0)
             ))
@@ -91,19 +90,22 @@ class MyAgent(BaseAgent):
             # goal_to_ball = vec3(0, 5120, 0) - self.game.ball.location
             # self.drive.path = self.navigator.path_to(self.game.ball.location, goal_to_ball, self.drive.arrival_speed)
             self.drive = Drive(self.game.my_car)
-            self.drive.target, self.drive.speed = self.game.ball.location, 2300
+            self.drive.target, self.drive.speed = self.game.ball.location, 1400
             next_state = State.DRIVING
 
         if self.state == State.DRIVING:
+            self.drive.target = self.game.ball.location
             self.drive.step(self.game.time_delta)
             self.controls = self.drive.controls
-            can_dodge, simulated_duration = self.simulate()
+            a = time.time()
+            can_dodge, simulated_duration, simulated_target = self.simulate()
+            print(time.time() - a)
             if can_dodge:
                 self.dodge = Dodge(self.game.my_car)
                 self.turn = AerialTurn(self.game.my_car)
 
                 self.dodge.duration = simulated_duration
-                self.dodge.target = self.game.ball.location
+                self.dodge.target = simulated_target
                 # self.dodge.preorientation = look_at(-0.1 * f - u, -1.0 * u)
                 self.timer = 0
                 next_state = State.DODGING
@@ -120,26 +122,31 @@ class MyAgent(BaseAgent):
         return self.controls
 
     def simulate(self):
-        for i in range(90):
+        for i in range(18):
             car = Car(self.game.my_car)
-
+            ball = Ball(self.game.ball)
             batmobile = obb()
             batmobile.half_width = vec3(64.4098892211914, 42.335182189941406, 14.697200775146484)
             batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
             batmobile.orientation = car.rotation
-
+            ball_prediction = self.get_ball_prediction_struct()
             dodge = Dodge(car)
-            dodge.duration = i * 0.01
-            dodge.target = self.game.ball.location
-            for j in range(round(60 * i * 0.01)):
+            dodge.duration = i * 0.05
+            dodge.target = ball.location
+            for j in range(round(60 * i * 0.05)):
+                dodge.target = ball.location
                 dodge.step(1 / 60)
                 car.step(dodge.controls, 1 / 60)
+                prediction_slice = ball_prediction.slices[j]
+                physics = prediction_slice.physics
+                ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
+                dodge.target = ball_location
                 batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
                 batmobile.orientation = car.rotation
-                if intersect(self.game.ball.hitbox(), batmobile) and abs(self.game.ball.location[2] - car.location[2]) < 25:
-                    print(self.game.ball.location)
+                if intersect(sphere(ball_location, 93.15), batmobile) and abs(ball_location[2] - car.location[2]) < 25 and car.location[2] < ball_location[2]:
+                    print(ball.location)
                     print(car.location)
                     print(j / 60)
-                    print(i * 0.01)
-                    return True, j / 60
-        return False, None
+                    print(i * 0.05)
+                    return True, j / 60, ball_location
+        return False, None, None
