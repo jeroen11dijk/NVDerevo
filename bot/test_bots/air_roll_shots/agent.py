@@ -1,5 +1,5 @@
 import math
-import time
+import random
 import sys
 from pathlib import Path
 
@@ -64,7 +64,7 @@ class MyAgent(BaseAgent):
             # put the ball in the middle of the field
 
             ball_state = BallState(physics=Physics(
-                location=Vector3(0, 0, 234),
+                location=Vector3(0, 0, random.randint(93, 234)),
                 velocity=Vector3(0, 0, 0),
                 rotation=Rotator(0, 0, 0),
                 angular_velocity=Vector3(0, 0, 0)
@@ -91,36 +91,26 @@ class MyAgent(BaseAgent):
             # goal_to_ball = vec3(0, 5120, 0) - self.game.ball.location
             # self.drive.path = self.navigator.path_to(self.game.ball.location, goal_to_ball, self.drive.arrival_speed)
             self.drive = Drive(self.game.my_car)
-            self.drive.target, self.drive.speed = self.game.ball.location, 1400
+            self.drive.target, self.drive.speed = self.game.ball.location, 2300
             next_state = State.DRIVING
 
         if self.state == State.DRIVING:
             self.drive.step(self.game.time_delta)
             self.controls = self.drive.controls
-            if norm((vec2(self.game.my_car.location - self.game.ball.location))) < 0.9 * 1400:
+            can_dodge, simulated_duration = self.simulate()
+            if can_dodge:
                 self.dodge = Dodge(self.game.my_car)
                 self.turn = AerialTurn(self.game.my_car)
 
-                self.dodge.duration = 0.9
+                self.dodge.duration = simulated_duration
                 self.dodge.target = self.game.ball.location
                 # self.dodge.preorientation = look_at(-0.1 * f - u, -1.0 * u)
                 self.timer = 0
-                begin = time.time()
-                self.simulate()
-                print("simulating took: ", time.time() - begin)
                 next_state = State.DODGING
 
         if self.state == State.DODGING:
-            print(round(self.timer * 60))
-            if round(self.timer * 60) == 1:
-                print("location at 1: ", self.game.my_car.location)
-            # if self.game.time == self.game.latest_touch
             self.dodge.step(self.game.time_delta)
             self.controls = self.dodge.controls
-
-            if packet.game_ball.latest_touch.time_seconds == self.game.time:
-                print("packet", self.timer, self.game.my_car.location)
-                print("======================================")
             if self.dodge.finished and self.game.my_car.on_ground:
                 next_state = State.RESET
 
@@ -130,26 +120,26 @@ class MyAgent(BaseAgent):
         return self.controls
 
     def simulate(self):
-        car = Car(self.game.my_car)
-        dodge = Dodge(car)
-        dodge.duration = 0.9
-        dodge.target = self.game.ball.location
+        for i in range(90):
+            car = Car(self.game.my_car)
 
-        batmobile = obb()
-        batmobile.half_width = vec3(64.4098892211914, 42.335182189941406, 14.697200775146484)
-        batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
-        batmobile.orientation = car.rotation
-        # print("======================================")
-        # print("car location", car.location)
-        # print("car velocity", car.velocity)
-        # print("car angular_velocity", car.angular_velocity)
-        # print("car rotation", car.rotation)
-        for i in range(60):
-            # print("ingame sim: ", i / 60, "car pos: ", car.location)
-            dodge.step(1 / 60)
-            car.step(dodge.controls, 1 / 60)
+            batmobile = obb()
+            batmobile.half_width = vec3(64.4098892211914, 42.335182189941406, 14.697200775146484)
             batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
             batmobile.orientation = car.rotation
-            if intersect(self.game.ball.hitbox(), batmobile):
-                print("ingame sim intersect at: ", i / 60)
-                break
+
+            dodge = Dodge(car)
+            dodge.duration = i * 0.01
+            dodge.target = self.game.ball.location
+            for j in range(round(60 * i * 0.01)):
+                dodge.step(1 / 60)
+                car.step(dodge.controls, 1 / 60)
+                batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
+                batmobile.orientation = car.rotation
+                if intersect(self.game.ball.hitbox(), batmobile) and abs(self.game.ball.location[2] - car.location[2]) < 25:
+                    print(self.game.ball.location)
+                    print(car.location)
+                    print(j / 60)
+                    print(i * 0.01)
+                    return True, j / 60
+        return False, None

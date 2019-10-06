@@ -215,6 +215,7 @@ class Hypebot(BaseAgent):
         car_to_ball = ball.location - car.location
         in_front_of_ball = distance_2d(ball.location, our_goal) < distance_2d(car.location, our_goal)
         backline_intersect = line_backline_intersect(self.my_goal.center[1], vec2(car.location), vec2(car_to_ball))
+        #TODO check whether the ball goes in the FACKING net
         return in_front_of_ball and abs(backline_intersect) < 2000
 
     def close_to_kickoff_spawn(self):
