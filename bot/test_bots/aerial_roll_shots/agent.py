@@ -1,13 +1,15 @@
-from math import sin, cos
 import random
+import sys
+from pathlib import Path
 
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
-from rlbot.utils.structures.game_data_struct import GameTickPacket
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator
+from rlbot.utils.structures.game_data_struct import GameTickPacket
 
+sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Aerial, AerialTurn
-from rlutilities.simulation import Game, Ball, Car
+from rlutilities.simulation import Game, Ball
 
 
 class State:
@@ -20,8 +22,10 @@ class State:
 class Agent(BaseAgent):
 
     def __init__(self, name, team, index):
+        super().__init__(name, team, index)
         Game.set_mode("soccar")
         self.game = Game(index, team)
+        self.name = name
         self.controls = SimpleControllerState()
 
         self.timer = 0.0
@@ -33,7 +37,6 @@ class Agent(BaseAgent):
         self.ball_predictions = None
 
         self.target_ball = None
-        self.log = open("../../analysis/aerial/info.ndjson", "w")
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         self.game.read_game_information(packet,
@@ -45,15 +48,14 @@ class Agent(BaseAgent):
         next_state = self.state
 
         if self.state == State.RESET:
-
             self.timer = 0.0
 
-            b_position = Vector3(random.uniform(-1500,  1500),
-                                 random.uniform( 2500,  3500),
-                                 random.uniform(  300,   500))
+            b_position = Vector3(random.uniform(-1500, 1500),
+                                 random.uniform(2500, 3500),
+                                 random.uniform(300, 500))
 
-            b_velocity = Vector3(random.uniform(-300,  300),
-                                 random.uniform(-100,  100),
+            b_velocity = Vector3(random.uniform(-300, 300),
+                                 random.uniform(-100, 100),
                                  random.uniform(1000, 1500))
 
             ball_state = BallState(physics=Physics(
@@ -67,13 +69,13 @@ class Agent(BaseAgent):
             # to different starting points each time
             c_position = Vector3(b_position.x, 0 * random.uniform(-1500, -1000), 25)
 
-            #c_position = Vector3(200, -1000, 25)
+            # c_position = Vector3(200, -1000, 25)
             car_state = CarState(physics=Physics(
                 location=c_position,
                 velocity=Vector3(0, 800, 0),
                 rotation=Rotator(0, 1.6, 0),
                 angular_velocity=Vector3(0, 0, 0)
-            ), boost_amount=100)
+            ), boost_amount=50)
 
             self.set_game_state(GameState(
                 ball=ball_state,
@@ -123,13 +125,9 @@ class Agent(BaseAgent):
                         self.target_ball = Ball(prediction)
                         break
 
-
             next_state = State.RUNNING
 
         if self.state == State.RUNNING:
-
-            self.log.write(f"{{\"car\":{self.game.my_car.to_json()},"
-                           f"\"ball\":{self.game.ball.to_json()}}}\n")
 
             self.aerial.step(self.game.time_delta)
             self.controls = self.aerial.controls
@@ -165,9 +163,3 @@ class Agent(BaseAgent):
         self.renderer.end_rendering()
 
         return self.controls
-
-
-
-
-
-

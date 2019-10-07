@@ -28,10 +28,10 @@ class MyAgent(BaseAgent):
 
     def __init__(self, name, team, index):
         super().__init__(name, team, index)
+        Game.set_mode("soccar")
         self.game = Game(index, team)
         self.name = name
         self.controls = SimpleControllerState()
-
         self.timer = 0.0
 
         self.drive = Drive(self.game.my_car)
