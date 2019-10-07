@@ -39,8 +39,6 @@ class MyAgent(BaseAgent):
         self.dodge = None
         self.turn = None
         self.state = State.RESET
-        self.height = 0
-        self.time = 0
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
 
@@ -53,8 +51,8 @@ class MyAgent(BaseAgent):
 
         if self.state == State.RESET:
             self.timer = 0.0
-            # self.set_gamestate_straight_moving()
-            self.set_gamestate_angled_stationary()
+            self.set_gamestate_straight_moving()
+            # self.set_gamestate_angled_stationary()
             # self.set_gamestate_straight_moving_towards()
             next_state = State.WAIT
 
@@ -65,7 +63,7 @@ class MyAgent(BaseAgent):
 
         if self.state == State.INITIALIZE:
             self.drive = Drive(self.game.my_car)
-            self.drive.target, self.drive.speed = self.game.ball.location, 1400
+            self.drive.target, self.drive.speed = self.game.ball.location, 2300
             next_state = State.DRIVING
 
         if self.state == State.DRIVING:
@@ -76,7 +74,8 @@ class MyAgent(BaseAgent):
             if can_dodge:
                 self.dodge = Dodge(self.game.my_car)
                 self.turn = AerialTurn(self.game.my_car)
-
+                print("============")
+                print(simulated_duration)
                 self.dodge.duration = simulated_duration - 0.1
                 self.dodge.target = simulated_target
                 self.timer = 0
@@ -85,6 +84,8 @@ class MyAgent(BaseAgent):
         if self.state == State.DODGING:
             self.dodge.step(self.game.time_delta)
             self.controls = self.dodge.controls
+            if self.game.time == packet.game_ball.latest_touch.time_seconds:
+                print(self.timer)
             if self.dodge.finished and self.game.my_car.on_ground:
                 next_state = State.RESET
 
@@ -118,11 +119,6 @@ class MyAgent(BaseAgent):
                 batmobile.orientation = car.rotation
                 if intersect(sphere(ball_location, 93.15), batmobile) and abs(
                         ball_location[2] - car.location[2]) < 25 and car.location[2] < ball_location[2]:
-                    print(ball_location)
-                    print(car.location)
-                    print(abs(ball_location[2] - car.location[2]))
-                    print(j / 60)
-                    print(duration_estimate + i / 60)
                     return True, j / 60, ball_location
         return False, None, None
 
