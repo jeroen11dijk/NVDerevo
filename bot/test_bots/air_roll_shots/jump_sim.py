@@ -1,5 +1,5 @@
 import sys
-from math import sqrt
+from math import sqrt, floor
 from pathlib import Path
 
 sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
@@ -27,5 +27,4 @@ def get_time_at_height(y, d):
     elif y <= get_height_at_time(0.8923, d):
         return 0.892308 - 0.0153846 * sqrt(3000 - 13 * y)
     else:
-        return 0
-
+        return get_time_at_height(get_height_at_time(0.8923, 0.2), 0.2)
