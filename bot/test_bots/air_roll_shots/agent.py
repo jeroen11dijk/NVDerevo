@@ -54,8 +54,8 @@ class MyAgent(BaseAgent):
         if self.state == State.RESET:
             self.timer = 0.0
             # self.set_gamestate_straight_moving()
-            # self.set_gamestate_angled_stationary()
-            self.set_gamestate_straight_moving_towards()
+            self.set_gamestate_angled_stationary()
+            # self.set_gamestate_straight_moving_towards()
             next_state = State.WAIT
 
         if self.state == State.WAIT:
