@@ -135,7 +135,7 @@ class MyAgent(BaseAgent):
 
         ball_state = BallState(physics=Physics(
             location=Vector3(0, 1500, 93),
-            velocity=Vector3(0, random.randint(-250, 800), random.randint(700, 800)),
+            velocity=Vector3(0, 650, 750),
             rotation=Rotator(0, 0, 0),
             angular_velocity=Vector3(0, 0, 0)
         ))
