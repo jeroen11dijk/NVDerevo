@@ -8,7 +8,7 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 from rlutilities.linear_algebra import *
-from rlutilities.mechanics import Aerial, AerialTurn
+from rlutilities.mechanics import Aerial
 from rlutilities.simulation import Game, Ball
 
 
@@ -32,7 +32,6 @@ class Agent(BaseAgent):
         self.timeout = 5.0
 
         self.aerial = None
-        self.turn = None
         self.state = State.RESET
         self.ball_predictions = None
 
@@ -96,7 +95,6 @@ class Agent(BaseAgent):
             #     random.uniform(-1, 1),
             #     random.uniform(-1, 1),
             #     random.uniform(-1, 1)))
-            self.turn = AerialTurn(self.game.my_car)
 
             # predict where the ball will be
             prediction = Ball(self.game.ball)
@@ -136,7 +134,6 @@ class Agent(BaseAgent):
                 next_state = State.RESET
 
                 self.aerial = None
-                self.turn = None
 
         self.timer += self.game.time_delta
         self.state = next_state
