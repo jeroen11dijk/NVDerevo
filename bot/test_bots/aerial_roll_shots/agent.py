@@ -48,33 +48,19 @@ class Agent(BaseAgent):
 
         if self.state == State.RESET:
             self.timer = 0.0
-
-            b_position = Vector3(random.uniform(-1500, 1500),
-                                 random.uniform(2500, 3500),
-                                 random.uniform(300, 500))
-
-            b_velocity = Vector3(random.uniform(-300, 300),
-                                 random.uniform(-100, 100),
-                                 random.uniform(1000, 1500))
-
             ball_state = BallState(physics=Physics(
-                location=b_position,
-                velocity=b_velocity,
+                location=Vector3(0, 4000, 500),
+                velocity=Vector3(0, -500, 750),
                 rotation=Rotator(0, 0, 0),
                 angular_velocity=Vector3(0, 0, 0)
             ))
-
-            # this just initializes the car and ball
-            # to different starting points each time
-            c_position = Vector3(b_position.x, 0 * random.uniform(-1500, -1000), 25)
-
             # c_position = Vector3(200, -1000, 25)
             car_state = CarState(physics=Physics(
-                location=c_position,
+                location=Vector3(0, 0, 18),
                 velocity=Vector3(0, 800, 0),
                 rotation=Rotator(0, 1.6, 0),
                 angular_velocity=Vector3(0, 0, 0)
-            ), boost_amount=50)
+            ), boost_amount=100)
 
             self.set_game_state(GameState(
                 ball=ball_state,
@@ -91,10 +77,6 @@ class Agent(BaseAgent):
         if self.state == State.INITIALIZE:
 
             self.aerial = Aerial(self.game.my_car)
-            # self.aerial.up = normalize(vec3(
-            #     random.uniform(-1, 1),
-            #     random.uniform(-1, 1),
-            #     random.uniform(-1, 1)))
 
             # predict where the ball will be
             prediction = Ball(self.game.ball)
@@ -111,7 +93,9 @@ class Agent(BaseAgent):
 
                     self.aerial.target = prediction.location
                     self.aerial.arrival_time = prediction.time
-
+                    goal = vec3(0, 5120, 0)
+                    self.aerial.reorient_distance = 1000
+                    self.aerial.target_orientation = look_at(xy(goal - prediction.location), vec3(0, 0, 1))
                     simulation = self.aerial.simulate()
 
                     # # check if we can reach it by an aerial
@@ -120,6 +104,9 @@ class Agent(BaseAgent):
                         prediction.step(0.016666)
                         self.aerial.target = prediction.location
                         self.aerial.arrival_time = prediction.time
+                        goal = vec3(0, 5120, 0)
+                        self.aerial.reorient_distance = 1000
+                        self.aerial.target_orientation = look_at(xy(goal - prediction.location), vec3(0, 0, 1))
                         self.target_ball = Ball(prediction)
                         break
 
