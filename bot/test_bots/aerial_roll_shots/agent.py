@@ -10,7 +10,7 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 from rlutilities.linear_algebra import *
-from rlutilities.mechanics import Aerial
+from rlutilities.mechanics import Aerial, Drive
 from rlutilities.simulation import Game, Ball
 
 
@@ -19,6 +19,7 @@ class State:
     WAIT = 1
     INITIALIZE = 2
     RUNNING = 3
+    AERIAL = 4
 
 
 class Agent(BaseAgent):
@@ -36,7 +37,7 @@ class Agent(BaseAgent):
         self.aerial = None
         self.state = State.RESET
         self.ball_predictions = None
-
+        self.drive = None
         self.target_ball = None
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
@@ -51,9 +52,9 @@ class Agent(BaseAgent):
         if self.state == State.RESET:
             self.timer = 0.0
 
-            self.set_state_overhead()
+            # self.set_state_overhead()
             # self.set_state_towards()
-
+            self.set_state_stationary()
             next_state = State.WAIT
 
         if self.state == State.WAIT:
@@ -62,13 +63,18 @@ class Agent(BaseAgent):
                 next_state = State.INITIALIZE
 
         if self.state == State.INITIALIZE:
+            self.aerial = Aerial(self.game.my_car)
+            self.drive = Drive(self.game.my_car)
+            self.drive.target = self.game.ball.location
+            self.drive.speed = 1400
+            next_state = State.RUNNING
 
+        if self.state == State.RUNNING:
             self.aerial = Aerial(self.game.my_car)
 
             # predict where the ball will be
             prediction = Ball(self.game.ball)
             self.ball_predictions = [vec3(prediction.location)]
-
             for i in range(87):
 
                 prediction.step(0.016666)
@@ -80,17 +86,15 @@ class Agent(BaseAgent):
                 self.aerial.reorient_distance = 250
                 simulation = self.aerial.simulate()
                 # # check if we can reach it by an aerial
-                if norm(simulation.location - self.aerial.target) < 75 and simulation.location[2] > self.aerial.target[2]:
-                    print(math.degrees(angle_between(self.aerial.target_orientation, simulation.rotation)))
-                    next_state = State.RUNNING
+                if norm(simulation.location - self.aerial.target) < 75 and simulation.location[2] > self.aerial.target[
+                    2]:
+                    next_state = State.AERIAL
                     break
                 # We cant make it
                 if i == 86:
-                    print("we cant make it")
-                    next_state = State.RESET
-
-        if self.state == State.RUNNING:
-
+                    self.drive.step(self.game.time_delta)
+                    self.controls = self.drive.controls
+        if self.state == State.AERIAL:
             self.aerial.step(self.game.time_delta)
             self.controls = self.aerial.controls
             if self.timer > self.timeout:
@@ -145,8 +149,8 @@ class Agent(BaseAgent):
 
     def set_state_overhead(self):
         ball_state = BallState(physics=Physics(
-            location=Vector3(-500, -2000, 500),
-            velocity=Vector3(350, 1250, 1000),
+            location=Vector3(0, 0, 500),
+            velocity=Vector3(0, 2000, 1500),
             rotation=Rotator(0, 0, 0),
             angular_velocity=Vector3(0, 0, 0)
         ))
@@ -156,6 +160,49 @@ class Agent(BaseAgent):
             rotation=Rotator(0, 1.6, 0),
             angular_velocity=Vector3(0, 0, 0)
         ), boost_amount=100)
+
+        self.set_game_state(GameState(
+            ball=ball_state,
+            cars={self.game.id: car_state})
+        )
+
+    def set_gamestate_straight_moving(self):
+        # put the car in the middle of the field
+        car_state = CarState(physics=Physics(
+            location=Vector3(0, -1000, 18),
+            velocity=Vector3(0, 0, 0),
+            rotation=Rotator(0, math.pi / 2, 0),
+            angular_velocity=Vector3(0, 0, 0)
+        ))
+
+        # put the ball in the middle of the field
+
+        ball_state = BallState(physics=Physics(
+            location=Vector3(0, 1500, 93),
+            velocity=Vector3(0, 650, 750),
+            rotation=Rotator(0, 0, 0),
+            angular_velocity=Vector3(0, 0, 0)
+        ))
+
+        self.set_game_state(GameState(
+            ball=ball_state,
+            cars={self.game.id: car_state})
+        )
+
+    def set_state_stationary(self):
+        # put the car in the middle of the field
+        car_state = CarState(physics=Physics(
+            location=Vector3(0, -2500, 18),
+            velocity=Vector3(0, 0, 0),
+            angular_velocity=Vector3(0, 0, 0),
+        ), boost_amount=100)
+
+        # put the ball in the middle of the field
+        ball_state = BallState(physics=Physics(
+            location=Vector3(0, 0, 200),
+            velocity=Vector3(0, 0, 750),
+            angular_velocity=Vector3(0, 0, 0),
+        ))
 
         self.set_game_state(GameState(
             ball=ball_state,
