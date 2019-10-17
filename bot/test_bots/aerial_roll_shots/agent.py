@@ -73,9 +73,7 @@ class Agent(BaseAgent):
             self.aerial = Aerial(self.game.my_car)
             # predict where the ball will be
             prediction = Ball(self.game.ball)
-            start_time = prediction.time
             self.ball_predictions = [vec3(prediction.location)]
-            a = time.time()
             for i in range(87):
 
                 prediction.step(0.016666)
@@ -96,7 +94,6 @@ class Agent(BaseAgent):
                 if i == 86:
                     self.drive.step(self.game.time_delta)
                     self.controls = self.drive.controls
-            print(time.time() - a)
             if self.drive.finished:
                 next_state = State.RESET
         if self.state == State.AERIAL:
