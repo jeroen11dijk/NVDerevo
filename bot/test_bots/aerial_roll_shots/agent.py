@@ -86,6 +86,10 @@ class Agent(BaseAgent):
                     self.aerial.reorient_distance = 250
                     simulation = self.aerial.simulate()
                     # # check if we can reach it by an aerial
+                    print("============================================================")
+                    print(self.aerial.target)
+                    print(simulation.location)
+                    print(self.game.my_car.location)
                     if norm(simulation.location - self.aerial.target) < 75 and simulation.location[2] > self.aerial.target[
                         2]:
                         next_state = State.AERIAL
