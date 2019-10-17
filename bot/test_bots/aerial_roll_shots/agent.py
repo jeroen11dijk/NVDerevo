@@ -65,35 +65,40 @@ class Agent(BaseAgent):
         if self.state == State.INITIALIZE:
             self.aerial = Aerial(self.game.my_car)
             self.drive = Drive(self.game.my_car)
-            self.drive.target = self.game.ball.location
+            self.drive.target = vec3(vec2(self.game.ball.location))
             self.drive.speed = 1400
             next_state = State.RUNNING
 
         if self.state == State.RUNNING:
             self.aerial = Aerial(self.game.my_car)
-
             # predict where the ball will be
             prediction = Ball(self.game.ball)
+            start_time = prediction.time
             self.ball_predictions = [vec3(prediction.location)]
+            a = time.time()
             for i in range(87):
 
                 prediction.step(0.016666)
                 self.ball_predictions.append(vec3(prediction.location))
-                goal = vec3(0, 5120, 0)
-                self.aerial.target = prediction.location + 200 * normalize(prediction.location - goal)
-                self.aerial.arrival_time = prediction.time
-                self.aerial.target_orientation = look_at(goal - self.aerial.target, vec3(0, 0, 1))
-                self.aerial.reorient_distance = 250
-                simulation = self.aerial.simulate()
-                # # check if we can reach it by an aerial
-                if norm(simulation.location - self.aerial.target) < 75 and simulation.location[2] > self.aerial.target[
-                    2]:
-                    next_state = State.AERIAL
-                    break
+                if prediction.location[2] > 250:
+                    goal = vec3(0, 5120, 0)
+                    self.aerial.target = prediction.location + 200 * normalize(prediction.location - goal)
+                    self.aerial.arrival_time = prediction.time
+                    self.aerial.target_orientation = look_at(goal - self.aerial.target, vec3(0, 0, 1))
+                    self.aerial.reorient_distance = 250
+                    simulation = self.aerial.simulate()
+                    # # check if we can reach it by an aerial
+                    if norm(simulation.location - self.aerial.target) < 75 and simulation.location[2] > self.aerial.target[
+                        2]:
+                        next_state = State.AERIAL
+                        break
                 # We cant make it
                 if i == 86:
                     self.drive.step(self.game.time_delta)
                     self.controls = self.drive.controls
+            print(time.time() - a)
+            if self.drive.finished:
+                next_state = State.RESET
         if self.state == State.AERIAL:
             self.aerial.step(self.game.time_delta)
             self.controls = self.aerial.controls
@@ -169,7 +174,7 @@ class Agent(BaseAgent):
     def set_gamestate_straight_moving(self):
         # put the car in the middle of the field
         car_state = CarState(physics=Physics(
-            location=Vector3(0, -1000, 18),
+            location=Vector3(0, -1500, 18),
             velocity=Vector3(0, 0, 0),
             rotation=Rotator(0, math.pi / 2, 0),
             angular_velocity=Vector3(0, 0, 0)
@@ -179,7 +184,7 @@ class Agent(BaseAgent):
 
         ball_state = BallState(physics=Physics(
             location=Vector3(0, 1500, 93),
-            velocity=Vector3(0, 650, 750),
+            velocity=Vector3(0, 650, 1100),
             rotation=Rotator(0, 0, 0),
             angular_velocity=Vector3(0, 0, 0)
         ))

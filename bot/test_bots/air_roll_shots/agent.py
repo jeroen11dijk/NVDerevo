@@ -35,7 +35,6 @@ class MyAgent(BaseAgent):
         self.timer = 0.0
 
         self.drive = Drive(self.game.my_car)
-        self.navigator = None
         self.dodge = None
         self.turn = None
         self.state = State.RESET
@@ -51,9 +50,7 @@ class MyAgent(BaseAgent):
 
         if self.state == State.RESET:
             self.timer = 0.0
-            self.set_gamestate_straight_moving()
-            # self.set_gamestate_angled_stationary()
-            # self.set_gamestate_straight_moving_towards()
+            self.set_state_stationary()
             next_state = State.WAIT
 
         if self.state == State.WAIT:
@@ -63,7 +60,7 @@ class MyAgent(BaseAgent):
 
         if self.state == State.INITIALIZE:
             self.drive = Drive(self.game.my_car)
-            self.drive.target, self.drive.speed = self.game.ball.location, 2300
+            self.drive.target, self.drive.speed = self.game.ball.location, 1400
             next_state = State.DRIVING
 
         if self.state == State.DRIVING:
@@ -74,8 +71,6 @@ class MyAgent(BaseAgent):
             if can_dodge:
                 self.dodge = Dodge(self.game.my_car)
                 self.turn = AerialTurn(self.game.my_car)
-                print("============")
-                print(simulated_duration)
                 self.dodge.duration = simulated_duration - 0.1
                 self.dodge.target = simulated_target
                 self.timer = 0
@@ -84,6 +79,7 @@ class MyAgent(BaseAgent):
         if self.state == State.DODGING:
             self.dodge.step(self.game.time_delta)
             self.controls = self.dodge.controls
+            # Great line
             if self.game.time == packet.game_ball.latest_touch.time_seconds:
                 print(self.timer)
             if self.dodge.finished and self.game.my_car.on_ground:
@@ -183,6 +179,26 @@ class MyAgent(BaseAgent):
             velocity=Vector3(0, 0, 1),
             rotation=Rotator(0, 0, 0),
             angular_velocity=Vector3(0, 0, 0)
+        ))
+
+        self.set_game_state(GameState(
+            ball=ball_state,
+            cars={self.game.id: car_state})
+        )
+
+    def set_state_stationary(self):
+        # put the car in the middle of the field
+        car_state = CarState(physics=Physics(
+            location=Vector3(0, -2500, 18),
+            velocity=Vector3(0, 0, 0),
+            angular_velocity=Vector3(0, 0, 0),
+        ), boost_amount=100)
+
+        # put the ball in the middle of the field
+        ball_state = BallState(physics=Physics(
+            location=Vector3(0, 0, 200),
+            velocity=Vector3(0, 0, 750),
+            angular_velocity=Vector3(0, 0, 0),
         ))
 
         self.set_game_state(GameState(
