@@ -90,23 +90,18 @@ class Agent(BaseAgent):
 
                 # if the ball is in the air
                 if prediction.location[2] > 500:
-
-                    self.aerial.target = prediction.location
-                    self.aerial.arrival_time = prediction.time
                     goal = vec3(0, 5120, 0)
-                    self.aerial.reorient_distance = 1000
-                    self.aerial.target_orientation = look_at(xy(goal - prediction.location), vec3(0, 0, 1))
+                    self.aerial.target = prediction.location + 50 * normalize(prediction.location - goal)
+                    self.aerial.arrival_time = prediction.time
                     simulation = self.aerial.simulate()
 
                     # # check if we can reach it by an aerial
                     if norm(simulation.location - self.aerial.target) < 100:
                         prediction.step(0.016666)
                         prediction.step(0.016666)
-                        self.aerial.target = prediction.location
-                        self.aerial.arrival_time = prediction.time
                         goal = vec3(0, 5120, 0)
-                        self.aerial.reorient_distance = 1000
-                        self.aerial.target_orientation = look_at(xy(goal - prediction.location), vec3(0, 0, 1))
+                        self.aerial.target = prediction.location + 50 * normalize(prediction.location - goal)
+                        self.aerial.arrival_time = prediction.time
                         self.target_ball = Ball(prediction)
                         break
 
