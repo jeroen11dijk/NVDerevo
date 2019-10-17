@@ -19,7 +19,6 @@ from shooting import shooting
 from util import distance_2d, get_bounce, line_backline_intersect, sign, velocity_2d
 from steps import Step
 from custom_drive import CustomDrive as Drive
-from halfflip import HalfFlip
 
 
 class Hypebot(BaseAgent):
@@ -34,6 +33,7 @@ class Hypebot(BaseAgent):
         self.team = team
         self.index = index
         self.defending = False
+        self.conceding = False
         self.bounces = []
         self.drive = None
         self.catching = None
@@ -95,6 +95,8 @@ class Hypebot(BaseAgent):
             for i in range(ball_prediction.num_slices):
                 prediction_slice = ball_prediction.slices[i]
                 physics = prediction_slice.physics
+                if physics.location.y * sign(self.team) > 5120:
+                    self.conceding = True
                 if physics.location.z > 180:
                     self.ball_bouncing = True
                     continue
@@ -215,8 +217,7 @@ class Hypebot(BaseAgent):
         car_to_ball = ball.location - car.location
         in_front_of_ball = distance_2d(ball.location, our_goal) < distance_2d(car.location, our_goal)
         backline_intersect = line_backline_intersect(self.my_goal.center[1], vec2(car.location), vec2(car_to_ball))
-        #TODO check whether the ball goes in the FACKING net
-        return in_front_of_ball and abs(backline_intersect) < 2000
+        return (in_front_of_ball and abs(backline_intersect) < 2000) or self.conceding
 
     def close_to_kickoff_spawn(self):
         blue_one = distance_2d(self.info.my_car.location, vec3(-2048, -2560, 18)) < 10
