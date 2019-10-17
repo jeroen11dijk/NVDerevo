@@ -1,5 +1,6 @@
 import random
 import sys
+import time
 from pathlib import Path
 
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
@@ -50,7 +51,7 @@ class Agent(BaseAgent):
             self.timer = 0.0
             ball_state = BallState(physics=Physics(
                 location=Vector3(0, 4000, 500),
-                velocity=Vector3(0, -500, 750),
+                velocity=Vector3(250, -500, 1000),
                 rotation=Rotator(0, 0, 0),
                 angular_velocity=Vector3(0, 0, 0)
             ))
@@ -81,37 +82,27 @@ class Agent(BaseAgent):
             # predict where the ball will be
             prediction = Ball(self.game.ball)
             self.ball_predictions = [vec3(prediction.location)]
-
-            for i in range(100):
+            
+            for i in range(360):
 
                 prediction.step(0.016666)
                 prediction.step(0.016666)
                 self.ball_predictions.append(vec3(prediction.location))
-
-                # if the ball is in the air
-                if prediction.location[2] > 500:
-                    goal = vec3(0, 5120, 0)
-                    self.aerial.target = prediction.location + 50 * normalize(prediction.location - goal)
-                    self.aerial.arrival_time = prediction.time
-                    simulation = self.aerial.simulate()
-
-                    # # check if we can reach it by an aerial
-                    if norm(simulation.location - self.aerial.target) < 100:
-                        prediction.step(0.016666)
-                        prediction.step(0.016666)
-                        goal = vec3(0, 5120, 0)
-                        self.aerial.target = prediction.location + 50 * normalize(prediction.location - goal)
-                        self.aerial.arrival_time = prediction.time
-                        self.target_ball = Ball(prediction)
-                        break
-
+                goal = vec3(0, 5120, 0)
+                self.aerial.target = prediction.location + 200 * normalize(prediction.location - goal)
+                self.aerial.arrival_time = prediction.time
+                self.aerial.target_orientation = look_at(goal - self.aerial.target, vec3(0, 0, 1))
+                self.aerial.reorient_distance = 250
+                simulation = self.aerial.simulate()
+                # # check if we can reach it by an aerial
+                if norm(simulation.location - self.aerial.target) < 75:
+                    break
             next_state = State.RUNNING
 
         if self.state == State.RUNNING:
 
             self.aerial.step(self.game.time_delta)
             self.controls = self.aerial.controls
-
             if self.timer > self.timeout:
                 next_state = State.RESET
 
