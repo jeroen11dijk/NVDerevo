@@ -1,3 +1,4 @@
+import math
 import random
 import sys
 import time
@@ -49,24 +50,9 @@ class Agent(BaseAgent):
 
         if self.state == State.RESET:
             self.timer = 0.0
-            ball_state = BallState(physics=Physics(
-                location=Vector3(0, 4000, 500),
-                velocity=Vector3(250, -500, 1000),
-                rotation=Rotator(0, 0, 0),
-                angular_velocity=Vector3(0, 0, 0)
-            ))
-            # c_position = Vector3(200, -1000, 25)
-            car_state = CarState(physics=Physics(
-                location=Vector3(0, 0, 18),
-                velocity=Vector3(0, 800, 0),
-                rotation=Rotator(0, 1.6, 0),
-                angular_velocity=Vector3(0, 0, 0)
-            ), boost_amount=100)
 
-            self.set_game_state(GameState(
-                ball=ball_state,
-                cars={self.game.id: car_state})
-            )
+            self.set_state_overhead()
+            # self.set_state_towards()
 
             next_state = State.WAIT
 
@@ -82,10 +68,9 @@ class Agent(BaseAgent):
             # predict where the ball will be
             prediction = Ball(self.game.ball)
             self.ball_predictions = [vec3(prediction.location)]
-            
-            for i in range(360):
 
-                prediction.step(0.016666)
+            for i in range(87):
+
                 prediction.step(0.016666)
                 self.ball_predictions.append(vec3(prediction.location))
                 goal = vec3(0, 5120, 0)
@@ -95,9 +80,14 @@ class Agent(BaseAgent):
                 self.aerial.reorient_distance = 250
                 simulation = self.aerial.simulate()
                 # # check if we can reach it by an aerial
-                if norm(simulation.location - self.aerial.target) < 75:
+                if norm(simulation.location - self.aerial.target) < 75 and simulation.location[2] > self.aerial.target[2]:
+                    print(math.degrees(angle_between(self.aerial.target_orientation, simulation.rotation)))
+                    next_state = State.RUNNING
                     break
-            next_state = State.RUNNING
+                # We cant make it
+                if i == 86:
+                    print("we cant make it")
+                    next_state = State.RESET
 
         if self.state == State.RUNNING:
 
@@ -133,3 +123,41 @@ class Agent(BaseAgent):
         self.renderer.end_rendering()
 
         return self.controls
+
+    def set_state_towards(self):
+        ball_state = BallState(physics=Physics(
+            location=Vector3(0, 4000, 500),
+            velocity=Vector3(250, -500, 1000),
+            rotation=Rotator(0, 0, 0),
+            angular_velocity=Vector3(0, 0, 0)
+        ))
+        car_state = CarState(physics=Physics(
+            location=Vector3(0, 0, 18),
+            velocity=Vector3(0, 800, 0),
+            rotation=Rotator(0, 1.6, 0),
+            angular_velocity=Vector3(0, 0, 0)
+        ), boost_amount=100)
+
+        self.set_game_state(GameState(
+            ball=ball_state,
+            cars={self.game.id: car_state})
+        )
+
+    def set_state_overhead(self):
+        ball_state = BallState(physics=Physics(
+            location=Vector3(-500, -2000, 500),
+            velocity=Vector3(350, 1250, 1000),
+            rotation=Rotator(0, 0, 0),
+            angular_velocity=Vector3(0, 0, 0)
+        ))
+        car_state = CarState(physics=Physics(
+            location=Vector3(0, 0, 18),
+            velocity=Vector3(0, 800, 0),
+            rotation=Rotator(0, 1.6, 0),
+            angular_velocity=Vector3(0, 0, 0)
+        ), boost_amount=100)
+
+        self.set_game_state(GameState(
+            ball=ball_state,
+            cars={self.game.id: car_state})
+        )
