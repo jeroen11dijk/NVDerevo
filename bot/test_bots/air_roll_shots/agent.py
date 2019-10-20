@@ -60,11 +60,14 @@ class MyAgent(BaseAgent):
 
         if self.state == State.INITIALIZE:
             self.drive = Drive(self.game.my_car)
-            self.drive.target, self.drive.speed = self.game.ball.location, 1400
+            self.drive.target = self.game.ball.location + 200 * normalize(
+                vec3(vec2(self.game.ball.location - vec3(0, 5120, 0))))
+            self.drive.speed = 1400
             next_state = State.DRIVING
 
         if self.state == State.DRIVING:
-            self.drive.target = self.game.ball.location
+            self.drive.target = self.game.ball.location + 200 * normalize(
+                vec3(vec2(self.game.ball.location - vec3(0, 5120, 0))))
             self.drive.step(self.game.time_delta)
             self.controls = self.drive.controls
             can_dodge, simulated_duration, simulated_target = self.simulate()
@@ -72,7 +75,7 @@ class MyAgent(BaseAgent):
                 self.dodge = Dodge(self.game.my_car)
                 self.turn = AerialTurn(self.game.my_car)
                 self.dodge.duration = simulated_duration - 0.1
-                self.dodge.target = simulated_target
+                self.dodge.direction = vec2(vec3(0, 5120, 321) - simulated_target)
                 self.timer = 0
                 next_state = State.DODGING
 
@@ -102,15 +105,16 @@ class MyAgent(BaseAgent):
             batmobile.orientation = car.rotation
             dodge = Dodge(car)
             dodge.duration = duration_estimate + i / 60
-            dodge.target = ball.location
+            dodge.direction = vec2(vec3(0, 5120, 321) - ball.location)
+            dodge.preorientation = look_at(xy(vec3(0, 5120, 321) - ball.location), vec3(0, 0, 1))
             for j in range(round(60 * dodge.duration)):
-                dodge.target = ball.location
                 dodge.step(1 / 60)
                 car.step(dodge.controls, 1 / 60)
                 prediction_slice = ball_prediction.slices[j]
                 physics = prediction_slice.physics
                 ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
-                dodge.target = ball_location
+                dodge.direction = vec2(vec3(0, 5120, 321) - ball.location)
+                dodge.preorientation = look_at(xy(vec3(0, 5120, 321) - ball.location), vec3(0, 0, 1))
                 batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
                 batmobile.orientation = car.rotation
                 if intersect(sphere(ball_location, 93.15), batmobile) and abs(
@@ -166,7 +170,7 @@ class MyAgent(BaseAgent):
     def set_gamestate_angled_stationary(self):
         # put the car in the middle of the field
         car_state = CarState(physics=Physics(
-            location=Vector3(-1000, -1500, 18),
+            location=Vector3(-1000, -2000, 18),
             velocity=Vector3(0, 0, 0),
             rotation=Rotator(0, math.pi / 8, 0),
             angular_velocity=Vector3(0, 0, 0)
@@ -175,7 +179,7 @@ class MyAgent(BaseAgent):
         # put the ball in the middle of the field
 
         ball_state = BallState(physics=Physics(
-            location=Vector3(0, 0, 750),
+            location=Vector3(0, 0, 600),
             velocity=Vector3(0, 0, 1),
             rotation=Rotator(0, 0, 0),
             angular_velocity=Vector3(0, 0, 0)
@@ -191,13 +195,14 @@ class MyAgent(BaseAgent):
         car_state = CarState(physics=Physics(
             location=Vector3(0, -2500, 18),
             velocity=Vector3(0, 0, 0),
+            rotation=Rotator(0, math.pi / 2, 0),
             angular_velocity=Vector3(0, 0, 0),
         ), boost_amount=100)
 
         # put the ball in the middle of the field
         ball_state = BallState(physics=Physics(
-            location=Vector3(0, 0, 200),
-            velocity=Vector3(0, 0, 750),
+            location=Vector3(1500, 0, 93),
+            velocity=Vector3(0, 0, 0),
             angular_velocity=Vector3(0, 0, 0),
         ))
 
