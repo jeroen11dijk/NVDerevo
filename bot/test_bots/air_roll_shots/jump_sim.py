@@ -10,6 +10,8 @@ g = 650
 a = 1400
 
 
+# Functions which calculates the height of your jump at time x with duration of d
+# https://www.desmos.com/calculator/7qzakxxd61
 def get_height_at_time(x, d):
     """Get the height of a jump at a certain time t while holding jump for duration d"""
     c = 0.5 * (a - g) * (d ** 2) + 300 * d
@@ -21,10 +23,12 @@ def get_height_at_time(x, d):
     return 0
 
 
+# The inverse of the function above, so it gives the time at which you will reach height h with duration d
 def get_time_at_height(y, d):
     if 0 <= y <= get_height_at_time(d, d):
         return -0.4 + (sqrt(y + 60) / (5 * sqrt(15)))
     elif y <= get_height_at_time(0.8923, d):
         return 0.892308 - 0.0153846 * sqrt(3000 - 13 * y)
     else:
+        # If the target height is above the maximal height return the time for the maxima and see if you might reach it
         return get_time_at_height(get_height_at_time(0.8923, 0.2), 0.2)

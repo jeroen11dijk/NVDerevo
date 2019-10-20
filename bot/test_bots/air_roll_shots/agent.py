@@ -41,6 +41,7 @@ class MyAgent(BaseAgent):
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
 
+        # Update the game values and the state
         self.game.read_game_information(packet,
                                         self.get_rigid_body_tick(),
                                         self.get_field_info())
@@ -48,16 +49,18 @@ class MyAgent(BaseAgent):
 
         next_state = self.state
 
+        # Reset everything
         if self.state == State.RESET:
             self.timer = 0.0
-            self.set_state_stationary()
+            self.set_gamestate_straight_moving_towards()
             next_state = State.WAIT
 
+        # Wait so everything can settle in, mainly for ball prediction
         if self.state == State.WAIT:
-
             if self.timer > 0.2:
                 next_state = State.INITIALIZE
 
+        # Initialize the drive mechanic
         if self.state == State.INITIALIZE:
             self.drive = Drive(self.game.my_car)
             self.drive.target = self.game.ball.location + 200 * normalize(
@@ -65,6 +68,7 @@ class MyAgent(BaseAgent):
             self.drive.speed = 1400
             next_state = State.DRIVING
 
+        # Start driving towards the target and check whether a dodge is possible, if so initialize the dodge
         if self.state == State.DRIVING:
             self.drive.target = self.game.ball.location + 200 * normalize(
                 vec3(vec2(self.game.ball.location - vec3(0, 5120, 0))))
@@ -79,6 +83,7 @@ class MyAgent(BaseAgent):
                 self.timer = 0
                 next_state = State.DODGING
 
+        # Perform the dodge
         if self.state == State.DODGING:
             self.dodge.step(self.game.time_delta)
             self.controls = self.dodge.controls
@@ -93,34 +98,55 @@ class MyAgent(BaseAgent):
 
         return self.controls
 
+    # The miraculous simulate function
     def simulate(self):
+        # Initialize the ball prediction and batmobile hitbox
+        # Estimate the probable duration of the jump and round it down to the floor decimal
         ball_prediction = self.get_ball_prediction_struct()
         duration_estimate = math.floor(get_time_at_height(self.game.ball.location[2], 0.2) * 10) / 10
+        batmobile = obb()
+        batmobile.half_width = vec3(64.4098892211914, 42.335182189941406, 14.697200775146484)
+        # Loop for 6 frames meaning adding 0.1 to the estimated duration. Keeps the time constraint under 0.3s
         for i in range(6):
+            # Copy the car object and reset the values for the hitbox
             car = Car(self.game.my_car)
-            ball = Ball(self.game.ball)
-            batmobile = obb()
-            batmobile.half_width = vec3(64.4098892211914, 42.335182189941406, 14.697200775146484)
             batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
             batmobile.orientation = car.rotation
+            # Create a dodge object on the copied car object
+            # Direction is from the ball to the enemy goal
+            # Duration is estimated duration plus the time added by the for loop
+            # Preorientation is the rotation matrix from the ball to the goal
+            # TODO make it work on both sides
+            #  Test with preorientation. Currently it still picks a low duration at a later time meaning it
+            #  wont do any of the preorientation.
             dodge = Dodge(car)
+            prediction_slice = ball_prediction.slices[round(60 * (duration_estimate + i / 60))]
+            physics = prediction_slice.physics
+            ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
+            dodge.direction = vec2(vec3(0, 5120, 321) - ball_location)
             dodge.duration = duration_estimate + i / 60
-            dodge.direction = vec2(vec3(0, 5120, 321) - ball.location)
-            dodge.preorientation = look_at(xy(vec3(0, 5120, 321) - ball.location), vec3(0, 0, 1))
+            dodge.preorientation = look_at(xy(vec3(0, 5120, 321) - ball_location), vec3(0, 0, 1))
+            # Loop from now till the end of the duration
             for j in range(round(60 * dodge.duration)):
+                # Get the dodge inputs and perform that to the copied car object
                 dodge.step(1 / 60)
                 car.step(dodge.controls, 1 / 60)
+                # Get the ball prediction slice at this time and convert the location to RLU vec3
                 prediction_slice = ball_prediction.slices[j]
                 physics = prediction_slice.physics
                 ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
-                dodge.direction = vec2(vec3(0, 5120, 321) - ball.location)
-                dodge.preorientation = look_at(xy(vec3(0, 5120, 321) - ball.location), vec3(0, 0, 1))
+                # Update the hitbox information
                 batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
                 batmobile.orientation = car.rotation
+                # Check if we hit the ball, and if the point of contact is just below the middle
+                # TODO check for the actual point of contact instead of the car position
                 if intersect(sphere(ball_location, 93.15), batmobile) and abs(
                         ball_location[2] - car.location[2]) < 25 and car.location[2] < ball_location[2]:
+                    # We return true, the duration and the location where we will hit the ball.
                     return True, j / 60, ball_location
         return False, None, None
+
+    """" State setting methods for various situations"""
 
     def set_gamestate_straight_moving(self):
         # put the car in the middle of the field
@@ -135,7 +161,7 @@ class MyAgent(BaseAgent):
 
         ball_state = BallState(physics=Physics(
             location=Vector3(0, 1500, 93),
-            velocity=Vector3(0, 650, 750),
+            velocity=Vector3(200, 650, 750),
             rotation=Rotator(0, 0, 0),
             angular_velocity=Vector3(0, 0, 0)
         ))
