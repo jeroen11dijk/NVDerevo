@@ -52,7 +52,7 @@ class MyAgent(BaseAgent):
         # Reset everything
         if self.state == State.RESET:
             self.timer = 0.0
-            self.set_gamestate_straight_moving_towards()
+            self.set_state_stationary()
             next_state = State.WAIT
 
         # Wait so everything can settle in, mainly for ball prediction
@@ -74,12 +74,15 @@ class MyAgent(BaseAgent):
                 vec3(vec2(self.game.ball.location - vec3(0, 5120, 0))))
             self.drive.step(self.game.time_delta)
             self.controls = self.drive.controls
+            a = time.time()
             can_dodge, simulated_duration, simulated_target = self.simulate()
+            print(time.time() - a)
             if can_dodge:
                 self.dodge = Dodge(self.game.my_car)
                 self.turn = AerialTurn(self.game.my_car)
                 self.dodge.duration = simulated_duration - 0.1
                 self.dodge.direction = vec2(vec3(0, 5120, 321) - simulated_target)
+                self.dodge.preorientation = look_at(xy(vec3(0, 5120, 321) - simulated_target), vec3(0, 0, 1))
                 self.timer = 0
                 next_state = State.DODGING
 
@@ -88,8 +91,8 @@ class MyAgent(BaseAgent):
             self.dodge.step(self.game.time_delta)
             self.controls = self.dodge.controls
             # Great line
-            if self.game.time == packet.game_ball.latest_touch.time_seconds:
-                print(self.timer)
+            # if self.game.time == packet.game_ball.latest_touch.time_seconds:
+            #     print(self.timer)
             if self.dodge.finished and self.game.my_car.on_ground:
                 next_state = State.RESET
 
@@ -100,6 +103,7 @@ class MyAgent(BaseAgent):
 
     # The miraculous simulate function
     def simulate(self):
+        lol = 0
         # Initialize the ball prediction and batmobile hitbox
         # Estimate the probable duration of the jump and round it down to the floor decimal
         ball_prediction = self.get_ball_prediction_struct()
@@ -125,14 +129,17 @@ class MyAgent(BaseAgent):
             ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
             dodge.direction = vec2(vec3(0, 5120, 321) - ball_location)
             dodge.duration = duration_estimate + i / 60
-            dodge.preorientation = look_at(xy(vec3(0, 5120, 321) - ball_location), vec3(0, 0, 1))
+            dodge.preorientation = look_at(xy(vec3(0, 5120, 321) - car.location), vec3(0, 0, 1))
             # Loop from now till the end of the duration
-            for j in range(round(60 * dodge.duration)):
+            fps = 60
+            for j in range(round(fps * dodge.duration)):
+                lol = lol + 1
                 # Get the dodge inputs and perform that to the copied car object
-                dodge.step(1 / 60)
-                car.step(dodge.controls, 1 / 60)
+                dodge.preorientation = look_at(xy(vec3(0, 5120, 321) - car.location), vec3(0, 0, 1))
+                dodge.step(1 / fps)
+                car.step(dodge.controls, 1 / fps)
                 # Get the ball prediction slice at this time and convert the location to RLU vec3
-                prediction_slice = ball_prediction.slices[j]
+                prediction_slice = ball_prediction.slices[round(60 * j / fps)]
                 physics = prediction_slice.physics
                 ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
                 # Update the hitbox information
@@ -140,10 +147,15 @@ class MyAgent(BaseAgent):
                 batmobile.orientation = car.rotation
                 # Check if we hit the ball, and if the point of contact is just below the middle
                 # TODO check for the actual point of contact instead of the car position
-                if intersect(sphere(ball_location, 93.15), batmobile) and abs(
-                        ball_location[2] - car.location[2]) < 25 and car.location[2] < ball_location[2]:
-                    # We return true, the duration and the location where we will hit the ball.
-                    return True, j / 60, ball_location
+                hit_check = intersect(sphere(ball_location, 93.15), batmobile)
+                hit_location_check = abs(ball_location[2] - car.location[2]) < 25 and car.location[2] < ball_location[2]
+                angle_car_simulation = angle_between(car.rotation, self.game.my_car.rotation)
+                angle_simulation_target = angle_between(car.rotation, dodge.preorientation)
+                angle_check = angle_simulation_target < angle_car_simulation or angle_simulation_target < 0.1
+                if hit_check and hit_location_check and angle_check:
+                    print("------------------------------------------------------")
+                    print(angle_simulation_target, angle_car_simulation)
+                    return True, j / fps, ball_location
         return False, None, None
 
     """" State setting methods for various situations"""
@@ -228,7 +240,7 @@ class MyAgent(BaseAgent):
         # put the ball in the middle of the field
         ball_state = BallState(physics=Physics(
             location=Vector3(1500, 0, 93),
-            velocity=Vector3(0, 0, 0),
+            velocity=Vector3(0, 0, 750),
             angular_velocity=Vector3(0, 0, 0),
         ))
 
