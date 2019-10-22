@@ -1,14 +1,16 @@
 import math
-from math import sin, cos
 import random
+import sys
+from pathlib import Path
 
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
-from rlbot.utils.structures.game_data_struct import GameTickPacket
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator
+from rlbot.utils.structures.game_data_struct import GameTickPacket
 
+sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 from rlutilities.linear_algebra import *
-from rlutilities.mechanics import Aerial, AerialTurn
-from rlutilities.simulation import Game, Ball, Car
+from rlutilities.mechanics import AerialTurn, Aerial
+from rlutilities.simulation import Game, Ball
 
 
 class State:

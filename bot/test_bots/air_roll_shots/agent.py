@@ -1,7 +1,6 @@
 import math
-import random
-import time
 import sys
+import time
 from pathlib import Path
 
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
@@ -13,7 +12,7 @@ from jump_sim import get_time_at_height
 sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, AerialTurn, Drive
-from rlutilities.simulation import Game, Car, obb, intersect, Ball, sphere
+from rlutilities.simulation import Game, Car, obb, intersect, sphere
 
 
 class State:
