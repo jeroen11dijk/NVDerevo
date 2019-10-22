@@ -1,17 +1,14 @@
 import math
+from math import sin, cos
 import random
-import sys
-import time
-from pathlib import Path
 
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
-from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator
 from rlbot.utils.structures.game_data_struct import GameTickPacket
+from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator
 
-sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 from rlutilities.linear_algebra import *
-from rlutilities.mechanics import Aerial, Drive
-from rlutilities.simulation import Game, Ball
+from rlutilities.mechanics import Aerial, AerialTurn
+from rlutilities.simulation import Game, Ball, Car
 
 
 class State:
@@ -19,28 +16,28 @@ class State:
     WAIT = 1
     INITIALIZE = 2
     RUNNING = 3
-    AERIAL = 4
 
 
 class Agent(BaseAgent):
 
     def __init__(self, name, team, index):
-        super().__init__(name, team, index)
+        self.name = name
         Game.set_mode("soccar")
         self.game = Game(index, team)
-        self.name = name
         self.controls = SimpleControllerState()
 
         self.timer = 0.0
         self.timeout = 5.0
 
         self.aerial = None
+        self.turn = None
+        self.dodge = None
         self.state = State.RESET
         self.ball_predictions = None
-        self.drive = None
-        self.target_ball = None
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
+
+        # Update the game values and set the state
         self.game.read_game_information(packet,
                                         self.get_rigid_body_tick(),
                                         self.get_field_info())
@@ -49,72 +46,76 @@ class Agent(BaseAgent):
 
         next_state = self.state
 
+        # Reset everything
         if self.state == State.RESET:
             self.timer = 0.0
-
-            # self.set_state_overhead()
-            # self.set_state_towards()
-            self.set_state_stationary()
+            self.chip_random()
             next_state = State.WAIT
 
+        # Wait so everything can settle in, mainly for ball prediction
         if self.state == State.WAIT:
 
             if self.timer > 0.2:
                 next_state = State.INITIALIZE
 
+        # Set up the aerial
         if self.state == State.INITIALIZE:
-            self.aerial = Aerial(self.game.my_car)
-            self.drive = Drive(self.game.my_car)
-            self.drive.target = vec3(vec2(self.game.ball.location))
-            self.drive.speed = 1400
-            next_state = State.RUNNING
 
-        if self.state == State.RUNNING:
+            # Initialize the aerial and aerial turn
             self.aerial = Aerial(self.game.my_car)
+            self.turn = AerialTurn(self.game.my_car)
+
             # predict where the ball will be
             prediction = Ball(self.game.ball)
             self.ball_predictions = [vec3(prediction.location)]
-            for i in range(87):
 
+            # Loop over 87 frames which results in a time limit of 1.45
+            # Seeing we jump once and hold it for 0.2s we keep our second dodge until that moment
+            for i in range(87):
+                # Step the ball prediction and add it to the array for rendering
                 prediction.step(0.016666)
                 self.ball_predictions.append(vec3(prediction.location))
-                if prediction.location[2] > 250:
-                    goal = vec3(0, 5120, 0)
-                    self.aerial.target = prediction.location + 200 * normalize(prediction.location - goal)
-                    self.aerial.arrival_time = prediction.time
-                    self.aerial.target_orientation = look_at(goal - self.aerial.target, vec3(0, 0, 1))
-                    self.aerial.reorient_distance = 250
-                    simulation = self.aerial.simulate()
-                    # # check if we can reach it by an aerial
-                    print("============================================================")
-                    print(self.aerial.target)
-                    print(simulation.location)
-                    print(self.game.my_car.location)
-                    if norm(simulation.location - self.aerial.target) < 75 and simulation.location[2] > self.aerial.target[
-                        2]:
-                        next_state = State.AERIAL
-                        break
-                # We cant make it
+                # TODO dont hardcode the goal vector!
+                # Set the target to a slight offset of the ball so we will hit it towards the target or goal
+                # Set the arrival time to the time the ball will be in that location
+                # Set the preorientation so we will look at the goal
+                goal = vec3(0, 5120, 0)
+                self.aerial.target = prediction.location + 200 * normalize(prediction.location - goal)
+                self.aerial.arrival_time = prediction.time
+                self.aerial.target_orientation = look_at(goal - self.aerial.target, vec3(0, 0, 1))
+
+                # Simulate the aerial and see whether its doable or not
+                simulation = self.aerial.simulate()
+
+                # # check if we can reach it by an aerial
+                if norm(simulation.location - self.aerial.target) < 100:
+                    print(i)
+                    print(prediction.location)
+                    break
                 if i == 86:
-                    self.drive.step(self.game.time_delta)
-                    self.controls = self.drive.controls
-            if self.drive.finished:
-                next_state = State.RESET
-        if self.state == State.AERIAL:
+                    print("FUCKED")
+
+            next_state = State.RUNNING
+
+        # Perform the aerial mechanic
+        if self.state == State.RUNNING:
             self.aerial.step(self.game.time_delta)
             self.controls = self.aerial.controls
+            if self.game.time == packet.game_ball.latest_touch.time_seconds:
+                print(self.game.my_car.double_jumped)
+                self.controls.jump = True
             if self.timer > self.timeout:
                 next_state = State.RESET
 
                 self.aerial = None
+                self.turn = None
 
         self.timer += self.game.time_delta
         self.state = next_state
 
+        # Render the target for the aerial
         self.renderer.begin_rendering()
-        red = self.renderer.create_color(255, 230, 30, 30)
         purple = self.renderer.create_color(255, 230, 30, 230)
-        white = self.renderer.create_color(255, 230, 230, 230)
 
         if self.aerial:
             r = 200
@@ -127,6 +128,7 @@ class Agent(BaseAgent):
             self.renderer.draw_line_3d(target - y, target + y, purple)
             self.renderer.draw_line_3d(target - z, target + z, purple)
 
+        # Render ball prediction
         if self.ball_predictions:
             self.renderer.draw_polyline_3d(self.ball_predictions, purple)
 
@@ -134,16 +136,30 @@ class Agent(BaseAgent):
 
         return self.controls
 
-    def set_state_towards(self):
+    def chip_random(self):
+        b_position = Vector3(random.uniform(-1500, 1500),
+                             random.uniform(2500, 3500),
+                             random.uniform(300, 500))
+
+        b_velocity = Vector3(random.uniform(-300, 300),
+                             random.uniform(-100, 100),
+                             random.uniform(800, 1000))
+
         ball_state = BallState(physics=Physics(
-            location=Vector3(0, 4000, 500),
-            velocity=Vector3(250, -500, 1000),
+            location=b_position,
+            velocity=b_velocity,
             rotation=Rotator(0, 0, 0),
             angular_velocity=Vector3(0, 0, 0)
         ))
+
+        # this just initializes the car and ball
+        # to different starting points each time
+        c_position = Vector3(b_position.x, 0 * random.uniform(-1500, -1000), 25)
+
+        # c_position = Vector3(200, -1000, 25)
         car_state = CarState(physics=Physics(
-            location=Vector3(0, 0, 18),
-            velocity=Vector3(0, 800, 0),
+            location=c_position,
+            velocity=Vector3(0, 0, 0),
             rotation=Rotator(0, 1.6, 0),
             angular_velocity=Vector3(0, 0, 0)
         ), boost_amount=100)
@@ -153,53 +169,11 @@ class Agent(BaseAgent):
             cars={self.game.id: car_state})
         )
 
-    def set_state_overhead(self):
-        ball_state = BallState(physics=Physics(
-            location=Vector3(0, 0, 500),
-            velocity=Vector3(0, 2000, 1500),
-            rotation=Rotator(0, 0, 0),
-            angular_velocity=Vector3(0, 0, 0)
-        ))
-        car_state = CarState(physics=Physics(
-            location=Vector3(0, 0, 18),
-            velocity=Vector3(0, 800, 0),
-            rotation=Rotator(0, 1.6, 0),
-            angular_velocity=Vector3(0, 0, 0)
-        ), boost_amount=100)
-
-        self.set_game_state(GameState(
-            ball=ball_state,
-            cars={self.game.id: car_state})
-        )
-
-    def set_gamestate_straight_moving(self):
-        # put the car in the middle of the field
+    def randomish(self):
         car_state = CarState(physics=Physics(
             location=Vector3(0, -1500, 18),
-            velocity=Vector3(0, 0, 0),
+            velocity=Vector3(0, 500, 0),
             rotation=Rotator(0, math.pi / 2, 0),
-            angular_velocity=Vector3(0, 0, 0)
-        ))
-
-        # put the ball in the middle of the field
-
-        ball_state = BallState(physics=Physics(
-            location=Vector3(0, 1500, 93),
-            velocity=Vector3(0, 650, 1100),
-            rotation=Rotator(0, 0, 0),
-            angular_velocity=Vector3(0, 0, 0)
-        ))
-
-        self.set_game_state(GameState(
-            ball=ball_state,
-            cars={self.game.id: car_state})
-        )
-
-    def set_state_stationary(self):
-        # put the car in the middle of the field
-        car_state = CarState(physics=Physics(
-            location=Vector3(0, -2500, 18),
-            velocity=Vector3(0, 0, 0),
             angular_velocity=Vector3(0, 0, 0),
         ), boost_amount=100)
 

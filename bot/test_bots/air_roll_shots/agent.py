@@ -41,7 +41,7 @@ class MyAgent(BaseAgent):
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
 
-        # Update the game values and the state
+        # Update the game values and set the state
         self.game.read_game_information(packet,
                                         self.get_rigid_body_tick(),
                                         self.get_field_info())
