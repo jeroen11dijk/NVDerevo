@@ -101,6 +101,9 @@ class MyAgent(BaseAgent):
         return self.controls
 
     # The miraculous simulate function
+    #TODO optimize heavily in case I actually need it
+    # If duration_estimate = 0.8 and the ball is moving up there is not sense in even simulating it.
+    # Might even lower it since the higher the duration estimate the longer the simulation takes.
     def simulate(self):
         lol = 0
         # Initialize the ball prediction and batmobile hitbox

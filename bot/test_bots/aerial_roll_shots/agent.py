@@ -51,7 +51,7 @@ class Agent(BaseAgent):
         # Reset everything
         if self.state == State.RESET:
             self.timer = 0.0
-            self.chip_random()
+            self.set_state_1()
             next_state = State.WAIT
 
         # Wait so everything can settle in, mainly for ball prediction
@@ -84,18 +84,21 @@ class Agent(BaseAgent):
                 goal = vec3(0, 5120, 0)
                 self.aerial.target = prediction.location + 200 * normalize(prediction.location - goal)
                 self.aerial.arrival_time = prediction.time
-                self.aerial.target_orientation = look_at(goal - self.aerial.target, vec3(0, 0, 1))
+                self.aerial.target_orientation = look_at(xy(goal - self.aerial.target), vec3(0, 0, 1))
 
                 # Simulate the aerial and see whether its doable or not
                 simulation = self.aerial.simulate()
 
                 # # check if we can reach it by an aerial
-                if norm(simulation.location - self.aerial.target) < 100:
+                if norm(simulation.location - self.aerial.target) < 100 and angle_between(self.aerial.target_orientation, simulation.rotation) < 0.5:
                     print(i)
                     print(prediction.location)
+                    print(angle_between(self.aerial.target_orientation, simulation.rotation))
+                    print(angle_between(self.game.my_car.rotation, simulation.rotation))
                     break
                 if i == 86:
                     print("FUCKED")
+                    return
 
             next_state = State.RUNNING
 
@@ -129,6 +132,7 @@ class Agent(BaseAgent):
             self.renderer.draw_line_3d(target - x, target + x, purple)
             self.renderer.draw_line_3d(target - y, target + y, purple)
             self.renderer.draw_line_3d(target - z, target + z, purple)
+            self.renderer.draw_line_3d(self.game.my_car.location, 1000 * dot(self.game.my_car.forward(), self.aerial.target_orientation), purple)
 
         # Render ball prediction
         if self.ball_predictions:
@@ -138,42 +142,9 @@ class Agent(BaseAgent):
 
         return self.controls
 
-    def chip_random(self):
-        b_position = Vector3(random.uniform(-1500, 1500),
-                             random.uniform(2500, 3500),
-                             random.uniform(300, 500))
-
-        b_velocity = Vector3(random.uniform(-300, 300),
-                             random.uniform(-100, 100),
-                             random.uniform(800, 1000))
-
-        ball_state = BallState(physics=Physics(
-            location=b_position,
-            velocity=b_velocity,
-            rotation=Rotator(0, 0, 0),
-            angular_velocity=Vector3(0, 0, 0)
-        ))
-
-        # this just initializes the car and ball
-        # to different starting points each time
-        c_position = Vector3(b_position.x, 0 * random.uniform(-1500, -1000), 25)
-
-        # c_position = Vector3(200, -1000, 25)
+    def set_state_1(self):
         car_state = CarState(physics=Physics(
-            location=c_position,
-            velocity=Vector3(0, 0, 0),
-            rotation=Rotator(0, 1.6, 0),
-            angular_velocity=Vector3(0, 0, 0)
-        ), boost_amount=100)
-
-        self.set_game_state(GameState(
-            ball=ball_state,
-            cars={self.game.id: car_state})
-        )
-
-    def randomish(self):
-        car_state = CarState(physics=Physics(
-            location=Vector3(0, -1500, 18),
+            location=Vector3(0, -2000, 18),
             velocity=Vector3(0, 500, 0),
             rotation=Rotator(0, math.pi / 2, 0),
             angular_velocity=Vector3(0, 0, 0),
@@ -182,7 +153,7 @@ class Agent(BaseAgent):
         # put the ball in the middle of the field
         ball_state = BallState(physics=Physics(
             location=Vector3(0, 0, 200),
-            velocity=Vector3(0, 0, 750),
+            velocity=Vector3(100, -500, 750),
             angular_velocity=Vector3(0, 0, 0),
         ))
 
