@@ -25,7 +25,7 @@ def init_kickoff(agent):
     agent.drive.target = target
     agent.drive.speed = 2400
     agent.step = Step.Drive
-    agent.drive.step(agent.fps)
+    agent.drive.step(agent.info.time_delta)
     agent.controls = agent.drive.controls
 
 
@@ -41,7 +41,7 @@ def kick_off(agent):
     """"Module that performs the kickoffs"""
     if agent.kickoffStart == "Diagonal":
         if agent.step is Step.Drive:
-            agent.drive.step(agent.fps)
+            agent.drive.step(agent.info.time_delta)
             agent.controls = agent.drive.controls
             if agent.drive.finished:
                 ball_location = ball.location + vec3(0, -sign(agent.team) * 500, 0)
@@ -51,7 +51,7 @@ def kick_off(agent):
                 agent.drive.speed = 2400
                 agent.step = Step.Drive_1
         if agent.step is Step.Drive_1:
-            agent.drive.step(agent.fps)
+            agent.drive.step(agent.info.time_delta)
             agent.controls = agent.drive.controls
             if agent.drive.finished:
                 target = vec3(dot(rotation(math.radians(-sign(agent.info.team) * sign(car.location[0]) * 60)),
@@ -110,7 +110,7 @@ def kick_off(agent):
                 agent.step = Step.Catching
     elif agent.kickoffStart == "offCenter":
         if agent.step is Step.Drive:
-            agent.drive.step(agent.fps)
+            agent.drive.step(agent.info.time_delta)
             agent.controls = agent.drive.controls
             if distance_2d(car.location, agent.drive.target) < 650:
                 target = vec3(dot(rotation(math.radians(-sign(agent.info.team) * -sign(car.location[0]) * 100)),
@@ -134,7 +134,7 @@ def kick_off(agent):
                 agent.controls = agent.dodge.controls
             agent.controls.boost = robbies_boost_constant
         elif agent.step is Step.Steer:
-            agent.drive.step(agent.fps)
+            agent.drive.step(agent.info.time_delta)
             agent.controls = agent.drive.controls
             if distance_2d(ball.location, car.location) < 800:
                 agent.step = Step.Dodge_2
@@ -142,7 +142,7 @@ def kick_off(agent):
                 agent.dodge.duration = 0.075
                 agent.dodge.target = ball.location
         elif agent.step is Step.Dodge_2:
-            agent.dodge.step(agent.fps)
+            agent.dodge.step(agent.info.time_delta)
             agent.controls = agent.dodge.controls
             if agent.dodge.finished and car.on_ground:
                 agent.step = Step.Catching

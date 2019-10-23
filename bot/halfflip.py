@@ -2,10 +2,9 @@ from rlbot.agents.base_agent import SimpleControllerState
 from rlutilities.linear_algebra import vec3, dot, look_at
 from rlutilities.mechanics import AerialTurn
 
-from util import sign, cap
 
 class HalfFlip:
-    
+
     def __init__(self, car):
         self.timer = 0
         self.car = car
@@ -16,13 +15,12 @@ class HalfFlip:
         self.controls = SimpleControllerState()
         self.finished = False
 
-
     def step(self, dt: float):
         self.controls = SimpleControllerState()
 
         self.aerial_turn.step(dt)
         aerial_turn_controls = self.aerial_turn.controls
-                
+
         if self.timer < 0.7:
             self.controls.jump = True
             if 0.075 < self.timer < 0.1:

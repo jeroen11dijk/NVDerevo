@@ -17,7 +17,7 @@ def defending(agent):
     vf = velocity_forward(agent.info.my_car)
     dodge_overshoot = distance < (abs(vf) + 500) * 1.5
     agent.drive.speed = get_speed(agent, target)
-    agent.drive.step(agent.fps)
+    agent.drive.step(agent.info.time_delta)
     agent.controls = agent.drive.controls
     if can_dodge(agent, target):
         agent.step = Step.Dodge
