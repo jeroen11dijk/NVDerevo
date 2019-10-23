@@ -19,7 +19,6 @@ from shooting import shooting
 from util import distance_2d, get_bounce, line_backline_intersect, sign, velocity_2d
 from steps import Step
 from custom_drive import CustomDrive as Drive
-from halfflip import HalfFlip
 
 
 class Hypebot(BaseAgent):
@@ -30,10 +29,10 @@ class Hypebot(BaseAgent):
         super().__init__(name, team, index)
         Game.set_mode("soccar")
         self.info = Game(index, team)
-        self.name = name
         self.team = team
         self.index = index
         self.defending = False
+        self.conceding = False
         self.bounces = []
         self.drive = None
         self.catching = None
@@ -47,26 +46,27 @@ class Hypebot(BaseAgent):
         self.kickoff_Start = None
         self.step = Step.Catching
         self.time = 0
-        self.fps = 1 / 60
         self.my_goal = None
         self.their_goal = None
         self.ball_bouncing = False
 
     def initialize_agent(self):
-        """Initializing all parameters whch require the field info"""
+        """Initializing all parameters which require the field info"""
         self.my_goal = Goal(self.team, self.get_field_info())
         self.their_goal = Goal(1 - self.team, self.get_field_info())
         init_boostpads(self)
+        """Setting all the mechanics to not none"""
+        self.drive = Drive(self.info.my_car)
+        self.catching = Drive(self.info.my_car)
+        self.dodge = Dodge(self.info.my_car)
+        self.dribble = Dribbling(self.info.my_car, self.info.ball, self.their_goal)
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         """The main method which receives the packets and outputs the controls"""
-        if packet.game_info.seconds_elapsed - self.time > 0:
-            self.fps = packet.game_info.seconds_elapsed - self.time
         self.time = packet.game_info.seconds_elapsed
         self.info.read_game_information(packet, self.get_rigid_body_tick(), self.get_field_info())
         update_boostpads(self, packet)
         self.predict()
-        self.set_mechanics()
         # self.handle_match_comms()
         self.prev_kickoff = self.kickoff
         self.kickoff = packet.game_info.is_kickoff_pause and distance_2d(self.info.ball.location, vec3(0, 0, 0)) < 100
@@ -81,6 +81,7 @@ class Hypebot(BaseAgent):
         else:
             self.get_controls()
         self.render_string(self.step.name)
+        # Make sure there is no variance in kickoff setups
         if not packet.game_info.is_round_active:
             self.controls.steer = 0
         return self.controls
@@ -95,6 +96,8 @@ class Hypebot(BaseAgent):
             for i in range(ball_prediction.num_slices):
                 prediction_slice = ball_prediction.slices[i]
                 physics = prediction_slice.physics
+                if physics.location.y * sign(self.team) > 5120:
+                    self.conceding = True
                 if physics.location.z > 180:
                     self.ball_bouncing = True
                     continue
@@ -106,31 +109,17 @@ class Hypebot(BaseAgent):
                     if len(self.bounces) > 15: return
                 prev_ang_velocity = current_ang_velocity
 
-    def set_mechanics(self):
-        """Setting all the mechanics to not none"""
-        if self.drive is None:
-            self.drive = Drive(self.info.my_car)
-        if self.catching is None:
-            self.catching = Drive(self.info.my_car)
-        if self.dodge is None:
-            self.dodge = Dodge(self.info.my_car)
-        if self.dribble is None:
-            self.dribble = Dribbling(self.info.my_car, self.info.ball, self.their_goal)
-
     def get_controls(self):
         """Decides what strategy to uses and gives corresponding output"""
         self.drive.power_turn = False
         if self.step is Step.Steer or self.step is Step.Dodge_2 or self.step is Step.Dodge_1 or self.step is Step.Drive:
             self.step = Step.Catching
-        if self.step is Step.Catching and not self.ball_bouncing:
-            self.step = Step.Shooting if (self.info.ball.location[1] - self.info.my_car.location[1]) * sign(
-                self.info.my_car.team) < 0 else Step.Defending
         if self.step is Step.Catching:
             # Enable power turning for catching, since we don't halfflip
             self.drive.power_turn = True
             target = get_bounce(self)
             if target is None:
-                self.step = Step.Defending
+                self.step = Step.Shooting
             else:
                 self.catching.target = target[0]
                 self.catching.speed = (distance_2d(self.info.my_car.location, target[0]) + 50) / target[1]
@@ -173,9 +162,9 @@ class Hypebot(BaseAgent):
         elif self.step is Step.Dodge or self.step is Step.HalfFlip:
             halfflipping = self.step is Step.HalfFlip
             if halfflipping:
-                self.halfflip.step(self.fps)
+                self.halfflip.step(self.info.time_delta)
             else:
-                self.dodge.step(self.fps)
+                self.dodge.step(self.info.time_delta)
             if (self.halfflip.finished if halfflipping else self.dodge.finished) and self.info.my_car.on_ground:
                 self.step = Step.Catching
             else:
@@ -215,8 +204,7 @@ class Hypebot(BaseAgent):
         car_to_ball = ball.location - car.location
         in_front_of_ball = distance_2d(ball.location, our_goal) < distance_2d(car.location, our_goal)
         backline_intersect = line_backline_intersect(self.my_goal.center[1], vec2(car.location), vec2(car_to_ball))
-        #TODO check whether the ball goes in the FACKING net
-        return in_front_of_ball and abs(backline_intersect) < 2000
+        return (in_front_of_ball and abs(backline_intersect) < 2000) or self.conceding
 
     def close_to_kickoff_spawn(self):
         blue_one = distance_2d(self.info.my_car.location, vec3(-2048, -2560, 18)) < 10

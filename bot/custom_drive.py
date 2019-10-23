@@ -6,18 +6,18 @@ from rlutilities.mechanics import Drive as RLUDrive
 
 from util import sign, cap
 
+
 class CustomDrive:
-    
+
     def __init__(self, car):
         self.car = car
-        self.target = (0, 0, 0)
+        self.target = vec3(0, 0, 0)
         self.speed = 2300
         self.controls = SimpleControllerState()
         self.finished = False
         self.rlu_drive = RLUDrive(self.car)
         self.update_rlu_drive()
-        self.power_turn = True #Handbrake while reversing to turn around quickly
-
+        self.power_turn = True  # Handbrake while reversing to turn around quickly
 
     def step(self, dt: float):
         self.update_rlu_drive()
@@ -31,7 +31,7 @@ class CustomDrive:
         self.controls = self.rlu_drive.controls
         reverse = (cos(angle) < 0)
         if reverse:
-            angle = -self.invert_angle(angle)
+            angle = -invert_angle(angle)
             if self.power_turn:
                 self.controls.throttle = (-self.controls.throttle - 1) / 2
                 angle *= -1
@@ -41,13 +41,11 @@ class CustomDrive:
             self.controls.boost = False
         self.controls.handbrake = (abs(angle) > radians(70))
 
-
     def update_rlu_drive(self):
-        self.target = vec3(self.target[0], self.target[1], self.target[2])
+        self.target = self.target
         self.rlu_drive.target = self.target
         self.rlu_drive.speed = self.speed
-        #self.rlu_drive.car = self.car
 
 
-    def invert_angle(self, angle: float):
-        return  angle - sign(angle) * pi
+def invert_angle(angle: float):
+    return angle - sign(angle) * pi
