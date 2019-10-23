@@ -4,7 +4,7 @@ import math
 from rlutilities.linear_algebra import normalize, rotation, vec3, vec2, dot, norm
 from rlutilities.mechanics import Dodge
 
-from util import cap, distance_2d, sign, line_backline_intersect, get_speed, velocity_forward
+from util import cap, distance_2d, sign, line_backline_intersect, get_speed, velocity_forward, get_bounce
 from steps import Step
 from halfflip import HalfFlip
 
@@ -29,9 +29,9 @@ def shooting(agent):
     vf = velocity_forward(car)
     dodge_overshoot = distance < (abs(vf) + 500) * 1.5
     agent.drive.speed = get_speed(agent, target)
-    agent.drive.step(agent.fps)
+    agent.drive.step(agent.info.time_delta)
     agent.controls = agent.drive.controls
-    if agent.defending or distance_2d(ball.location, our_goal) < distance_2d(car.location, our_goal):
+    if agent.defending:
         agent.step = Step.Defending
     elif should_dodge(agent):
         agent.step = Step.Dodge
@@ -39,7 +39,7 @@ def shooting(agent):
         agent.dodge.duration = 0.1
         agent.dodge.target = ball.location
     elif agent.ball_bouncing and not (abs(ball.velocity[2]) < 100
-              and sign(agent.team) * ball.velocity[1] < 0):
+              and sign(agent.team) * ball.velocity[1] < 0) and get_bounce(agent) is not None:
         agent.step = Step.Catching
         agent.drive.target = ball.location
         agent.drive.speed = 1399
