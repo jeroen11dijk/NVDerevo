@@ -88,7 +88,7 @@ class Agent(BaseAgent):
             # Loop over 87 frames which results in a time limit of 1.45
             # Seeing we jump once and hold it for 0.2s we keep our second dodge until that moment
             a = time.time()
-            for i in range(360):
+            for i in range(87):
                 # Step the ball prediction and add it to the array for rendering
                 prediction.step(0.016666)
                 self.ball_predictions.append(vec3(prediction.location))
@@ -99,6 +99,7 @@ class Agent(BaseAgent):
                 goal = vec3(0, 5120, 0)
                 self.aerial.target = prediction.location + 200 * normalize(prediction.location - goal)
                 self.aerial.arrival_time = prediction.time
+                print(prediction.time)
                 self.aerial.target_orientation = look_at(goal - self.aerial.target, vec3(0, 0, 1))
                 # Simulate the aerial and see whether its doable or not
                 simulation = self.aerial.simulate()
@@ -158,7 +159,7 @@ class Agent(BaseAgent):
 
     def set_state_1(self):
         car_state = CarState(physics=Physics(
-            location=Vector3(0, -4000, 18),
+            location=Vector3(0, -2000, 18),
             velocity=Vector3(0, 500, 0),
             rotation=Rotator(0, math.pi / 2, 0),
             angular_velocity=Vector3(0, 0, 0),
@@ -166,8 +167,8 @@ class Agent(BaseAgent):
 
         # put the ball in the middle of the field
         ball_state = BallState(physics=Physics(
-            location=Vector3(0, 300, 250),
-            velocity=Vector3(250, -600, 2500),
+            location=Vector3(0, 0, 400),
+            velocity=Vector3(0, 0, 450),
             angular_velocity=Vector3(0, 0, 0),
         ))
 
