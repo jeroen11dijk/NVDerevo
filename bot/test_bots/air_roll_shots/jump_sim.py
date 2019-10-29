@@ -28,7 +28,7 @@ def get_height_at_time(x, d):
 # The inverse of the function above, so it gives the time at which you will reach height h with duration d
 def get_time_at_height(y, d):
     if 0 <= y <= get_height_at_time(d, d):
-        return -0.4 + 0.011547 * sqrt(20*y + 827)
+        return -0.4 + 0.011547 * sqrt(20 * y + 827)
     elif y <= get_height_at_time(0.8923, d):
         return 0.892308 - 0.0034401 * sqrt(64849 - 260 * y)
     else:

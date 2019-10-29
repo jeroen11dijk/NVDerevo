@@ -14,7 +14,7 @@ from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, AerialTurn, Drive
 from rlutilities.simulation import Game, Car, obb, intersect, sphere
 
-ball_z = 280
+ball_z = 274
 
 
 class State:
@@ -53,7 +53,7 @@ class MyAgent(BaseAgent):
         # Reset everything
         if self.state == State.RESET:
             self.timer = 0.0
-            self.set_gamestate_straight_moving_towards()
+            self.set_state_stationary()
             next_state = State.WAIT
 
         # Wait so everything can settle in, mainly for ball prediction
@@ -86,13 +86,15 @@ class MyAgent(BaseAgent):
                 self.dodge.preorientation = look_at(xy(vec3(0, 5120, 321) - simulated_target), vec3(0, 0, 1))
                 self.timer = 0
                 next_state = State.DODGING
+                print("=====================================")
+                print(self.dodge.timer)
 
         # Perform the dodge
         if self.state == State.DODGING:
             self.dodge.step(self.game.time_delta)
             self.controls = self.dodge.controls
 
-            print(self.dodge.timer, get_height_at_time(self.dodge.timer, 0.2), self.game.my_car.location[2], self.controls.jump)
+            print(self.dodge.timer, get_height_at_time(self.dodge.timer - 2/60, 0.2), self.game.my_car.location[2], self.controls.jump)
 
             T = self.dodge.duration - self.dodge.timer
             if T > 0:
@@ -100,21 +102,19 @@ class MyAgent(BaseAgent):
                     self.controls.boost = 1
                     self.controls.pitch = 1
                 else:
-                    self.controls.boost = 0
-                # else:
-                #     xf = self.game.my_car.location + 0.5 * T * T * vec3(0, 0, -650) + T * self.game.my_car.velocity
-                #
-                #     delta_x = self.game.ball.location - xf
-                #     if angle_between(vec2(self.game.my_car.forward()), self.dodge.direction) < 0.3:
-                #         if norm(delta_x) > 50:
-                #             self.controls.boost = 1
-                #             self.controls.throttle = 0.0
-                #         else:
-                #             self.controls.boost = 0
-                #             self.controls.throttle = clip(0.5 * (200 / 3) * T * T, 0.0, 1.0)
-                #     else:
-                #         self.controls.boost = 0
-                #         self.controls.throttle = 0.0
+                    xf = self.game.my_car.location + 0.5 * T * T * vec3(0, 0, -650) + T * self.game.my_car.velocity
+
+                    delta_x = self.game.ball.location - xf
+                    if angle_between(vec2(self.game.my_car.forward()), self.dodge.direction) < 0.3:
+                        if norm(delta_x) > 50:
+                            self.controls.boost = 1
+                            self.controls.throttle = 0.0
+                        else:
+                            self.controls.boost = 0
+                            self.controls.throttle = clip(0.5 * (200 / 3) * T * T, 0.0, 1.0)
+                    else:
+                        self.controls.boost = 0
+                        self.controls.throttle = 0.0
             else:
                 self.controls.boost = 0
 
@@ -131,6 +131,8 @@ class MyAgent(BaseAgent):
 
     # The miraculous simulate function
     # TODO optimize heavily in case I actually need it
+    # Option one: estimate the time for the current height and look at that ball prediction.
+    # If its heigher use that unless it gets unreachable and else compare with the lower one.
     # If duration_estimate = 0.8 and the ball is moving up there is not sense in even simulating it.
     # Might even lower it since the higher the duration estimate the longer the simulation takes.
     def simulate(self):
@@ -157,7 +159,8 @@ class MyAgent(BaseAgent):
             dodge = Dodge(car)
             prediction_slice = ball_prediction.slices[round(60 * (duration_estimate + i / 60))]
             physics = prediction_slice.physics
-            ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
+            # ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
+            ball_location = vec3(0, 0, ball_z)
             dodge.direction = vec2(vec3(0, 5120, 321) - ball_location)
             dodge.duration = duration_estimate + i / 60
             dodge.preorientation = look_at(xy(vec3(0, 5120, 321) - car.location), vec3(0, 0, 1))
@@ -175,21 +178,19 @@ class MyAgent(BaseAgent):
                         dodge.controls.boost = 1
                         dodge.controls.pitch = 1
                     else:
-                        dodge.controls.boost = 0
-                    # else:
-                    #     xf = car.location + 0.5 * T * T * vec3(0, 0, -650) + T * car.velocity
-                    #
-                    #     delta_x = ball_location - xf
-                    #     if angle_between(vec2(car.forward()), dodge.direction) < 0.3:
-                    #         if norm(delta_x) > 50:
-                    #             dodge.controls.boost = 1
-                    #             dodge.controls.throttle = 0.0
-                    #         else:
-                    #             dodge.controls.boost = 0
-                    #             dodge.controls.throttle = clip(0.5 * (200 / 3) * T * T, 0.0, 1.0)
-                    #     else:
-                    #         dodge.controls.boost = 0
-                    #         dodge.controls.throttle = 0.0
+                        xf = car.location + 0.5 * T * T * vec3(0, 0, -650) + T * car.velocity
+
+                        delta_x = ball_location - xf
+                        if angle_between(vec2(car.forward()), dodge.direction) < 0.3:
+                            if norm(delta_x) > 50:
+                                dodge.controls.boost = 1
+                                dodge.controls.throttle = 0.0
+                            else:
+                                dodge.controls.boost = 0
+                                dodge.controls.throttle = clip(0.5 * (200 / 3) * T * T, 0.0, 1.0)
+                        else:
+                            dodge.controls.boost = 0
+                            dodge.controls.throttle = 0.0
                 else:
                     dodge.controls.boost = 0
 
@@ -197,7 +198,7 @@ class MyAgent(BaseAgent):
                 # Get the ball prediction slice at this time and convert the location to RLU vec3
                 prediction_slice = ball_prediction.slices[round(60 * j / fps)]
                 physics = prediction_slice.physics
-                ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
+                # ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
                 # Update the hitbox information
                 batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
                 batmobile.orientation = car.rotation
