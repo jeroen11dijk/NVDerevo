@@ -1,6 +1,7 @@
 import math
 import random
 import sys
+import time
 from pathlib import Path
 
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
@@ -9,7 +10,7 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 from rlutilities.linear_algebra import *
-from rlutilities.mechanics import AerialTurn, Aerial
+from rlutilities.mechanics import AerialTurn, Aerial, Drive
 from rlutilities.simulation import Game, Ball
 
 
@@ -18,6 +19,7 @@ class State:
     WAIT = 1
     INITIALIZE = 2
     RUNNING = 3
+    DRIVING = 4
 
 
 class Agent(BaseAgent):
@@ -60,8 +62,20 @@ class Agent(BaseAgent):
             if self.timer > 0.2:
                 next_state = State.INITIALIZE
 
-        # Set up the aerial
+        # Initialize the drive mechanic
         if self.state == State.INITIALIZE:
+            self.drive = Drive(self.game.my_car)
+            self.drive.target = self.game.ball.location + 200 * normalize(
+                vec3(vec2(self.game.ball.location - vec3(0, 5120, 0))))
+            self.drive.speed = 1400
+            next_state = State.DRIVING
+
+        # Start driving towards the target and check whether an aerial is possible, if so initialize the dodge
+        if self.state == State.DRIVING:
+            self.drive.target = self.game.ball.location + 200 * normalize(
+                vec3(vec2(self.game.ball.location - vec3(0, 5120, 0))))
+            self.drive.step(self.game.time_delta)
+            self.controls = self.drive.controls
 
             # Initialize the aerial and aerial turn
             self.aerial = Aerial(self.game.my_car)
@@ -73,7 +87,8 @@ class Agent(BaseAgent):
 
             # Loop over 87 frames which results in a time limit of 1.45
             # Seeing we jump once and hold it for 0.2s we keep our second dodge until that moment
-            for i in range(87):
+            a = time.time()
+            for i in range(360):
                 # Step the ball prediction and add it to the array for rendering
                 prediction.step(0.016666)
                 self.ball_predictions.append(vec3(prediction.location))
@@ -84,23 +99,20 @@ class Agent(BaseAgent):
                 goal = vec3(0, 5120, 0)
                 self.aerial.target = prediction.location + 200 * normalize(prediction.location - goal)
                 self.aerial.arrival_time = prediction.time
-                self.aerial.target_orientation = look_at(xy(goal - self.aerial.target), vec3(0, 0, 1))
-
+                self.aerial.target_orientation = look_at(goal - self.aerial.target, vec3(0, 0, 1))
                 # Simulate the aerial and see whether its doable or not
                 simulation = self.aerial.simulate()
-
                 # # check if we can reach it by an aerial
-                if norm(simulation.location - self.aerial.target) < 100 and angle_between(self.aerial.target_orientation, simulation.rotation) < 0.5:
+                if norm(simulation.location - self.aerial.target) < 100 and angle_between(simulation.rotation, self.aerial.target_orientation) < 0.01:
                     print(i)
                     print(prediction.location)
-                    print(angle_between(self.aerial.target_orientation, simulation.rotation))
-                    print(angle_between(self.game.my_car.rotation, simulation.rotation))
+                    print(self.game.my_car.rotation)
+                    print("predicted rotation")
+                    print(simulation.rotation)
+                    next_state = State.RUNNING
                     break
-                if i == 86:
-                    print("FUCKED")
-                    return
-
-            next_state = State.RUNNING
+            print("time:")
+            print(time.time() - a)
 
         # Perform the aerial mechanic
         if self.state == State.RUNNING:
@@ -109,6 +121,8 @@ class Agent(BaseAgent):
             if self.game.time == packet.game_ball.latest_touch.time_seconds:
                 print(self.game.my_car.double_jumped)
                 self.controls.jump = True
+                print("actual rotation")
+                print(self.game.my_car.rotation)
             if self.timer > self.timeout:
                 next_state = State.RESET
 
@@ -132,7 +146,7 @@ class Agent(BaseAgent):
             self.renderer.draw_line_3d(target - x, target + x, purple)
             self.renderer.draw_line_3d(target - y, target + y, purple)
             self.renderer.draw_line_3d(target - z, target + z, purple)
-            self.renderer.draw_line_3d(self.game.my_car.location, 1000 * dot(self.game.my_car.forward(), self.aerial.target_orientation), purple)
+            self.renderer.draw_line_3d(self.game.my_car.location, 1000 * dot(self.aerial.target_orientation, self.game.my_car.forward()), purple)
 
         # Render ball prediction
         if self.ball_predictions:
@@ -144,7 +158,7 @@ class Agent(BaseAgent):
 
     def set_state_1(self):
         car_state = CarState(physics=Physics(
-            location=Vector3(0, -2000, 18),
+            location=Vector3(0, -4000, 18),
             velocity=Vector3(0, 500, 0),
             rotation=Rotator(0, math.pi / 2, 0),
             angular_velocity=Vector3(0, 0, 0),
@@ -152,8 +166,8 @@ class Agent(BaseAgent):
 
         # put the ball in the middle of the field
         ball_state = BallState(physics=Physics(
-            location=Vector3(0, 0, 200),
-            velocity=Vector3(100, -500, 750),
+            location=Vector3(0, 300, 250),
+            velocity=Vector3(250, -600, 2500),
             angular_velocity=Vector3(0, 0, 0),
         ))
 

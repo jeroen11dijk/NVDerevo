@@ -51,7 +51,7 @@ class MyAgent(BaseAgent):
         # Reset everything
         if self.state == State.RESET:
             self.timer = 0.0
-            self.set_state_stationary()
+            self.set_gamestate_straight_moving_towards()
             next_state = State.WAIT
 
         # Wait so everything can settle in, mainly for ball prediction
@@ -89,6 +89,24 @@ class MyAgent(BaseAgent):
         if self.state == State.DODGING:
             self.dodge.step(self.game.time_delta)
             self.controls = self.dodge.controls
+
+            T = self.dodge.duration - self.dodge.timer
+            xf = self.game.my_car.location + 0.5 * T * T * vec3(0, 0, -650) + T * self.game.my_car.velocity
+
+            delta_x = self.game.ball.location - xf
+            if angle_between(vec2(self.game.my_car.forward()), self.dodge.direction) < 0.3:
+                if norm(delta_x) > 50:
+                    self.controls.boost = 1
+                    self.controls.throttle = 0.0
+                else:
+                    self.controls.boost = 0
+                    self.controls.throttle = clip(0.5 * (200 / 3) * T * T, 0.0, 1.0)
+            else:
+                self.controls.boost = 0
+                self.controls.throttle = 0.0
+
+            if self.controls.throttle:
+                print("throttling")
             # Great line
             # if self.game.time == packet.game_ball.latest_touch.time_seconds:
             #     print(self.timer)
@@ -139,6 +157,22 @@ class MyAgent(BaseAgent):
                 # Get the dodge inputs and perform that to the copied car object
                 dodge.preorientation = look_at(xy(vec3(0, 5120, 321) - car.location), vec3(0, 0, 1))
                 dodge.step(1 / fps)
+
+                T = dodge.duration - dodge.timer
+                xf = car.location + 0.5 * T * T * vec3(0, 0, -650) + T * car.velocity
+
+                delta_x = ball_location - xf
+                if angle_between(vec2(car.forward()), dodge.direction) < 0.3:
+                    if norm(delta_x) > 50:
+                        dodge.controls.boost = 1
+                        dodge.controls.throttle = 0.0
+                    else:
+                        dodge.controls.boost = 0
+                        dodge.controls.throttle = clip(0.5 * (200 / 3) * T * T, 0.0, 1.0)
+                else:
+                    dodge.controls.boost = 0
+                    dodge.controls.throttle = 0.0
+
                 car.step(dodge.controls, 1 / fps)
                 # Get the ball prediction slice at this time and convert the location to RLU vec3
                 prediction_slice = ball_prediction.slices[round(60 * j / fps)]
@@ -191,7 +225,7 @@ class MyAgent(BaseAgent):
             location=Vector3(0, 0, 18),
             velocity=Vector3(0, 0, 0),
             angular_velocity=Vector3(0, 0, 0),
-        ))
+        ), boost_amount=100)
 
         # put the ball in the middle of the field
 

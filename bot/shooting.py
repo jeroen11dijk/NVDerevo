@@ -22,7 +22,6 @@ def shooting(agent):
     """"Method that gives the output for the shooting strategy"""
     ball = agent.info.ball
     car = agent.info.my_car
-    our_goal = agent.my_goal.center
     target = shooting_target(agent)
     agent.drive.target = target
     distance = distance_2d(car.location, target)
@@ -59,11 +58,12 @@ def shooting_target(agent):
     """"Method that gives the target for the shooting strategy"""
     ball = agent.info.ball
     car = agent.info.my_car
-    car_to_ball = ball.location - car.location
+    ball_target = ball.location + 200 * normalize(vec3(vec2(agent.their_goal.center - vec3(0, 5120, 0))))
+    car_to_ball = ball_target - car.location
     backline_intersect = line_backline_intersect(
         agent.their_goal.center[1], vec2(car.location), vec2(car_to_ball))
     if abs(backline_intersect) < 700:
-        goal_to_ball = normalize(car.location - ball.location)
+        goal_to_ball = normalize(car.location - ball_target)
         error = 0
     else:
         # Right of the ball
@@ -72,7 +72,7 @@ def shooting_target(agent):
         # Left of the ball
         elif backline_intersect > 500:
             target = agent.their_goal.corners[2] - vec3(400, 0, 0)
-        goal_to_ball = normalize(ball.location - target)
+        goal_to_ball = normalize(ball_target - target)
         # Subtract the goal to car vector
         difference = goal_to_ball - normalize(car.location - target)
         error = cap(abs(difference[0]) + abs(difference[1]), 0, 5)
@@ -81,8 +81,8 @@ def shooting_target(agent):
     test_vector_2d = dot(rotation(0.5 * math.pi), goal_to_ball_2d)
     test_vector = vec3(test_vector_2d[0], test_vector_2d[1], 0)
 
-    distance = cap((40 + distance_2d(ball.location, car.location) * (error ** 2)) / 1.8, 0, 4000)
-    location = ball.location + vec3((goal_to_ball[0] * distance), goal_to_ball[1] * distance, 0)
+    distance = cap((40 + distance_2d(ball_target, car.location) * (error ** 2)) / 1.8, 0, 4000)
+    location = ball_target + vec3((goal_to_ball[0] * distance), goal_to_ball[1] * distance, 0)
 
     # this adjusts the target based on the ball velocity perpendicular
     # to the direction we're trying to hit it
