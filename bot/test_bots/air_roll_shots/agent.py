@@ -7,14 +7,15 @@ from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
-from jump_sim import get_time_at_height
+from jump_sim import get_time_at_height, get_height_at_time
 
 sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, AerialTurn, Drive
 from rlutilities.simulation import Game, Car, obb, intersect, sphere
 
-ball_z = 250
+ball_z = 280
+
 
 class State:
     RESET = 0
@@ -52,7 +53,7 @@ class MyAgent(BaseAgent):
         # Reset everything
         if self.state == State.RESET:
             self.timer = 0.0
-            self.set_state_stationary()
+            self.set_gamestate_straight_moving_towards()
             next_state = State.WAIT
 
         # Wait so everything can settle in, mainly for ball prediction
@@ -74,7 +75,9 @@ class MyAgent(BaseAgent):
                 vec3(vec2(self.game.ball.location - vec3(0, 5120, 0))))
             self.drive.step(self.game.time_delta)
             self.controls = self.drive.controls
+            a = time.time()
             can_dodge, simulated_duration, simulated_target = self.simulate()
+            print(time.time() - a)
             if can_dodge:
                 self.dodge = Dodge(self.game.my_car)
                 self.turn = AerialTurn(self.game.my_car)
@@ -89,27 +92,35 @@ class MyAgent(BaseAgent):
             self.dodge.step(self.game.time_delta)
             self.controls = self.dodge.controls
 
+            print(self.dodge.timer, get_height_at_time(self.dodge.timer, 0.2), self.game.my_car.location[2], self.controls.jump)
+
             T = self.dodge.duration - self.dodge.timer
             if T > 0:
-                xf = self.game.my_car.location + 0.5 * T * T * vec3(0, 0, -650) + T * self.game.my_car.velocity
-
-                delta_x = self.game.ball.location - xf
-                if angle_between(vec2(self.game.my_car.forward()), self.dodge.direction) < 0.3:
-                    if norm(delta_x) > 50:
-                        self.controls.boost = 1
-                        self.controls.throttle = 0.0
-                    else:
-                        self.controls.boost = 0
-                        self.controls.throttle = clip(0.5 * (200 / 3) * T * T, 0.0, 1.0)
+                if self.dodge.timer < 0.2:
+                    self.controls.boost = 1
+                    self.controls.pitch = 1
                 else:
                     self.controls.boost = 0
-                    self.controls.throttle = 0.0
+                # else:
+                #     xf = self.game.my_car.location + 0.5 * T * T * vec3(0, 0, -650) + T * self.game.my_car.velocity
+                #
+                #     delta_x = self.game.ball.location - xf
+                #     if angle_between(vec2(self.game.my_car.forward()), self.dodge.direction) < 0.3:
+                #         if norm(delta_x) > 50:
+                #             self.controls.boost = 1
+                #             self.controls.throttle = 0.0
+                #         else:
+                #             self.controls.boost = 0
+                #             self.controls.throttle = clip(0.5 * (200 / 3) * T * T, 0.0, 1.0)
+                #     else:
+                #         self.controls.boost = 0
+                #         self.controls.throttle = 0.0
             else:
                 self.controls.boost = 0
 
             # Great line
-            if self.game.time == packet.game_ball.latest_touch.time_seconds:
-                print(self.game.my_car.location)
+            # if self.game.time == packet.game_ball.latest_touch.time_seconds:
+            #     print(self.game.my_car.location)
             if self.dodge.finished and self.game.my_car.on_ground:
                 next_state = State.RESET
 
@@ -119,7 +130,7 @@ class MyAgent(BaseAgent):
         return self.controls
 
     # The miraculous simulate function
-    #TODO optimize heavily in case I actually need it
+    # TODO optimize heavily in case I actually need it
     # If duration_estimate = 0.8 and the ball is moving up there is not sense in even simulating it.
     # Might even lower it since the higher the duration estimate the longer the simulation takes.
     def simulate(self):
@@ -146,8 +157,7 @@ class MyAgent(BaseAgent):
             dodge = Dodge(car)
             prediction_slice = ball_prediction.slices[round(60 * (duration_estimate + i / 60))]
             physics = prediction_slice.physics
-            # ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
-            ball_location = vec3(0, 0, ball_z)
+            ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
             dodge.direction = vec2(vec3(0, 5120, 321) - ball_location)
             dodge.duration = duration_estimate + i / 60
             dodge.preorientation = look_at(xy(vec3(0, 5120, 321) - car.location), vec3(0, 0, 1))
@@ -161,25 +171,33 @@ class MyAgent(BaseAgent):
 
                 T = dodge.duration - dodge.timer
                 if T > 0:
-                    xf = car.location + 0.5 * T * T * vec3(0, 0, -650) + T * car.velocity
-
-                    delta_x = ball_location - xf
-                    if angle_between(vec2(car.forward()), dodge.direction) < 0.3:
-                        if norm(delta_x) > 50:
-                            dodge.controls.boost = 1
-                            dodge.controls.throttle = 0.0
-                        else:
-                            dodge.controls.boost = 0
-                            dodge.controls.throttle = clip(0.5 * (200 / 3) * T * T, 0.0, 1.0)
+                    if dodge.timer < 0.2:
+                        dodge.controls.boost = 1
+                        dodge.controls.pitch = 1
                     else:
                         dodge.controls.boost = 0
-                        dodge.controls.throttle = 0.0
+                    # else:
+                    #     xf = car.location + 0.5 * T * T * vec3(0, 0, -650) + T * car.velocity
+                    #
+                    #     delta_x = ball_location - xf
+                    #     if angle_between(vec2(car.forward()), dodge.direction) < 0.3:
+                    #         if norm(delta_x) > 50:
+                    #             dodge.controls.boost = 1
+                    #             dodge.controls.throttle = 0.0
+                    #         else:
+                    #             dodge.controls.boost = 0
+                    #             dodge.controls.throttle = clip(0.5 * (200 / 3) * T * T, 0.0, 1.0)
+                    #     else:
+                    #         dodge.controls.boost = 0
+                    #         dodge.controls.throttle = 0.0
+                else:
+                    dodge.controls.boost = 0
 
                 car.step(dodge.controls, 1 / fps)
                 # Get the ball prediction slice at this time and convert the location to RLU vec3
                 prediction_slice = ball_prediction.slices[round(60 * j / fps)]
                 physics = prediction_slice.physics
-                # ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
+                ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
                 # Update the hitbox information
                 batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
                 batmobile.orientation = car.rotation
@@ -191,8 +209,6 @@ class MyAgent(BaseAgent):
                 angle_simulation_target = angle_between(car.rotation, dodge.preorientation)
                 angle_check = angle_simulation_target < angle_car_simulation or angle_simulation_target < 0.1
                 if hit_check and hit_location_check and angle_check:
-                    print("------------------------------------------------------")
-                    print(angle_simulation_target, angle_car_simulation)
                     return True, j / fps, ball_location
         return False, None, None
 
