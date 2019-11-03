@@ -13,6 +13,8 @@ from rlutilities.linear_algebra import *
 from rlutilities.mechanics import AerialTurn, Aerial, Drive
 from rlutilities.simulation import Game, Ball
 
+ball_z = 300
+
 
 class State:
     RESET = 0
@@ -53,7 +55,7 @@ class Agent(BaseAgent):
         # Reset everything
         if self.state == State.RESET:
             self.timer = 0.0
-            self.set_state_1()
+            self.set_state_stationary()
             next_state = State.WAIT
 
         # Wait so everything can settle in, mainly for ball prediction
@@ -97,14 +99,17 @@ class Agent(BaseAgent):
                 # Set the arrival time to the time the ball will be in that location
                 # Set the preorientation so we will look at the goal
                 goal = vec3(0, 5120, 0)
-                self.aerial.target = prediction.location + 200 * normalize(prediction.location - goal)
+                # self.aerial.target = prediction.location + 200 * normalize(prediction.location - goal)
+                self.aerial.target = vec3(0, 0, ball_z) + 200 * normalize(prediction.location - goal)
                 self.aerial.arrival_time = prediction.time
                 print(prediction.time)
-                self.aerial.target_orientation = look_at(goal - self.aerial.target, vec3(0, 0, 1))
+                # self.aerial.target_orientation = look_at(goal - self.aerial.target, vec3(0, 0, 1))
+                self.aerial.target_orientation = look_at(goal - self.game.my_car.location, vec3(0, 0, 1))
                 # Simulate the aerial and see whether its doable or not
                 simulation = self.aerial.simulate()
                 # # check if we can reach it by an aerial
-                if norm(simulation.location - self.aerial.target) < 100 and angle_between(simulation.rotation, self.aerial.target_orientation) < 0.01:
+                if norm(simulation.location - self.aerial.target) < 100 and angle_between(simulation.rotation,
+                                                                                          self.aerial.target_orientation) < 0.01:
                     print(i)
                     print(prediction.location)
                     print(self.game.my_car.rotation)
@@ -147,7 +152,8 @@ class Agent(BaseAgent):
             self.renderer.draw_line_3d(target - x, target + x, purple)
             self.renderer.draw_line_3d(target - y, target + y, purple)
             self.renderer.draw_line_3d(target - z, target + z, purple)
-            self.renderer.draw_line_3d(self.game.my_car.location, 1000 * dot(self.aerial.target_orientation, self.game.my_car.forward()), purple)
+            # self.renderer.draw_line_3d(self.game.my_car.location,
+            #                            1000 * dot(self.aerial.target_orientation, self.game.my_car.forward()), purple)
 
         # Render ball prediction
         if self.ball_predictions:
@@ -169,6 +175,27 @@ class Agent(BaseAgent):
         ball_state = BallState(physics=Physics(
             location=Vector3(0, 0, 400),
             velocity=Vector3(0, 0, 450),
+            angular_velocity=Vector3(0, 0, 0),
+        ))
+
+        self.set_game_state(GameState(
+            ball=ball_state,
+            cars={self.game.id: car_state})
+        )
+
+    def set_state_stationary(self):
+        # put the car in the middle of the field
+        car_state = CarState(physics=Physics(
+            location=Vector3(0, -2500, 18),
+            velocity=Vector3(0, 0, 0),
+            rotation=Rotator(0, math.pi / 2, 0),
+            angular_velocity=Vector3(0, 0, 0),
+        ), boost_amount=100)
+
+        # put the ball in the middle of the field
+        ball_state = BallState(physics=Physics(
+            location=Vector3(0, 0, ball_z),
+            velocity=Vector3(0, 0, 0),
             angular_velocity=Vector3(0, 0, 0),
         ))
 
