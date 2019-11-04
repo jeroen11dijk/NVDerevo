@@ -14,8 +14,9 @@ from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, AerialTurn, Drive
 from rlutilities.simulation import Game, Car, obb, intersect, sphere
 
-ball_z = 200
-maaien = 10*ball_z
+ball_z = 400
+maaien = 5
+
 
 class State:
     RESET = 0
@@ -53,6 +54,10 @@ class MyAgent(BaseAgent):
         # Reset everything
         if self.state == State.RESET:
             self.timer = 0.0
+            # self.set_gamestate_straight_moving()
+            # self.set_gamestate_straight_moving_towards()
+            # self.set_state_stationary_angled()
+            # self.set_gamestate_angled_stationary()
             self.set_state_stationary()
             next_state = State.WAIT
 
@@ -77,13 +82,15 @@ class MyAgent(BaseAgent):
             self.controls = self.drive.controls
             a = time.time()
             can_dodge, simulated_duration, simulated_target = self.simulate()
-            # print(time.time() - a)
+            print(time.time() - a)
             if can_dodge:
+                print(norm(vec2(simulated_target - self.game.my_car.location)))
                 self.dodge = Dodge(self.game.my_car)
                 self.turn = AerialTurn(self.game.my_car)
                 self.dodge.duration = simulated_duration - 0.1
                 self.dodge.direction = vec2(vec3(0, 5120, 321) - simulated_target)
-                self.dodge.preorientation = look_at(vec3(0, 5120, maaien) - simulated_target, vec3(0, 0, 1))
+                self.dodge.preorientation = look_at(vec3(0, 5120, maaien * simulated_target[2]) - simulated_target,
+                                                    vec3(0, 0, 1))
                 self.timer = 0
                 next_state = State.DODGING
 
@@ -92,7 +99,6 @@ class MyAgent(BaseAgent):
             self.dodge.step(self.game.time_delta)
             self.controls = self.dodge.controls
 
-            print(self.dodge.timer, get_height_at_time(self.dodge.timer - 2/60, 0.2), self.game.my_car.location[2], self.controls.jump)
             T = self.dodge.duration - self.dodge.timer
             if T > 0:
                 if self.dodge.timer < 0.2:
@@ -160,7 +166,7 @@ class MyAgent(BaseAgent):
             ball_location = vec3(0, 0, ball_z)
             dodge.direction = vec2(vec3(0, 5120, 321) - ball_location)
             dodge.duration = duration_estimate + i / 60
-            dodge.preorientation = look_at(vec3(0, 5120, maaien) - ball_location, vec3(0, 0, 1))
+            dodge.preorientation = look_at(vec3(0, 5120, maaien * ball_location[2]) - ball_location, vec3(0, 0, 1))
             # Loop from now till the end of the duration
             fps = 60
             for j in range(round(fps * dodge.duration)):
@@ -171,7 +177,7 @@ class MyAgent(BaseAgent):
                 # ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
 
                 # Get the dodge inputs and perform that to the copied car object
-                dodge.preorientation = look_at(vec3(0, 5120, maaien) - ball_location, vec3(0, 0, 1))
+                dodge.preorientation = look_at(vec3(0, 5120, maaien * ball_location[2]) - ball_location, vec3(0, 0, 1))
                 dodge.step(1 / fps)
 
                 T = dodge.duration - dodge.timer
@@ -203,7 +209,8 @@ class MyAgent(BaseAgent):
                 batmobile.orientation = car.rotation
                 # Check if we hit the ball, and if the point of contact is just below the middle
                 # TODO check for the actual point of contact instead of the car position
-                hit_check = intersect(sphere(ball_location, 93.15), batmobile)
+                # hit_check = intersect(sphere(ball_location, 93.15), batmobile)
+                hit_check = norm(ball_location - batmobile.center) < 200
                 hit_location_check = abs(ball_location[2] - car.location[2]) < 25 and car.location[2] < ball_location[2]
                 angle_car_simulation = angle_between(car.rotation, self.game.my_car.rotation)
                 angle_simulation_target = angle_between(car.rotation, dodge.preorientation)
