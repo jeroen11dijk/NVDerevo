@@ -20,7 +20,6 @@ class State:
     INITIALIZE = 2
     RUNNING = 3
 
-
 class MyAgent(BaseAgent):
 
     def __init__(self, name, team, index):
@@ -93,7 +92,7 @@ class MyAgent(BaseAgent):
                 self.controls.pitch = 1
             else:
                 self.controls.boost = 1
-                self.controls.pitch = 0.2
+                self.controls.pitch = 0
             print(self.timer, self.game.my_car.location[2], self.controls.jump)
 
             if self.timer > 2:

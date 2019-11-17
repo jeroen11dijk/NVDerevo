@@ -1,6 +1,9 @@
 import sys
-from math import sqrt, floor
+import math
 from pathlib import Path
+
+import scipy
+from pynverse import inversefunc
 
 sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 
@@ -8,14 +11,17 @@ sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 g = 650
 # jump acceleration
 a = 1400
+# jump duration
+d = 0.2
 
 batmobile_resting_height = 18.65
+boost_acceleration = 991.666
 
 
 # Functions which calculates the height of your jump at time x with duration of d
 # https://www.desmos.com/calculator/7qzakxxd61
-def get_height_at_time(x, d):
-    """Get the height of a jump at a certain time t while holding jump for duration d"""
+def get_height_at_time(x):
+    """Get the height of a jump at a certain time t"""
     c = 0.5 * (a - g) * (d ** 2) + 300 * d
     a2 = (a - g) * d + 300
     if 0 <= x <= d:
@@ -26,11 +32,31 @@ def get_height_at_time(x, d):
 
 
 # The inverse of the function above, so it gives the time at which you will reach height h with duration d
-def get_time_at_height(y, d):
-    if 0 <= y <= get_height_at_time(d, d):
-        return -0.4 + 0.011547 * sqrt(20 * y + 827)
-    elif y <= get_height_at_time(0.8923, d):
-        return 0.892308 - 0.0034401 * sqrt(64849 - 260 * y)
+def get_time_at_height(y):
+    f = lambda x: get_height_at_time(x)
+    f_max = scipy.optimize.fmin(lambda x: -f(x), 0)
+    f_inverse = inversefunc(f, domain=[0, max(f_max, 1.5)])
+    if y < max:
+        f_inverse(y)
     else:
-        # If the target height is above the maximal height return the time for the maxima and see if you might reach it
-        return get_time_at_height(get_height_at_time(0.8923, 0.2), 0.2)
+        f_inverse(max)
+
+
+def get_height_at_time_boost(x, theta, boost_amount):
+    """Get the height of a jump at a certain time t while boosting at angle theta for a given boost amount"""
+    b = math.sin(theta) * boost_acceleration
+    boost_amount = boost_amount - 6
+    b_t = boost_amount / 33.3 + 0.2
+    c = 0.5 * (a - g + b) * (d ** 2) + 300 * d
+    a2 = (a - g + b) * d + 300
+    p = 0.5 * (-g + b) * ((b_t - d) ** 2) + a2 * (b_t - d) + c
+    a3 = -g * b_t + g * d + b * b_t - b * d + a2
+    if 0 <= x <= d:
+        return batmobile_resting_height + 0.5 * (a - g + b) * (x ** 2) + 300 * x
+    elif d <= x <= b_t:
+        return batmobile_resting_height + 0.5 * (-g + b) * ((x - d) ** 2) + a2 * (x - d) + c
+    elif b_t <= x:
+        return batmobile_resting_height + 0.5 * (-g) * ((x - b_t) ** 2) + a3 * (x - b_t) + p
+
+
+print(get_height_at_time_boost(0.5, math.pi / 6, 6))

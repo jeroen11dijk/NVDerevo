@@ -55,10 +55,10 @@ class MyAgent(BaseAgent):
         if self.state == State.RESET:
             self.timer = 0.0
             # self.set_gamestate_straight_moving()
-            # self.set_gamestate_straight_moving_towards()
+            self.set_gamestate_straight_moving_towards()
             # self.set_state_stationary_angled()
             # self.set_gamestate_angled_stationary()
-            self.set_state_stationary()
+            # self.set_state_stationary()
             next_state = State.WAIT
 
         # Wait so everything can settle in, mainly for ball prediction
@@ -85,6 +85,7 @@ class MyAgent(BaseAgent):
             print(time.time() - a)
             if can_dodge:
                 print(norm(vec2(simulated_target - self.game.my_car.location)))
+                print(norm(self.game.my_car.velocity))
                 self.dodge = Dodge(self.game.my_car)
                 self.turn = AerialTurn(self.game.my_car)
                 self.dodge.duration = simulated_duration - 0.1
@@ -162,19 +163,19 @@ class MyAgent(BaseAgent):
             dodge = Dodge(car)
             prediction_slice = ball_prediction.slices[round(60 * (duration_estimate + i / 60))]
             physics = prediction_slice.physics
-            # ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
-            ball_location = vec3(0, 0, ball_z)
+            ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
+            # ball_location = vec3(0, 0, ball_z)
             dodge.direction = vec2(vec3(0, 5120, 321) - ball_location)
             dodge.duration = duration_estimate + i / 60
             dodge.preorientation = look_at(vec3(0, 5120, maaien * ball_location[2]) - ball_location, vec3(0, 0, 1))
             # Loop from now till the end of the duration
-            fps = 60
+            fps = 30
             for j in range(round(fps * dodge.duration)):
                 lol = lol + 1
                 # Get the ball prediction slice at this time and convert the location to RLU vec3
                 prediction_slice = ball_prediction.slices[round(60 * j / fps)]
                 physics = prediction_slice.physics
-                # ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
+                ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
 
                 # Get the dodge inputs and perform that to the copied car object
                 dodge.preorientation = look_at(vec3(0, 5120, maaien * ball_location[2]) - ball_location, vec3(0, 0, 1))
@@ -251,7 +252,7 @@ class MyAgent(BaseAgent):
             velocity=Vector3(0, 0, 0),
             rotation=Rotator(0, math.pi / 2, 0),
             angular_velocity=Vector3(0, 0, 0),
-        ), boost_amount=100)
+        ), boost_amount=50)
 
         # put the ball in the middle of the field
 
