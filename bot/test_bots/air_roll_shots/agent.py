@@ -7,16 +7,19 @@ from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
-from jump_sim import get_time_at_height, get_height_at_time
+from jump_sim import get_time_at_height, get_time_at_height_boost
 
 sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
 from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, AerialTurn, Drive
 from rlutilities.simulation import Game, Car, obb, intersect, sphere
 
-ball_z = 400
-maaien = 5
+ball_z = 2000
+maaien = ball_z/60
 
+# TODO
+# Instead of maaien just pitch until looking as up as possible and then calculate the time needed to rotate to a flatish
+# rotation to make solid contact with the ball and start turning back at d - that time.
 
 class State:
     RESET = 0
@@ -55,10 +58,10 @@ class MyAgent(BaseAgent):
         if self.state == State.RESET:
             self.timer = 0.0
             # self.set_gamestate_straight_moving()
-            self.set_gamestate_straight_moving_towards()
+            # self.set_gamestate_straight_moving_towards()
             # self.set_state_stationary_angled()
             # self.set_gamestate_angled_stationary()
-            # self.set_state_stationary()
+            self.set_state_stationary()
             next_state = State.WAIT
 
         # Wait so everything can settle in, mainly for ball prediction
@@ -90,7 +93,7 @@ class MyAgent(BaseAgent):
                 self.turn = AerialTurn(self.game.my_car)
                 self.dodge.duration = simulated_duration - 0.1
                 self.dodge.direction = vec2(vec3(0, 5120, 321) - simulated_target)
-                self.dodge.preorientation = look_at(vec3(0, 5120, maaien * simulated_target[2]) - simulated_target,
+                self.dodge.preorientation = look_at(vec3(0, 5120, (simulated_target[2] / 60) * simulated_target[2]) - simulated_target,
                                                     vec3(0, 0, 1))
                 self.timer = 0
                 next_state = State.DODGING
@@ -144,7 +147,15 @@ class MyAgent(BaseAgent):
         # Initialize the ball prediction and batmobile hitbox
         # Estimate the probable duration of the jump and round it down to the floor decimal
         ball_prediction = self.get_ball_prediction_struct()
-        duration_estimate = math.floor(get_time_at_height(self.game.ball.location[2], 0.2) * 10) / 10
+        if self.game.my_car.boost < 6:
+            duration_estimate = math.floor(get_time_at_height(self.game.ball.location[2]) * 10) / 10
+        else:
+            adjacent = norm(vec2(self.game.my_car.location - self.game.ball.location))
+            opposite = (self.game.ball.location[2] - self.game.my_car.location[2])
+            theta = math.atan(opposite / adjacent)
+            t = get_time_at_height_boost(self.game.ball.location[2], theta, self.game.my_car.boost)
+            duration_estimate = math.ceil(t * 10) / 10
+        print(duration_estimate)
         batmobile = obb()
         batmobile.half_width = vec3(64.4098892211914, 42.335182189941406, 14.697200775146484)
         # Loop for 6 frames meaning adding 0.1 to the estimated duration. Keeps the time constraint under 0.3s
@@ -167,7 +178,9 @@ class MyAgent(BaseAgent):
             # ball_location = vec3(0, 0, ball_z)
             dodge.direction = vec2(vec3(0, 5120, 321) - ball_location)
             dodge.duration = duration_estimate + i / 60
-            dodge.preorientation = look_at(vec3(0, 5120, maaien * ball_location[2]) - ball_location, vec3(0, 0, 1))
+            if dodge.duration > 1.4:
+                break
+            dodge.preorientation = look_at(vec3(0, 5120, (ball_location[2] / 60) * ball_location[2]) - ball_location, vec3(0, 0, 1))
             # Loop from now till the end of the duration
             fps = 30
             for j in range(round(fps * dodge.duration)):
@@ -178,7 +191,7 @@ class MyAgent(BaseAgent):
                 ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
 
                 # Get the dodge inputs and perform that to the copied car object
-                dodge.preorientation = look_at(vec3(0, 5120, maaien * ball_location[2]) - ball_location, vec3(0, 0, 1))
+                dodge.preorientation = look_at(vec3(0, 5120, (ball_location[2] / 60) * ball_location[2]) - ball_location, vec3(0, 0, 1))
                 dodge.step(1 / fps)
 
                 T = dodge.duration - dodge.timer
@@ -303,7 +316,7 @@ class MyAgent(BaseAgent):
         # put the ball in the middle of the field
         ball_state = BallState(physics=Physics(
             location=Vector3(0, 0, ball_z),
-            velocity=Vector3(0, 0, 0),
+            velocity=Vector3(0, 0, 1),
             angular_velocity=Vector3(0, 0, 0),
         ))
 

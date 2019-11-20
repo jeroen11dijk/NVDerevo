@@ -34,12 +34,12 @@ def get_height_at_time(x):
 # The inverse of the function above, so it gives the time at which you will reach height h with duration d
 def get_time_at_height(y):
     f = lambda x: get_height_at_time(x)
-    f_max = scipy.optimize.fmin(lambda x: -f(x), 0)
-    f_inverse = inversefunc(f, domain=[0, max(f_max, 1.5)])
+    f_max = min(scipy.optimize.fmin(lambda x: -f(x), 0, disp=False), 1.4)
+    f_inverse = inversefunc(f, domain=[0, f_max])
     if y < f_max:
         return f_inverse(y)
     else:
-        return f_inverse(f_max)
+        return f_max
 
 
 def get_height_at_time_boost(x, theta, boost_amount):
@@ -62,13 +62,9 @@ def get_height_at_time_boost(x, theta, boost_amount):
 # The inverse of the function above, so it gives the time at which you will reach height h with duration d
 def get_time_at_height_boost(y, theta, boost_amount):
     f = lambda x: get_height_at_time_boost(x, theta, boost_amount)
-    f_max = scipy.optimize.fmin(lambda x: -f(x), 0)
-    f_inverse = inversefunc(f, domain=[0, max(f_max, 1.5)])
+    f_max = min(scipy.optimize.fmin(lambda x: -f(x), 0, disp=False)[0], 1.4)
+    f_inverse = inversefunc(f, domain=[0, f_max])
     if y < f(f_max):
         return f_inverse(y)
     else:
-        return f_inverse(f(f_max[0]))
-
-
-print(get_height_at_time_boost(1.5, math.pi / 6, 100))
-print(get_time_at_height_boost(1100, math.pi / 6, 100))
+        return f_max
