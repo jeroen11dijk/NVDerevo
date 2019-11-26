@@ -14,7 +14,7 @@ from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, AerialTurn, Drive
 from rlutilities.simulation import Game, Car, obb, intersect, sphere
 
-ball_z = 400
+ball_z = 300
 ball_y = 0
 jeroens_magic_number = 3
 
@@ -165,7 +165,7 @@ class MyAgent(BaseAgent):
             opposite = (self.game.ball.location[2] - self.game.my_car.location[2])
             theta = math.atan(opposite / adjacent)
             t = get_time_at_height_boost(self.game.ball.location[2], theta, self.game.my_car.boost)
-            duration_estimate = math.ceil(t * 10) / 10
+            duration_estimate = (math.ceil(t * 10) / 10)
         # Loop for 6 frames meaning adding 0.1 to the estimated duration. Keeps the time constraint under 0.3s
         for i in range(6):
             # Copy the car object and reset the values for the hitbox
@@ -257,14 +257,14 @@ class MyAgent(BaseAgent):
 
         if norm(hit_location - ball.center) > ball.radius:
             return None
-        # return closest_local[0] > 35 and -12 < closest_local[2] < 12
-        if abs(ball_location[2] - hit_location[2]) < 25 and hit_location[2] < ball_location[2]:
+        if abs(ball_location[2] - hit_location[2]) < 10 and hit_location[2] < ball_location[2]:
             print(ball_location, hit_location)
-            hit_check = True
+            if closest_local[0] > 35 and -12 < closest_local[2] < 12:
+                hit_check = True
+            else:
+                hit_check = False
         else:
             hit_check = False
-        # hit_check = (dot(hit_location - batmobile.center, batmobile.orientation))
-        # print(hit_check)
         angle_car_simulation = angle_between(car.rotation, self.game.my_car.rotation)
         angle_simulation_target = angle_between(car.rotation, dodge.preorientation)
         angle_check = angle_simulation_target < angle_car_simulation or angle_simulation_target < 0.1
