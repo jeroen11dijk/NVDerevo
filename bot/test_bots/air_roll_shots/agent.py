@@ -14,9 +14,9 @@ from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, AerialTurn, Drive
 from rlutilities.simulation import Game, Car, obb, intersect, sphere
 
-ball_z = 300
-ball_y = 0
-jeroens_magic_number = 3
+ball_z = 450
+ball_y = 1000
+jeroens_magic_number = 5
 
 
 # TODO
@@ -95,16 +95,8 @@ class MyAgent(BaseAgent):
                 self.turn = AerialTurn(self.game.my_car)
                 self.dodge.duration = simulated_duration - 0.1
                 self.dodge.direction = vec2(vec3(0, 5120, 321) - simulated_target)
-                target = vec3(0, 5120, 0)
 
-                adjacent_car_ball = norm(vec2(self.game.my_car.location - simulated_target))
-                opposite_car_ball = simulated_target[2] - self.game.my_car.location[2]
-                theta_car_ball = math.atan(opposite_car_ball / adjacent_car_ball)
-
-                adjacent_ball_target = norm(vec2(self.game.my_car.location - target))
-                opposite_ball_target = math.tan(theta_car_ball) * adjacent_ball_target
-                target[2] = jeroens_magic_number * opposite_ball_target
-
+                target = vec3(0, 5120, jeroens_magic_number * simulated_target[2])
                 self.dodge.preorientation = look_at(target - simulated_target, vec3(0, 0, 1))
                 self.timer = 0
                 next_state = State.DODGING
@@ -187,16 +179,7 @@ class MyAgent(BaseAgent):
             if dodge.duration > 1.4:
                 break
 
-            target = vec3(0, 5120, 0)
-
-            adjacent_car_ball = norm(vec2(car.location - ball_location))
-            opposite_car_ball = ball_location[2] - car.location[2]
-            theta_car_ball = math.atan(opposite_car_ball / adjacent_car_ball)
-
-            adjacent_ball_target = norm(vec2(car.location - target))
-            opposite_ball_target = math.tan(theta_car_ball) * adjacent_ball_target
-            target[2] = jeroens_magic_number * opposite_ball_target
-
+            target = vec3(0, 5120, jeroens_magic_number * ball_location[2])
             dodge.preorientation = look_at(target - ball_location, vec3(0, 0, 1))
             # Loop from now till the end of the duration
             fps = 30
@@ -262,7 +245,8 @@ class MyAgent(BaseAgent):
             if closest_local[0] > 35 and -12 < closest_local[2] < 12:
                 hit_check = True
             else:
-                hit_check = False
+                print("local: ", closest_local)
+                hit_check = True
         else:
             hit_check = False
         angle_car_simulation = angle_between(car.rotation, self.game.my_car.rotation)
