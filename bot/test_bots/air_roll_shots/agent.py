@@ -231,8 +231,12 @@ class MyAgent(BaseAgent):
                     dodge.controls.boost = 0
 
                 car.step(dodge.controls, 1 / fps)
-                if self.dodge_succesfull(car, ball_location, dodge):
-                    return True, j / fps, ball_location
+                succesfull = self.dodge_succesfull(car, ball_location, dodge)
+                if succesfull is not None:
+                    if succesfull:
+                        return True, j / fps, ball_location
+                    else:
+                        break
         return False, None, None
 
     def dodge_succesfull(self, car, ball_location, dodge):
@@ -240,11 +244,19 @@ class MyAgent(BaseAgent):
         batmobile.half_width = vec3(64.4098892211914, 42.335182189941406, 14.697200775146484)
         batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
         batmobile.orientation = car.rotation
+        ball = sphere(ball_location, 93.15)
+        b_local = dot(ball.center - batmobile.center, batmobile.orientation)
 
-        hit_location = nearest_point_on_obb(batmobile, sphere(ball_location, 93.15))
-        if hit_location is None:
-            return False
+        closest_local = vec3(
+            min(max(b_local[0], -batmobile.half_width[0]), batmobile.half_width[0]),
+            min(max(b_local[1], -batmobile.half_width[1]), batmobile.half_width[1]),
+            min(max(b_local[2], -batmobile.half_width[2]), batmobile.half_width[2])
+        )
 
+        hit_location = dot(batmobile.orientation, closest_local) + batmobile.center
+
+        if norm(hit_location - ball.center) > ball.radius:
+            return None
         # return closest_local[0] > 35 and -12 < closest_local[2] < 12
         if abs(ball_location[2] - hit_location[2]) < 25 and hit_location[2] < ball_location[2]:
             print(ball_location, hit_location)
@@ -371,21 +383,3 @@ class MyAgent(BaseAgent):
             ball=ball_state,
             cars={self.game.id: car_state})
         )
-
-
-# TODO check the first frame where we "hit" the ball, if the hit is not correct go to the next simulation
-def nearest_point_on_obb(a, b):
-    b_local = dot(b.center - a.center, a.orientation)
-
-    closest_local = vec3(
-        min(max(b_local[0], -a.half_width[0]), a.half_width[0]),
-        min(max(b_local[1], -a.half_width[1]), a.half_width[1]),
-        min(max(b_local[2], -a.half_width[2]), a.half_width[2])
-    )
-
-    world = dot(a.orientation, closest_local) + a.center
-    if norm(world - b.center) > b.radius:
-        return None
-    print("============================================")
-    print(norm(world - b.center))
-    return world
