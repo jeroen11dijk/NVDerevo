@@ -18,6 +18,7 @@ ball_z = 400
 ball_y = 0
 jeroens_magic_number = 3
 
+
 # TODO
 # Instead of maaien just pitch until looking as up as possible and then calculate the time needed to rotate to a flatish
 # rotation to make solid contact with the ball and start turning back at d - that time.
@@ -154,7 +155,7 @@ class MyAgent(BaseAgent):
     # Might even lower it since the higher the duration estimate the longer the simulation takes.
     def simulate(self):
         lol = 0
-        # Initialize the ball prediction and batmobile hitbox
+        # Initialize the ball prediction
         # Estimate the probable duration of the jump and round it down to the floor decimal
         ball_prediction = self.get_ball_prediction_struct()
         if self.game.my_car.boost < 6:
@@ -165,14 +166,10 @@ class MyAgent(BaseAgent):
             theta = math.atan(opposite / adjacent)
             t = get_time_at_height_boost(self.game.ball.location[2], theta, self.game.my_car.boost)
             duration_estimate = math.ceil(t * 10) / 10
-        batmobile = obb()
-        batmobile.half_width = vec3(64.4098892211914, 42.335182189941406, 14.697200775146484)
         # Loop for 6 frames meaning adding 0.1 to the estimated duration. Keeps the time constraint under 0.3s
         for i in range(6):
             # Copy the car object and reset the values for the hitbox
             car = Car(self.game.my_car)
-            batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
-            batmobile.orientation = car.rotation
             # Create a dodge object on the copied car object
             # Direction is from the ball to the enemy goal
             # Duration is estimated duration plus the time added by the for loop
@@ -234,20 +231,33 @@ class MyAgent(BaseAgent):
                     dodge.controls.boost = 0
 
                 car.step(dodge.controls, 1 / fps)
-
-                # Update the hitbox information
-                batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
-                batmobile.orientation = car.rotation
-                # Check if we hit the ball, and if the point of contact is just below the middle
-                # TODO check for the actual point of contact instead of the car position
-                hit_check = intersect(sphere(ball_location, 93.15), batmobile)
-                hit_location_check = abs(ball_location[2] - car.location[2]) < 25 and car.location[2] < ball_location[2]
-                angle_car_simulation = angle_between(car.rotation, self.game.my_car.rotation)
-                angle_simulation_target = angle_between(car.rotation, dodge.preorientation)
-                angle_check = angle_simulation_target < angle_car_simulation or angle_simulation_target < 0.1
-                if hit_check and hit_location_check and angle_check:
+                if self.dodge_succesfull(car, ball_location, dodge):
                     return True, j / fps, ball_location
         return False, None, None
+
+    def dodge_succesfull(self, car, ball_location, dodge):
+        batmobile = obb()
+        batmobile.half_width = vec3(64.4098892211914, 42.335182189941406, 14.697200775146484)
+        batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
+        batmobile.orientation = car.rotation
+
+        hit_location = nearest_point_on_obb(batmobile, sphere(ball_location, 93.15))
+        if hit_location is None:
+            return False
+
+        # return closest_local[0] > 35 and -12 < closest_local[2] < 12
+        if abs(ball_location[2] - hit_location[2]) < 25 and hit_location[2] < ball_location[2]:
+            print(ball_location, hit_location)
+            hit_check = True
+        else:
+            hit_check = False
+        # hit_check = (dot(hit_location - batmobile.center, batmobile.orientation))
+        # print(hit_check)
+        angle_car_simulation = angle_between(car.rotation, self.game.my_car.rotation)
+        angle_simulation_target = angle_between(car.rotation, dodge.preorientation)
+        angle_check = angle_simulation_target < angle_car_simulation or angle_simulation_target < 0.1
+        # return hit_check and angle_check
+        return hit_check and angle_check
 
     """" State setting methods for various situations"""
 
@@ -361,3 +371,21 @@ class MyAgent(BaseAgent):
             ball=ball_state,
             cars={self.game.id: car_state})
         )
+
+
+# TODO check the first frame where we "hit" the ball, if the hit is not correct go to the next simulation
+def nearest_point_on_obb(a, b):
+    b_local = dot(b.center - a.center, a.orientation)
+
+    closest_local = vec3(
+        min(max(b_local[0], -a.half_width[0]), a.half_width[0]),
+        min(max(b_local[1], -a.half_width[1]), a.half_width[1]),
+        min(max(b_local[2], -a.half_width[2]), a.half_width[2])
+    )
+
+    world = dot(a.orientation, closest_local) + a.center
+    if norm(world - b.center) > b.radius:
+        return None
+    print("============================================")
+    print(norm(world - b.center))
+    return world
