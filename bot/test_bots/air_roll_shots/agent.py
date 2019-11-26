@@ -240,8 +240,7 @@ class MyAgent(BaseAgent):
                 batmobile.orientation = car.rotation
                 # Check if we hit the ball, and if the point of contact is just below the middle
                 # TODO check for the actual point of contact instead of the car position
-                # hit_check = intersect(sphere(ball_location, 93.15), batmobile)
-                hit_check = norm(ball_location - batmobile.center) < 200
+                hit_check = intersect(sphere(ball_location, 93.15), batmobile)
                 hit_location_check = abs(ball_location[2] - car.location[2]) < 25 and car.location[2] < ball_location[2]
                 angle_car_simulation = angle_between(car.rotation, self.game.my_car.rotation)
                 angle_simulation_target = angle_between(car.rotation, dodge.preorientation)
