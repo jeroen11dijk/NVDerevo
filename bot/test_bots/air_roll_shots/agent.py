@@ -14,14 +14,10 @@ from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, AerialTurn, Drive
 from rlutilities.simulation import Game, Car, obb, intersect, sphere
 
-ball_z = 450
+ball_z = 275
 ball_y = 1000
 jeroens_magic_number = 5
 
-
-# TODO
-# Instead of maaien just pitch until looking as up as possible and then calculate the time needed to rotate to a flatish
-# rotation to make solid contact with the ball and start turning back at d - that time.
 
 class State:
     RESET = 0
