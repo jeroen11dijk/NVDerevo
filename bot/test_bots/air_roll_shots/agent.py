@@ -10,8 +10,9 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 from jump_sim import get_time_at_height, get_time_at_height_boost
 
 sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
-from rlutilities.linear_algebra import Dodge, AerialTurn, Drive
+from rlutilities.mechanics import Dodge, AerialTurn, Drive
 from rlutilities.simulation import Game, Car, obb, sphere
+from rlutilities.linear_algebra import *
 
 ball_z = 275
 ball_y = 1000
@@ -219,7 +220,7 @@ class MyAgent(BaseAgent):
         batmobile = obb()
         batmobile.half_width = vec3(64.4098892211914, 42.335182189941406, 14.697200775146484)
         batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
-        batmobile.rotation = car.rotation
+        batmobile.orientation = car.rotation
         ball = sphere(ball_location, 93.15)
         b_local = dot(ball.center - batmobile.center, batmobile.rotation)
 

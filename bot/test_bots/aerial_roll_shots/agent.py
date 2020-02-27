@@ -104,7 +104,7 @@ class Agent(BaseAgent):
                 # self.aerial.target_rotation = look_at(goal - self.aerial.target, vec3(0, 0, 1))
                 self.aerial.target_rotation = look_at(goal - self.game.my_car.location, vec3(0, 0, 1))
                 # Simulate the aerial and see whether its doable or not
-                simulation = self.aerial.simulate()
+                simulation = self.aerial.simulate
                 # # check if we can reach it by an aerial
                 if norm(simulation.location - self.aerial.target) < 100 and angle_between(simulation.rotation,
                                                                                           self.aerial.target_rotation) < 0.01:
