@@ -10,9 +10,8 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 from jump_sim import get_time_at_height, get_time_at_height_boost
 
 sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
-from rlutilities.linear_algebra import *
-from rlutilities.mechanics import Dodge, AerialTurn, Drive
-from rlutilities.simulation import Game, Car, obb, intersect, sphere
+from rlutilities.linear_algebra import Dodge, AerialTurn, Drive
+from rlutilities.simulation import Game, Car, obb, sphere
 
 ball_z = 275
 ball_y = 1000
@@ -57,9 +56,9 @@ class MyAgent(BaseAgent):
             self.timer = 0.0
             # self.set_gamestate_straight_moving()
             # self.set_gamestate_straight_moving_towards()
-            # self.set_state_stationary_angled()
+            self.set_state_stationary_angled()
             # self.set_gamestate_angled_stationary()
-            self.set_state_stationary()
+            # self.set_state_stationary()
             next_state = State.WAIT
 
         # Wait so everything can settle in, mainly for ball prediction
@@ -83,10 +82,8 @@ class MyAgent(BaseAgent):
             self.controls = self.drive.controls
             a = time.time()
             can_dodge, simulated_duration, simulated_target = self.simulate()
-            # print(time.time() - a)
+            print(time.time() - a)
             if can_dodge:
-                print(norm(vec2(simulated_target - self.game.my_car.location)))
-                print(norm(self.game.my_car.velocity))
                 self.dodge = Dodge(self.game.my_car)
                 self.turn = AerialTurn(self.game.my_car)
                 self.dodge.duration = simulated_duration - 0.1
@@ -161,15 +158,15 @@ class MyAgent(BaseAgent):
             # Create a dodge object on the copied car object
             # Direction is from the ball to the enemy goal
             # Duration is estimated duration plus the time added by the for loop
-            # Preorientation is the rotation matrix from the ball to the goal
+            # preorientation is the rotation matrix from the ball to the goal
             # TODO make it work on both sides
             #  Test with preorientation. Currently it still picks a low duration at a later time meaning it
             #  wont do any of the preorientation.
             dodge = Dodge(car)
             prediction_slice = ball_prediction.slices[round(60 * (duration_estimate + i / 60))]
             physics = prediction_slice.physics
-            # ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
-            ball_location = vec3(0, ball_y, ball_z)
+            ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
+            # ball_location = vec3(0, ball_y, ball_z)
             dodge.direction = vec2(vec3(0, 5120, 321) - ball_location)
             dodge.duration = duration_estimate + i / 60
             if dodge.duration > 1.4:
@@ -184,7 +181,7 @@ class MyAgent(BaseAgent):
                 # Get the ball prediction slice at this time and convert the location to RLU vec3
                 prediction_slice = ball_prediction.slices[round(60 * j / fps)]
                 physics = prediction_slice.physics
-                # ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
+                ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
                 dodge.step(1 / fps)
 
                 T = dodge.duration - dodge.timer
@@ -222,9 +219,9 @@ class MyAgent(BaseAgent):
         batmobile = obb()
         batmobile.half_width = vec3(64.4098892211914, 42.335182189941406, 14.697200775146484)
         batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
-        batmobile.orientation = car.rotation
+        batmobile.rotation = car.rotation
         ball = sphere(ball_location, 93.15)
-        b_local = dot(ball.center - batmobile.center, batmobile.orientation)
+        b_local = dot(ball.center - batmobile.center, batmobile.rotation)
 
         closest_local = vec3(
             min(max(b_local[0], -batmobile.half_width[0]), batmobile.half_width[0]),
@@ -232,12 +229,11 @@ class MyAgent(BaseAgent):
             min(max(b_local[2], -batmobile.half_width[2]), batmobile.half_width[2])
         )
 
-        hit_location = dot(batmobile.orientation, closest_local) + batmobile.center
-
+        hit_location = dot(batmobile.rotation, closest_local) + batmobile.center
         if norm(hit_location - ball.center) > ball.radius:
             return None
-        if abs(ball_location[2] - hit_location[2]) < 10 and hit_location[2] < ball_location[2]:
-            print(ball_location, hit_location)
+        # if abs(ball_location[2] - hit_location[2]) < 25 and hit_location[2] < ball_location[2]:
+        if abs(ball_location[2] - hit_location[2]) < 25:
             if closest_local[0] > 35 and -12 < closest_local[2] < 12:
                 hit_check = True
             else:
@@ -245,11 +241,11 @@ class MyAgent(BaseAgent):
                 hit_check = True
         else:
             hit_check = False
+        # Seems to work without angle_check. No clue why though
         angle_car_simulation = angle_between(car.rotation, self.game.my_car.rotation)
         angle_simulation_target = angle_between(car.rotation, dodge.preorientation)
         angle_check = angle_simulation_target < angle_car_simulation or angle_simulation_target < 0.1
-        # return hit_check and angle_check
-        return hit_check and angle_check
+        return hit_check
 
     """" State setting methods for various situations"""
 
@@ -289,7 +285,7 @@ class MyAgent(BaseAgent):
 
         ball_state = BallState(physics=Physics(
             location=Vector3(0, 2500, 93),
-            velocity=Vector3(0, -250, 700),
+            velocity=Vector3(0, -250, 500),
             rotation=Rotator(0, 0, 0),
             angular_velocity=Vector3(0, 0, 0),
         ))

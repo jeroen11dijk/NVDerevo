@@ -1,7 +1,6 @@
-from math import sin, cos
 import random
 import sys
-import time
+from math import sin, cos
 from pathlib import Path
 
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
@@ -9,9 +8,8 @@ from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics,
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
-from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Jump
-from rlutilities.simulation import Game, Ball
+from rlutilities.simulation import Game
 
 
 class State:

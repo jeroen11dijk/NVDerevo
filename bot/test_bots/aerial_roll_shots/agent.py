@@ -1,5 +1,4 @@
 import math
-import random
 import sys
 import time
 from pathlib import Path
@@ -9,8 +8,7 @@ from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics,
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 sys.path.insert(1, str(Path(__file__).absolute().parent.parent.parent))
-from rlutilities.linear_algebra import *
-from rlutilities.mechanics import AerialTurn, Aerial, Drive
+from rlutilities.linear_algebra import AerialTurn, Aerial, Drive
 from rlutilities.simulation import Game, Ball
 
 ball_z = 300
@@ -103,13 +101,13 @@ class Agent(BaseAgent):
                 self.aerial.target = vec3(0, 0, ball_z) + 200 * normalize(prediction.location - goal)
                 self.aerial.arrival_time = prediction.time
                 print(prediction.time)
-                # self.aerial.target_orientation = look_at(goal - self.aerial.target, vec3(0, 0, 1))
-                self.aerial.target_orientation = look_at(goal - self.game.my_car.location, vec3(0, 0, 1))
+                # self.aerial.target_rotation = look_at(goal - self.aerial.target, vec3(0, 0, 1))
+                self.aerial.target_rotation = look_at(goal - self.game.my_car.location, vec3(0, 0, 1))
                 # Simulate the aerial and see whether its doable or not
                 simulation = self.aerial.simulate()
                 # # check if we can reach it by an aerial
                 if norm(simulation.location - self.aerial.target) < 100 and angle_between(simulation.rotation,
-                                                                                          self.aerial.target_orientation) < 0.01:
+                                                                                          self.aerial.target_rotation) < 0.01:
                     print(i)
                     print(prediction.location)
                     print(self.game.my_car.rotation)
@@ -153,7 +151,7 @@ class Agent(BaseAgent):
             self.renderer.draw_line_3d(target - y, target + y, purple)
             self.renderer.draw_line_3d(target - z, target + z, purple)
             # self.renderer.draw_line_3d(self.game.my_car.location,
-            #                            1000 * dot(self.aerial.target_orientation, self.game.my_car.forward()), purple)
+            #                            1000 * dot(self.aerial.target_rotation, self.game.my_car.forward()), purple)
 
         # Render ball prediction
         if self.ball_predictions:

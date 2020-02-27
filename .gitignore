@@ -1,6 +1,6 @@
 # NV Derevo
 .idea/
-rlutilities/
+bot/rlutilities/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

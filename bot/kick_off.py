@@ -1,12 +1,11 @@
 """"Module that handles the kickoffs"""
-from rlutilities.mechanics import Dodge, AerialTurn
-from rlutilities.linear_algebra import *
-
 import math
 
-from util import get_closest_small_pad, sign, distance_2d, lerp
-from steps import Step
 from custom_drive import CustomDrive as Drive
+from rlutilities.linear_algebra import *
+from rlutilities.mechanics import Dodge, AerialTurn
+from steps import Step
+from util import get_closest_small_pad, sign, distance_2d, lerp
 
 
 def init_kickoff(agent):
@@ -70,7 +69,7 @@ def kick_off(agent):
                 agent.turn.step(agent.info.time_delta)
                 agent.controls = agent.turn.controls
                 if car.on_ground:
-                    agent.step = Step.Catching
+                    agent.step = Step.Shooting
             else:
                 agent.dodge.step(agent.info.time_delta)
                 agent.controls = agent.dodge.controls
@@ -107,7 +106,7 @@ def kick_off(agent):
             agent.dodge.step(agent.info.time_delta)
             agent.controls = agent.dodge.controls
             if agent.dodge.finished and car.on_ground:
-                agent.step = Step.Catching
+                agent.step = Step.Shooting
     elif agent.kickoffStart == "offCenter":
         if agent.step is Step.Drive:
             agent.drive.step(agent.info.time_delta)
@@ -145,7 +144,7 @@ def kick_off(agent):
             agent.dodge.step(agent.info.time_delta)
             agent.controls = agent.dodge.controls
             if agent.dodge.finished and car.on_ground:
-                agent.step = Step.Catching
+                agent.step = Step.Shooting
 
 
 def set_steer(agent):

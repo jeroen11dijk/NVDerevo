@@ -3,12 +3,11 @@ from math import sqrt
 from typing import Optional, Union
 
 from rlbot.training.training import Pass, Grade
-
 from rlbottraining.common_graders.compound_grader import CompoundGrader
-from rlbottraining.grading.grader import Grader
-
 from rlbottraining.common_graders.timeout import FailOnTimeout
+from rlbottraining.grading.grader import Grader
 from rlbottraining.grading.training_tick_packet import TrainingTickPacket
+
 
 @dataclass
 class KickoffGrader(CompoundGrader):
@@ -28,7 +27,7 @@ class PassOnBallMoveFromKickoff(Grader):
     ball_moved_flag : bool = False
     class PassDueToMovedBall(Pass):
         def __repr__(self):
-            return f'{super().__repr__()}: Ball has moved from the start position.'
+            return f'{super().__repr__()}: Ball has moved from the start location.'
 
     def on_tick(self, tick: TrainingTickPacket) -> Optional[Grade]:
 

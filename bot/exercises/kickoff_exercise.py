@@ -3,6 +3,7 @@ from math import pi
 from pathlib import Path
 from typing import List, Optional
 
+from kickoff_grader import KickoffGrader
 from rlbot.matchcomms.common_uses.reply import send_and_wait_for_replies
 from rlbot.matchcomms.common_uses.set_attributes_message import make_set_attributes_message
 from rlbot.matchconfig.match_config import PlayerConfig, Team
@@ -13,34 +14,32 @@ from rlbottraining.grading.grader import Grader
 from rlbottraining.rng import SeededRandomNumberGenerator
 from rlbottraining.training_exercise import TrainingExercise, Playlist
 
-from kickoff_grader import KickoffGrader
-
 
 @dataclass
-class SpawnLocation:
+class Spawnlocation:
     pos: Vector3
     rot: Rotator
 
 
 class Spawns():
     """Default Kickoffs Spawns (BLUE)"""
-    CORNER_R = SpawnLocation(Vector3(-2048, -2560, 18), Rotator(0, 0.25 * pi, 0))
-    CORNER_L = SpawnLocation(Vector3(2048, -2560, 18), Rotator(0, 0.75 * pi, 0))
-    BACK_R = SpawnLocation(Vector3(-256, -3840, 18), Rotator(0, 0.5 * pi, 0))
-    BACK_L = SpawnLocation(Vector3(256.0, -3840, 18), Rotator(0, 0.5 * pi, 0))
-    STRAIGHT = SpawnLocation(Vector3(0, -4608, 18), Rotator(0, 0.5 * pi, 0))
+    CORNER_R = Spawnlocation(Vector3(-2048, -2560, 18), Rotator(0, 0.25 * pi, 0))
+    CORNER_L = Spawnlocation(Vector3(2048, -2560, 18), Rotator(0, 0.75 * pi, 0))
+    BACK_R = Spawnlocation(Vector3(-256, -3840, 18), Rotator(0, 0.5 * pi, 0))
+    BACK_L = Spawnlocation(Vector3(256.0, -3840, 18), Rotator(0, 0.5 * pi, 0))
+    STRAIGHT = Spawnlocation(Vector3(0, -4608, 18), Rotator(0, 0.5 * pi, 0))
 
 
 @dataclass
 class KickoffExercise(TrainingExercise):
     grader: Grader = field(default_factory=KickoffGrader)
-    blue_spawns: List[SpawnLocation] = field(default_factory=list)
-    orange_spawns: List[SpawnLocation] = field(default_factory=list)
+    blue_spawns: List[Spawnlocation] = field(default_factory=list)
+    orange_spawns: List[Spawnlocation] = field(default_factory=list)
 
     def __post_init__(self):
         """Flip the orange spawns around to get the correct location and combine the two spawns."""
         orange_spawns = [
-            SpawnLocation(Vector3(-spawn.pos.x, -spawn.pos.y, spawn.pos.z),
+            Spawnlocation(Vector3(-spawn.pos.x, -spawn.pos.y, spawn.pos.z),
                           Rotator(spawn.rot.pitch, spawn.rot.yaw + pi, spawn.rot.roll))
             for spawn in self.orange_spawns]
         self.spawns = self.blue_spawns + orange_spawns
