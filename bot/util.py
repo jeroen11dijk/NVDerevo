@@ -9,6 +9,10 @@ def distance_2d(vec_a, vec_b):
     return norm(vec2(vec_a - vec_b))
 
 
+def in_front_off_ball(car, ball, goal):
+    return distance_2d(ball, goal) < distance_2d(car, goal)
+
+
 def get_closest_small_pad(agent, location):
     """Gets the small boostpad closest to the bot"""
     pads = agent.small_boost_pads

@@ -19,7 +19,7 @@ from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, AerialTurn
 from rlutilities.simulation import Game, Car, obb, sphere
 from steps import Step
-from util import distance_2d, sign, velocity_2d, get_closest_big_pad
+from util import distance_2d, sign, velocity_2d, get_closest_big_pad, in_front_off_ball
 
 jeroens_magic_number = 5
 
@@ -64,8 +64,8 @@ class Hypebot(BaseAgent):
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         """The main method which receives the packets and outputs the controls"""
         self.info.read_game_information(packet, self.get_field_info())
-        self.in_front_off_ball = distance_2d(self.info.ball.position, self.my_goal.center) < distance_2d(
-            self.info.my_car.position, self.my_goal.center)
+        self.in_front_off_ball = in_front_off_ball(self.info.my_car.position, self.info.ball.position,
+                                                   self.my_goal.center)
         update_boostpads(self, packet)
         self.closest_to_ball = self.closest_to_the_ball()
         self.predict()
@@ -161,14 +161,26 @@ class Hypebot(BaseAgent):
             self.drive.speed = 1410
             self.drive.step(self.info.time_delta)
             self.controls = self.drive.controls
-            teammate = self.info.cars[self.teammates[0]].position
-            teammate_out_location = distance_2d(self.info.ball.position, self.my_goal.center) < distance_2d(teammate,
-                                                                                                            self.my_goal.center)
             in_position = 2 * distance_2d(self.info.ball.position, self.my_goal.center) > 3 * distance_2d(
                 self.info.my_car.position, self.my_goal.center)
             faster = self.closest_to_ball and in_position
-            if teammate_out_location or faster:
+            if len(self.teammates) == 0 and in_position:
                 self.step = Step.Shooting
+            if len(self.teammates) == 1:
+                teammate = self.info.cars[self.teammates[0]].position
+                teammate_out_location = in_front_off_ball(teammate, self.info.ball.position, self.my_goal.center)
+                if teammate_out_location or faster:
+                    self.step = Step.Shooting
+            if len(self.teammates) == 2:
+                teammate1 = self.info.cars[self.teammates[0]].position
+                teammate2 = self.info.cars[self.teammates[0]].position
+                teammate1_out_location = in_front_off_ball(teammate1, self.info.ball.position, self.my_goal.center)
+                teammate2_out_location = in_front_off_ball(teammate2, self.info.ball.position, self.my_goal.center)
+                if teammate1_out_location and teammate2_out_location:
+                    self.step = Step.Shooting
+                if (teammate1_out_location or teammate2_out_location) and faster or faster:
+                    self.step = Step.Shooting
+
         elif self.step == Step.Defending:
             defending(self)
         elif self.step == Step.Dodge or self.step == Step.HalfFlip:
