@@ -1,4 +1,5 @@
 from rlbot.agents.base_agent import SimpleControllerState
+
 from rlutilities.linear_algebra import vec3, dot, look_at
 from rlutilities.mechanics import AerialTurn
 
@@ -9,7 +10,7 @@ class HalfFlip:
         self.timer = 0
         self.car = car
         self.direction = vec3(car.forward() * -1)
-        self.target = self.direction * 1000 + self.car.location
+        self.target = self.direction * 1000 + self.car.position
         self.aerial_turn = AerialTurn(car)
         self.aerial_turn.target = look_at(self.direction, vec3(0, 0, 1))
         self.controls = SimpleControllerState()

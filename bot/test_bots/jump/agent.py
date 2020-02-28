@@ -91,7 +91,7 @@ class MyAgent(BaseAgent):
             else:
                 self.controls.boost = 1
                 self.controls.pitch = 0
-            print(self.timer, self.game.my_car.location[2], self.controls.jump)
+            print(self.timer, self.game.my_car.position[2], self.controls.jump)
 
             if self.timer > 2:
                 next_state = State.RESET

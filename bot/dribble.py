@@ -26,10 +26,10 @@ class Dribbling:
         """"Gives output for the dribbling strategy"""
         # direction of ball relative to center of car (where should we aim)
         # direction of ball relative to yaw of car (where should we aim verse where we are aiming)
-        local_bot_to_ball = dot(self.ball.location - self.car.location, self.car.rotation)
+        local_bot_to_ball = dot(self.ball.position - self.car.position, self.car.orientation)
         angle_front_to_ball = math.atan2(local_bot_to_ball[1], local_bot_to_ball[0])
         # distance between bot and ball
-        distance = distance_2d(self.car.location, self.ball.location)
+        distance = distance_2d(self.car.position, self.ball.position)
         # direction of ball velocity relative to yaw of car (which way the ball is moving verse which way we are moving)
         if velocity_2d(self.ball.velocity) < 1e-10:
             angle_car_forward_to_ball_velocity = 0
@@ -76,7 +76,7 @@ class Dribbling:
         bias_v = 600000  # 600000
 
         # just the basic PID if the ball is too low
-        if self.ball.location[2] < 120:
+        if self.ball.position[2] < 120:
             correction = np.tanh((20 * p + .0015 * i + .006 * d) / 500)
         # if the ball is on top of the car we use our bias (the bias is in velocity units squared)
         else:
@@ -103,9 +103,9 @@ class Dribbling:
         # d_s is actually -d_s ...whoops
         d_s = -d_s
         max_bias = 35
-        backline_intersect = line_backline_intersect(self.goal.center[1], vec2(self.car.location),
+        backline_intersect = line_backline_intersect(self.goal.center[1], vec2(self.car.position),
                                                      vec2(self.car.forward()))
-        if abs(backline_intersect) < 1000 or self.ball.location[2] > 200:
+        if abs(backline_intersect) < 1000 or self.ball.position[2] > 200:
             bias = 0
         # Right of the ball
         elif -850 > backline_intersect:

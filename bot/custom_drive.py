@@ -1,9 +1,9 @@
 from math import cos, atan2, pi, radians
 
 from rlbot.agents.base_agent import SimpleControllerState
+
 from rlutilities.linear_algebra import vec3, dot
 from rlutilities.mechanics import Drive as RLUDrive
-
 from util import sign, cap
 
 
@@ -24,8 +24,8 @@ class CustomDrive:
         self.rlu_drive.step(dt)
         self.finished = self.rlu_drive.finished
 
-        car_to_target = (self.target - self.car.location)
-        local_target = dot(car_to_target, self.car.rotation)
+        car_to_target = (self.target - self.car.position)
+        local_target = dot(car_to_target, self.car.orientation)
         angle = atan2(local_target[1], local_target[0])
 
         self.controls = self.rlu_drive.controls

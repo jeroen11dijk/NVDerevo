@@ -65,15 +65,15 @@ class Agent(BaseAgent):
         # Initialize the drive mechanic
         if self.state == State.INITIALIZE:
             self.drive = Drive(self.game.my_car)
-            self.drive.target = self.game.ball.location + 200 * normalize(
-                vec3(vec2(self.game.ball.location - vec3(0, 5120, 0))))
+            self.drive.target = self.game.ball.position + 200 * normalize(
+                vec3(vec2(self.game.ball.position - vec3(0, 5120, 0))))
             self.drive.speed = 1400
             next_state = State.DRIVING
 
         # Start driving towards the target and check whether an aerial is possible, if so initialize the dodge
         if self.state == State.DRIVING:
-            self.drive.target = self.game.ball.location + 200 * normalize(
-                vec3(vec2(self.game.ball.location - vec3(0, 5120, 0))))
+            self.drive.target = self.game.ball.position + 200 * normalize(
+                vec3(vec2(self.game.ball.position - vec3(0, 5120, 0))))
             self.drive.step(self.game.time_delta)
             self.controls = self.drive.controls
 
@@ -102,7 +102,7 @@ class Agent(BaseAgent):
                 self.aerial.arrival_time = prediction.time
                 print(prediction.time)
                 # self.aerial.target_rotation = look_at(goal - self.aerial.target, vec3(0, 0, 1))
-                self.aerial.target_rotation = look_at(goal - self.game.my_car.location, vec3(0, 0, 1))
+                self.aerial.target_rotation = look_at(goal - self.game.my_car.position, vec3(0, 0, 1))
                 # Simulate the aerial and see whether its doable or not
                 simulation = self.aerial.simulate
                 # # check if we can reach it by an aerial
@@ -110,7 +110,7 @@ class Agent(BaseAgent):
                                                                                           self.aerial.target_rotation) < 0.01:
                     print(i)
                     print(prediction.location)
-                    print(self.game.my_car.rotation)
+                    print(self.game.my_car.orientation)
                     print("predicted rotation")
                     print(simulation.rotation)
                     next_state = State.RUNNING
@@ -126,7 +126,7 @@ class Agent(BaseAgent):
                 print(self.game.my_car.double_jumped)
                 self.controls.jump = True
                 print("actual rotation")
-                print(self.game.my_car.rotation)
+                print(self.game.my_car.orientation)
             if self.timer > self.timeout:
                 next_state = State.RESET
 
@@ -150,7 +150,7 @@ class Agent(BaseAgent):
             self.renderer.draw_line_3d(target - x, target + x, purple)
             self.renderer.draw_line_3d(target - y, target + y, purple)
             self.renderer.draw_line_3d(target - z, target + z, purple)
-            # self.renderer.draw_line_3d(self.game.my_car.location,
+            # self.renderer.draw_line_3d(self.game.my_car.position,
             #                            1000 * dot(self.aerial.target_rotation, self.game.my_car.forward()), purple)
 
         # Render ball prediction

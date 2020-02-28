@@ -1,19 +1,18 @@
 """"Module that handles the defending strategy"""
 import math
 
+from halfflip import HalfFlip
 from rlutilities.linear_algebra import normalize, rotation, vec3, vec2, dot
 from rlutilities.mechanics import Dodge
-
-from util import line_backline_intersect, cap, distance_2d, sign, get_speed, can_dodge, velocity_forward
 from steps import Step
-from halfflip import HalfFlip
+from util import line_backline_intersect, cap, distance_2d, sign, get_speed, can_dodge, velocity_forward
 
 
 def defending(agent):
     """"Method that gives output for the defending strategy"""
     target = defending_target(agent)
     agent.drive.target = target
-    distance = distance_2d(agent.info.my_car.location, target)
+    distance = distance_2d(agent.info.my_car.position, target)
     vf = velocity_forward(agent.info.my_car)
     dodge_overshoot = distance < (abs(vf) + 500) * 1.5
     agent.drive.speed = get_speed(agent, target)
@@ -29,7 +28,7 @@ def defending(agent):
     elif vf < -900 and (not dodge_overshoot or distance < 600):
         agent.step = Step.HalfFlip
         agent.halfflip = HalfFlip(agent.info.my_car)
-    elif not dodge_overshoot and agent.info.my_car.location[2] < 80 and\
+    elif not dodge_overshoot and agent.info.my_car.position[2] < 80 and \
             (agent.drive.speed > abs(vf) + 300 and 1200 < abs(vf) < 2000 and agent.info.my_car.boost <= 25):
         # Dodge towards the target for speed
         agent.step = Step.Dodge
@@ -42,23 +41,23 @@ def defending_target(agent):
     """"Method that gives the target for the shooting strategy"""
     ball = agent.info.ball
     car = agent.info.my_car
-    car_to_ball = ball.location - car.location
-    backline_intersect = line_backline_intersect(agent.my_goal.center[1], vec2(car.location), vec2(car_to_ball))
-    target = agent.my_goal.center + vec3(sign(backline_intersect) * max(abs(ball.location[0]), 1500), 0, 0)
-    target_to_ball = normalize(ball.location - target)
+    car_to_ball = ball.position - car.position
+    backline_intersect = line_backline_intersect(agent.my_goal.center[1], vec2(car.position), vec2(car_to_ball))
+    target = agent.my_goal.center + vec3(sign(backline_intersect) * max(abs(ball.position[0]), 1500), 0, 0)
+    target_to_ball = normalize(ball.position - target)
     # Subtract target to car vector
-    difference = target_to_ball - normalize(car.location - target)
+    difference = target_to_ball - normalize(car.position - target)
     error = cap(abs(difference[0]) + abs(difference[1]), 1, 10)
 
     goal_to_ball_2d = vec2(target_to_ball[0], target_to_ball[1])
     test_vector_2d = dot(rotation(0.5 * math.pi), goal_to_ball_2d)
     test_vector = vec3(test_vector_2d[0], test_vector_2d[1], 0)
 
-    distance = cap((40 + distance_2d(ball.location, car.location) * (error ** 2)) / 1.8, 0, 4000)
-    location = ball.location + vec3((target_to_ball[0] * distance), target_to_ball[1] * distance, 0)
+    distance = cap((40 + distance_2d(ball.position, car.position) * (error ** 2)) / 1.8, 0, 4000)
+    location = ball.position + vec3((target_to_ball[0] * distance), target_to_ball[1] * distance, 0)
 
     # this adjusts the target based on the ball velocity perpendicular to the direction we're trying to hit it
-    multiplier = cap(distance_2d(car.location, location) / 1500, 0, 2)
+    multiplier = cap(distance_2d(car.position, location) / 1500, 0, 2)
     distance_modifier = cap(dot(test_vector, ball.velocity) * multiplier, -1000, 1000)
     location += vec3(test_vector[0] * distance_modifier, test_vector[1] * distance_modifier, 0)
 

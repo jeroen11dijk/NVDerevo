@@ -63,9 +63,9 @@ class Hypebot(BaseAgent):
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         """The main method which receives the packets and outputs the controls"""
-        self.info.read_game_information(packet, self.get_rigid_body_tick(), self.get_field_info())
-        self.in_front_off_ball = distance_2d(self.info.ball.location, self.my_goal.center) < distance_2d(
-            self.info.my_car.location, self.my_goal.center)
+        self.info.read_game_information(packet, self.get_field_info())
+        self.in_front_off_ball = distance_2d(self.info.ball.position, self.my_goal.center) < distance_2d(
+            self.info.my_car.position, self.my_goal.center)
         update_boostpads(self, packet)
         self.closest_to_ball = self.closest_to_the_ball()
         self.predict()
@@ -76,7 +76,7 @@ class Hypebot(BaseAgent):
         self.time = packet.game_info.seconds_elapsed
         # self.handle_match_comms()
         self.prev_kickoff = self.kickoff
-        self.kickoff = packet.game_info.is_kickoff_pause and distance_2d(self.info.ball.location, vec3(0, 0, 0)) < 100
+        self.kickoff = packet.game_info.is_kickoff_pause and distance_2d(self.info.ball.position, vec3(0, 0, 0)) < 100
         if self.kickoff and not self.prev_kickoff:
             # if not self.close_to_kickoff_spawn():
             #     return
@@ -132,16 +132,16 @@ class Hypebot(BaseAgent):
     def closest_to_the_ball(self):
         dist_to_ball = math.inf
         for i in range(len(self.teammates)):
-            if distance_2d(self.info.cars[self.teammates[i]].location, self.info.ball.location) < dist_to_ball:
-                dist_to_ball = distance_2d(self.info.cars[self.teammates[i]].location, self.info.ball.location)
-        return distance_2d(self.info.my_car.location, self.info.ball.location) <= dist_to_ball
+            if distance_2d(self.info.cars[self.teammates[i]].position, self.info.ball.position) < dist_to_ball:
+                dist_to_ball = distance_2d(self.info.cars[self.teammates[i]].position, self.info.ball.position)
+        return distance_2d(self.info.my_car.position, self.info.ball.position) <= dist_to_ball
 
     def get_controls(self):
         """Decides what strategy to uses and gives corresponding output"""
         if self.step == Step.Steer or self.step == Step.Dodge_2 or self.step == Step.Dodge_1 or self.step == Step.Drive:
             self.step = Step.Shooting
         if self.step == Step.Shooting:
-            self.drive.target = self.info.ball.location
+            self.drive.target = self.info.ball.position
             self.drive.step(self.info.time_delta)
             self.controls = self.drive.controls
             can_dodge, simulated_duration, simulated_target = self.simulate
@@ -157,18 +157,15 @@ class Hypebot(BaseAgent):
             if not self.closest_to_ball or self.in_front_off_ball:
                 self.step = Step.Rotating
         elif self.step == Step.Rotating:
-            self.drive.target = 0.5 * (self.info.ball.location - self.my_goal.center) + self.my_goal.center
+            self.drive.target = 0.5 * (self.info.ball.position - self.my_goal.center) + self.my_goal.center
             self.drive.speed = 1410
             self.drive.step(self.info.time_delta)
             self.controls = self.drive.controls
-            teammate = self.info.cars[self.teammates[0]].location
-            teammate_out_location = distance_2d(self.info.ball.location, self.my_goal.center) < distance_2d(teammate,
+            teammate = self.info.cars[self.teammates[0]].position
+            teammate_out_location = distance_2d(self.info.ball.position, self.my_goal.center) < distance_2d(teammate,
                                                                                                             self.my_goal.center)
-            in_position = 3 * distance_2d(self.info.ball.location, self.my_goal.center) > 4 * distance_2d(
-                self.info.my_car.location, self.my_goal.center)
-            print(self.index)
-            print(3 * distance_2d(self.info.ball.location, self.my_goal.center),
-                  4 * distance_2d(self.info.my_car.location, self.my_goal.center))
+            in_position = 2 * distance_2d(self.info.ball.position, self.my_goal.center) > 3 * distance_2d(
+                self.info.my_car.position, self.my_goal.center)
             faster = self.closest_to_ball and in_position
             if teammate_out_location or faster:
                 self.step = Step.Shooting
@@ -202,8 +199,8 @@ class Hypebot(BaseAgent):
         """Rendering method mainly used to show the current state"""
         self.renderer.begin_rendering('The State')
         if self.step == Step.Dodge_1:
-            self.renderer.draw_line_3d(self.info.my_car.location, self.dodge.target, self.renderer.black())
-        self.renderer.draw_line_3d(self.info.my_car.location, self.drive.target, self.renderer.blue())
+            self.renderer.draw_line_3d(self.info.my_car.position, self.dodge.target, self.renderer.black())
+        self.renderer.draw_line_3d(self.info.my_car.position, self.drive.target, self.renderer.blue())
         if self.index == 0:
             self.renderer.draw_string_2d(20, 20, 3, 3, string, self.renderer.red())
         else:
@@ -223,12 +220,12 @@ class Hypebot(BaseAgent):
         # Estimate the probable duration of the jump and round it down to the floor decimal
         ball_prediction = self.get_ball_prediction_struct()
         if self.info.my_car.boost < 6:
-            duration_estimate = math.floor(get_time_at_height(self.info.ball.location[2]) * 10) / 10
+            duration_estimate = math.floor(get_time_at_height(self.info.ball.position[2]) * 10) / 10
         else:
-            adjacent = norm(vec2(self.info.my_car.location - self.info.ball.location))
-            opposite = (self.info.ball.location[2] - self.info.my_car.location[2])
+            adjacent = norm(vec2(self.info.my_car.position - self.info.ball.position))
+            opposite = (self.info.ball.position[2] - self.info.my_car.position[2])
             theta = math.atan(opposite / adjacent)
-            t = get_time_at_height_boost(self.info.ball.location[2], theta, self.info.my_car.boost)
+            t = get_time_at_height_boost(self.info.ball.position[2], theta, self.info.my_car.boost)
             duration_estimate = (math.ceil(t * 10) / 10)
         # Loop for 6 frames meaning adding 0.1 to the estimated duration. Keeps the time constraint under 0.3s
         for i in range(6):
@@ -269,7 +266,7 @@ class Hypebot(BaseAgent):
                         dodge.controls.boost = 1
                         dodge.controls.pitch = 1
                     else:
-                        xf = car.location + 0.5 * T * T * vec3(0, 0, -650) + T * car.velocity
+                        xf = car.position + 0.5 * T * T * vec3(0, 0, -650) + T * car.velocity
 
                         delta_x = ball_location - xf
                         if angle_between(vec2(car.forward()), dodge.direction) < 0.3:
@@ -297,8 +294,8 @@ class Hypebot(BaseAgent):
     def dodge_succesfull(self, car, ball_location, dodge):
         batmobile = obb()
         batmobile.half_width = vec3(64.4098892211914, 42.335182189941406, 14.697200775146484)
-        batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
-        batmobile.orientation = car.rotation
+        batmobile.center = car.position + dot(car.orientation, vec3(9.01, 0, 12.09))
+        batmobile.orientation = car.orientation
         ball = sphere(ball_location, 93.15)
         b_local = dot(ball.center - batmobile.center, batmobile.orientation)
 
@@ -321,22 +318,22 @@ class Hypebot(BaseAgent):
         else:
             hit_check = False
         # Seems to work without angle_check. No clue why though
-        angle_car_simulation = angle_between(car.rotation, self.info.my_car.rotation)
-        angle_simulation_target = angle_between(car.rotation, dodge.preorientation)
+        angle_car_simulation = angle_between(car.orientation, self.info.my_car.orientation)
+        angle_simulation_target = angle_between(car.orientation, dodge.preorientation)
         angle_check = angle_simulation_target < angle_car_simulation or angle_simulation_target < 0.1
         return hit_check
 
     def close_to_kickoff_spawn(self):
-        blue_one = distance_2d(self.info.my_car.location, vec3(-2048, -2560, 18)) < 10
-        blue_two = distance_2d(self.info.my_car.location, vec3(2048, -2560, 18)) < 10
-        blue_three = distance_2d(self.info.my_car.location, vec3(-256, -3840, 18)) < 10
-        blue_four = distance_2d(self.info.my_car.location, vec3(256, -3840, 18)) < 10
-        blue_five = distance_2d(self.info.my_car.location, vec3(0, -4608, 18)) < 10
+        blue_one = distance_2d(self.info.my_car.position, vec3(-2048, -2560, 18)) < 10
+        blue_two = distance_2d(self.info.my_car.position, vec3(2048, -2560, 18)) < 10
+        blue_three = distance_2d(self.info.my_car.position, vec3(-256, -3840, 18)) < 10
+        blue_four = distance_2d(self.info.my_car.position, vec3(256, -3840, 18)) < 10
+        blue_five = distance_2d(self.info.my_car.position, vec3(0, -4608, 18)) < 10
         blue = blue_one or blue_two or blue_three or blue_four or blue_five
-        orange_one = distance_2d(self.info.my_car.location, vec3(-2048, 2560, 18)) < 10
-        orange_two = distance_2d(self.info.my_car.location, vec3(2048, 2560, 18)) < 10
-        orange_three = distance_2d(self.info.my_car.location, vec3(-256, 3840, 18)) < 10
-        orange_four = distance_2d(self.info.my_car.location, vec3(256, 3840, 18)) < 10
-        orange_five = distance_2d(self.info.my_car.location, vec3(0, 4608, 18)) < 10
+        orange_one = distance_2d(self.info.my_car.position, vec3(-2048, 2560, 18)) < 10
+        orange_two = distance_2d(self.info.my_car.position, vec3(2048, 2560, 18)) < 10
+        orange_three = distance_2d(self.info.my_car.position, vec3(-256, 3840, 18)) < 10
+        orange_four = distance_2d(self.info.my_car.position, vec3(256, 3840, 18)) < 10
+        orange_five = distance_2d(self.info.my_car.position, vec3(0, 4608, 18)) < 10
         orange = orange_one or orange_two or orange_three or orange_four or orange_five
         return orange or blue

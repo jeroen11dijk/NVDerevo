@@ -16,7 +16,7 @@ def get_closest_small_pad(agent, location):
     distance = math.inf
     for pad in pads:
         if distance_2d(location, pad.location) < distance:
-            distance = distance_2d(agent.info.my_car.location, pad.location)
+            distance = distance_2d(agent.info.my_car.position, pad.location)
             closest_pad = pad
     return closest_pad
 
@@ -27,8 +27,8 @@ def get_closest_big_pad(agent):
     closest_pad = None
     distance = math.inf
     for pad in pads:
-        if distance_2d(agent.info.my_car.location, pad.location) < distance:
-            distance = distance_2d(agent.info.my_car.location, pad.location)
+        if distance_2d(agent.info.my_car.position, pad.location) < distance:
+            distance = distance_2d(agent.info.my_car.position, pad.location)
             closest_pad = pad
     return closest_pad
 
@@ -69,7 +69,7 @@ def boost_needed(initial_speed, goal_speed):
 
 def is_reachable(agent, location, eta):
     """Returns whether the bot can reach a certain location in time"""
-    distance = distance_2d(agent.info.my_car.location, location)
+    distance = distance_2d(agent.info.my_car.position, location)
     if eta == 0:
         return False
     speed = distance / eta
@@ -84,9 +84,9 @@ def is_reachable(agent, location, eta):
 def get_speed(agent, location):
     """Returns the target speed given a certain location"""
     car = agent.info.my_car
-    local = dot(location - car.location, car.rotation)
+    local = dot(location - car.position, car.orientation)
     angle = cap(math.atan2(local[1], local[0]), -3, 3)
-    distance = distance_2d(car.location, location)
+    distance = distance_2d(car.position, location)
     if distance > 2.5 * velocity_2d(car.velocity):
         return 2250
     return 2250 - (400 * (angle ** 2))
@@ -94,16 +94,16 @@ def get_speed(agent, location):
 
 def can_dodge(agent, target):
     """Returns whether its wise to dodge"""
-    bot_to_target = target - agent.info.my_car.location
-    local_bot_to_target = dot(bot_to_target, agent.info.my_car.rotation)
+    bot_to_target = target - agent.info.my_car.position
+    local_bot_to_target = dot(bot_to_target, agent.info.my_car.orientation)
     angle_front_to_target = math.atan2(local_bot_to_target[1], local_bot_to_target[0])
     distance_bot_to_target = norm(vec2(bot_to_target))
     good_angle = math.radians(-10) < angle_front_to_target < math.radians(10)
-    on_ground = agent.info.my_car.on_ground and agent.info.my_car.location[2] < 100
+    on_ground = agent.info.my_car.on_ground and agent.info.my_car.position[2] < 100
     going_fast = velocity_2d(agent.info.my_car.velocity) > 1250
     target_not_in_goal = not agent.my_goal.inside(target)
     return (good_angle and distance_bot_to_target > 2000
-           and on_ground and going_fast and target_not_in_goal)
+            and on_ground and going_fast and target_not_in_goal)
 
 
 def cap(num, low, high):

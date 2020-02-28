@@ -70,15 +70,15 @@ class MyAgent(BaseAgent):
         # Initialize the drive mechanic
         if self.state == State.INITIALIZE:
             self.drive = Drive(self.game.my_car)
-            self.drive.target = self.game.ball.location + 200 * normalize(
-                vec3(vec2(self.game.ball.location - vec3(0, 5120, 0))))
+            self.drive.target = self.game.ball.position + 200 * normalize(
+                vec3(vec2(self.game.ball.position - vec3(0, 5120, 0))))
             self.drive.speed = 1400
             next_state = State.DRIVING
 
         # Start driving towards the target and check whether a dodge is possible, if so initialize the dodge
         if self.state == State.DRIVING:
-            self.drive.target = self.game.ball.location + 200 * normalize(
-                vec3(vec2(self.game.ball.location - vec3(0, 5120, 0))))
+            self.drive.target = self.game.ball.position + 200 * normalize(
+                vec3(vec2(self.game.ball.position - vec3(0, 5120, 0))))
             self.drive.step(self.game.time_delta)
             self.controls = self.drive.controls
             a = time.time()
@@ -106,9 +106,9 @@ class MyAgent(BaseAgent):
                     self.controls.boost = 1
                     # self.controls.pitch = 1
                 else:
-                    xf = self.game.my_car.location + 0.5 * T * T * vec3(0, 0, -650) + T * self.game.my_car.velocity
+                    xf = self.game.my_car.position + 0.5 * T * T * vec3(0, 0, -650) + T * self.game.my_car.velocity
 
-                    delta_x = self.game.ball.location - xf
+                    delta_x = self.game.ball.position - xf
                     if angle_between(vec2(self.game.my_car.forward()), self.dodge.direction) < 0.3:
                         if norm(delta_x) > 50:
                             self.controls.boost = 1
@@ -124,7 +124,7 @@ class MyAgent(BaseAgent):
 
             # Great line
             # if self.game.time == packet.game_ball.latest_touch.time_seconds:
-            #     print(self.game.my_car.location)
+            #     print(self.game.my_car.position)
             if self.dodge.finished and self.game.my_car.on_ground:
                 next_state = State.RESET
 
@@ -145,12 +145,12 @@ class MyAgent(BaseAgent):
         # Estimate the probable duration of the jump and round it down to the floor decimal
         ball_prediction = self.get_ball_prediction_struct()
         if self.game.my_car.boost < 6:
-            duration_estimate = math.floor(get_time_at_height(self.game.ball.location[2]) * 10) / 10
+            duration_estimate = math.floor(get_time_at_height(self.game.ball.position[2]) * 10) / 10
         else:
-            adjacent = norm(vec2(self.game.my_car.location - self.game.ball.location))
-            opposite = (self.game.ball.location[2] - self.game.my_car.location[2])
+            adjacent = norm(vec2(self.game.my_car.position - self.game.ball.position))
+            opposite = (self.game.ball.position[2] - self.game.my_car.position[2])
             theta = math.atan(opposite / adjacent)
-            t = get_time_at_height_boost(self.game.ball.location[2], theta, self.game.my_car.boost)
+            t = get_time_at_height_boost(self.game.ball.position[2], theta, self.game.my_car.boost)
             duration_estimate = (math.ceil(t * 10) / 10)
         # Loop for 6 frames meaning adding 0.1 to the estimated duration. Keeps the time constraint under 0.3s
         for i in range(6):
@@ -191,7 +191,7 @@ class MyAgent(BaseAgent):
                         dodge.controls.boost = 1
                         dodge.controls.pitch = 1
                     else:
-                        xf = car.location + 0.5 * T * T * vec3(0, 0, -650) + T * car.velocity
+                        xf = car.position + 0.5 * T * T * vec3(0, 0, -650) + T * car.velocity
 
                         delta_x = ball_location - xf
                         if angle_between(vec2(car.forward()), dodge.direction) < 0.3:
@@ -219,8 +219,8 @@ class MyAgent(BaseAgent):
     def dodge_succesfull(self, car, ball_location, dodge):
         batmobile = obb()
         batmobile.half_width = vec3(64.4098892211914, 42.335182189941406, 14.697200775146484)
-        batmobile.center = car.location + dot(car.rotation, vec3(9.01, 0, 12.09))
-        batmobile.orientation = car.rotation
+        batmobile.center = car.position + dot(car.orientation, vec3(9.01, 0, 12.09))
+        batmobile.orientation = car.orientation
         ball = sphere(ball_location, 93.15)
         b_local = dot(ball.center - batmobile.center, batmobile.rotation)
 
@@ -243,8 +243,8 @@ class MyAgent(BaseAgent):
         else:
             hit_check = False
         # Seems to work without angle_check. No clue why though
-        angle_car_simulation = angle_between(car.rotation, self.game.my_car.rotation)
-        angle_simulation_target = angle_between(car.rotation, dodge.preorientation)
+        angle_car_simulation = angle_between(car.orientation, self.game.my_car.orientation)
+        angle_simulation_target = angle_between(car.orientation, dodge.preorientation)
         angle_check = angle_simulation_target < angle_car_simulation or angle_simulation_target < 0.1
         return hit_check
 
