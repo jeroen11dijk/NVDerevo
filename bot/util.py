@@ -13,6 +13,18 @@ def in_front_off_ball(car, ball, goal):
     return distance_2d(ball, goal) < distance_2d(car, goal)
 
 
+def not_back(car, ball, goal):
+    return 2 * distance_2d(ball, goal) < 3 * distance_2d(car, goal)
+
+
+def get_intersect(agent, car):
+    ball_prediction = agent.get_ball_prediction_struct()
+    intercept_time = (norm(agent.info.ball.position - car.position) - 200) / max(1, int(norm(car.velocity)))
+    intercept_index = cap(int(intercept_time * 60), 0, ball_prediction.num_slices - 1)
+    intercept_location = ball_prediction.slices[intercept_index].physics.location
+    return vec3(intercept_location.x, intercept_location.y, intercept_location.z)
+
+
 def get_closest_small_pad(agent, location):
     """Gets the small boostpad closest to the bot"""
     pads = agent.small_boost_pads
@@ -96,7 +108,7 @@ def get_speed(agent, location):
     return 2250 - (400 * (angle ** 2))
 
 
-def can_dodge(agent, target):
+def should_dodge(agent, target):
     """Returns whether its wise to dodge"""
     bot_to_target = target - agent.info.my_car.position
     local_bot_to_target = dot(bot_to_target, agent.info.my_car.orientation)
@@ -106,8 +118,16 @@ def can_dodge(agent, target):
     on_ground = agent.info.my_car.on_ground and agent.info.my_car.position[2] < 100
     going_fast = velocity_2d(agent.info.my_car.velocity) > 1250
     target_not_in_goal = not agent.my_goal.inside(target)
-    return (good_angle and distance_bot_to_target > 2000
+    return (good_angle and distance_bot_to_target > 2500
             and on_ground and going_fast and target_not_in_goal)
+
+
+def should_halfflip(agent, target):
+    distance = distance_2d(agent.info.my_car.position, target)
+    vf = velocity_forward(agent.info.my_car)
+    dodge_overshoot = distance < (abs(vf) + 500) * 1.5
+    on_ground = agent.info.my_car.on_ground and agent.info.my_car.position[2] < 100
+    return vf < -900 and (not dodge_overshoot or distance < 600) and on_ground
 
 
 def cap(num, low, high):

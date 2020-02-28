@@ -19,7 +19,8 @@ from rlutilities.linear_algebra import *
 from rlutilities.mechanics import Dodge, AerialTurn
 from rlutilities.simulation import Game, Car, obb, sphere
 from steps import Step
-from util import distance_2d, sign, velocity_2d, get_closest_big_pad, in_front_off_ball
+from util import distance_2d, should_dodge, sign, velocity_2d, get_closest_big_pad, in_front_off_ball, get_intersect, \
+    should_halfflip, line_backline_intersect, not_back
 
 jeroens_magic_number = 5
 
@@ -50,6 +51,7 @@ class Hypebot(BaseAgent):
         self.teammates = []
         self.has_to_go = False
         self.closest_to_ball = False
+        self.defending = False
 
     def initialize_agent(self):
         """Initializing all parameters which require the field info"""
@@ -132,19 +134,21 @@ class Hypebot(BaseAgent):
     def closest_to_the_ball(self):
         dist_to_ball = math.inf
         for i in range(len(self.teammates)):
-            if distance_2d(self.info.cars[self.teammates[i]].position, self.info.ball.position) < dist_to_ball:
-                dist_to_ball = distance_2d(self.info.cars[self.teammates[i]].position, self.info.ball.position)
-        return distance_2d(self.info.my_car.position, self.info.ball.position) <= dist_to_ball
+            teammate_car = self.info.cars[self.teammates[i]]
+            if distance_2d(teammate_car.position, get_intersect(self, teammate_car)) < dist_to_ball:
+                dist_to_ball = distance_2d(teammate_car.position, get_intersect(self, teammate_car))
+        return distance_2d(self.info.my_car.position, get_intersect(self, self.info.my_car)) <= dist_to_ball
 
     def get_controls(self):
         """Decides what strategy to uses and gives corresponding output"""
         if self.step == Step.Steer or self.step == Step.Dodge_2 or self.step == Step.Dodge_1 or self.step == Step.Drive:
             self.step = Step.Shooting
         if self.step == Step.Shooting:
-            self.drive.target = self.info.ball.position
+            target = get_intersect(self, self.info.my_car)
+            self.drive.target = target
             self.drive.step(self.info.time_delta)
             self.controls = self.drive.controls
-            can_dodge, simulated_duration, simulated_target = self.simulate
+            can_dodge, simulated_duration, simulated_target = self.simulate(self.their_goal.center)
             if can_dodge:
                 self.dodge = Dodge(self.info.my_car)
                 self.turn = AerialTurn(self.info.my_car)
@@ -154,32 +158,52 @@ class Hypebot(BaseAgent):
                 target = vec3(0, 5120, jeroens_magic_number * simulated_target[2])
                 self.dodge.preorientation = look_at(target - simulated_target, vec3(0, 0, 1))
                 self.step = Step.Dodge
-            if not self.closest_to_ball or self.in_front_off_ball:
+            if self.should_defend():
+                self.step = Step.Defending
+            elif not self.closest_to_ball or self.in_front_off_ball:
                 self.step = Step.Rotating
+            elif should_halfflip(self, target):
+                self.step = Step.HalfFlip
+                self.halfflip = HalfFlip(self.info.my_car)
+            elif should_dodge(self, target):
+                self.step = Step.Dodge
+                self.dodge = Dodge(self.info.my_car)
+                self.dodge.target = target
+                self.dodge.duration = 0.1
         elif self.step == Step.Rotating:
-            self.drive.target = 0.5 * (self.info.ball.position - self.my_goal.center) + self.my_goal.center
+            target = 0.5 * (self.info.ball.position - self.my_goal.center) + self.my_goal.center
+            self.drive.target = target
             self.drive.speed = 1410
             self.drive.step(self.info.time_delta)
             self.controls = self.drive.controls
-            in_position = 2 * distance_2d(self.info.ball.position, self.my_goal.center) > 3 * distance_2d(
-                self.info.my_car.position, self.my_goal.center)
+            in_position = not not_back(self.info.my_car.position, self.info.ball.position, self.my_goal.center)
             faster = self.closest_to_ball and in_position
             if len(self.teammates) == 0 and in_position:
                 self.step = Step.Shooting
-            if len(self.teammates) == 1:
+            elif len(self.teammates) == 1:
                 teammate = self.info.cars[self.teammates[0]].position
-                teammate_out_location = in_front_off_ball(teammate, self.info.ball.position, self.my_goal.center)
+                teammate_out_location = not_back(teammate, self.info.ball.position, self.my_goal.center)
                 if teammate_out_location or faster:
                     self.step = Step.Shooting
-            if len(self.teammates) == 2:
+            elif len(self.teammates) == 2:
                 teammate1 = self.info.cars[self.teammates[0]].position
                 teammate2 = self.info.cars[self.teammates[0]].position
-                teammate1_out_location = in_front_off_ball(teammate1, self.info.ball.position, self.my_goal.center)
-                teammate2_out_location = in_front_off_ball(teammate2, self.info.ball.position, self.my_goal.center)
+                teammate1_out_location = not_back(teammate1, self.info.ball.position, self.my_goal.center)
+                teammate2_out_location = not_back(teammate2, self.info.ball.position, self.my_goal.center)
                 if teammate1_out_location and teammate2_out_location:
                     self.step = Step.Shooting
-                if (teammate1_out_location or teammate2_out_location) and faster or faster:
+                elif (teammate1_out_location or teammate2_out_location) and faster or faster:
                     self.step = Step.Shooting
+            if self.should_defend():
+                self.step = Step.Defending
+            elif should_halfflip(self, target):
+                self.step = Step.HalfFlip
+                self.halfflip = HalfFlip(self.info.my_car)
+            elif should_dodge(self, target):
+                self.step = Step.Dodge
+                self.dodge = Dodge(self.info.my_car)
+                self.dodge.target = target
+                self.dodge.duration = 0.1
 
         elif self.step == Step.Defending:
             defending(self)
@@ -190,7 +214,7 @@ class Hypebot(BaseAgent):
             else:
                 self.dodge.step(self.info.time_delta)
             if (self.halfflip.finished if halfflipping else self.dodge.finished) and self.info.my_car.on_ground:
-                self.step = Step.Rotating
+                self.step = Step.Shooting
             else:
                 self.controls = (self.halfflip.controls if halfflipping else self.dodge.controls)
                 if not halfflipping:
@@ -225,8 +249,7 @@ class Hypebot(BaseAgent):
     # If its heigher use that unless it gets unreachable and else compare with the lower one.
     # If duration_estimate = 0.8 and the ball is moving up there is not sense in even simulating it.
     # Might even lower it since the higher the duration estimate the longer the simulation takes.
-    @property
-    def simulate(self):
+    def simulate(self, global_target=None):
         lol = 0
         # Initialize the ball prediction
         # Estimate the probable duration of the jump and round it down to the floor decimal
@@ -255,13 +278,18 @@ class Hypebot(BaseAgent):
             physics = prediction_slice.physics
             ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
             # ball_location = vec3(0, ball_y, ball_z)
-            dodge.direction = vec2(vec3(0, 5120, 321) - ball_location)
             dodge.duration = duration_estimate + i / 60
             if dodge.duration > 1.4:
                 break
 
-            target = vec3(0, 5120, jeroens_magic_number * ball_location[2])
-            dodge.preorientation = look_at(target - ball_location, vec3(0, 0, 1))
+            if global_target is not None:
+                dodge.direction = vec2(global_target - ball_location)
+                target = vec3(vec2(global_target)) + vec3(0, 0, jeroens_magic_number * ball_location[2])
+                dodge.preorientation = look_at(target - ball_location, vec3(0, 0, 1))
+            else:
+                dodge.target = ball_location
+                dodge.direction = vec2(ball_location) + vec2(ball_location - car.position)
+                dodge.preorientation = look_at(ball_location, vec3(0, 0, 1))
             # Loop from now till the end of the duration
             fps = 30
             for j in range(round(fps * dodge.duration)):
@@ -334,6 +362,15 @@ class Hypebot(BaseAgent):
         angle_simulation_target = angle_between(car.orientation, dodge.preorientation)
         angle_check = angle_simulation_target < angle_car_simulation or angle_simulation_target < 0.1
         return hit_check
+
+    def should_defend(self):
+        """Method which returns a boolean regarding whether we should defend or not"""
+        ball = self.info.ball
+        car = self.info.my_car
+        car_to_ball = ball.position - car.position
+        in_front_of_ball = self.in_front_off_ball
+        backline_intersect = line_backline_intersect(self.my_goal.center[1], vec2(car.position), vec2(car_to_ball))
+        return (in_front_of_ball and abs(backline_intersect) < 2000) or self.conceding
 
     def close_to_kickoff_spawn(self):
         blue_one = distance_2d(self.info.my_car.position, vec3(-2048, -2560, 18)) < 10

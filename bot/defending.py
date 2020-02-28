@@ -2,10 +2,10 @@
 import math
 
 from halfflip import HalfFlip
-from rlutilities.linear_algebra import normalize, rotation, vec3, vec2, dot
-from rlutilities.mechanics import Dodge
+from rlutilities.linear_algebra import normalize, rotation, vec3, vec2, dot, look_at
+from rlutilities.mechanics import Dodge, AerialTurn
 from steps import Step
-from util import line_backline_intersect, cap, distance_2d, sign, get_speed, can_dodge, velocity_forward
+from util import line_backline_intersect, cap, distance_2d, sign, get_speed, velocity_forward
 
 
 def defending(agent):
@@ -18,13 +18,18 @@ def defending(agent):
     agent.drive.speed = get_speed(agent, target)
     agent.drive.step(agent.info.time_delta)
     agent.controls = agent.drive.controls
-    if can_dodge(agent, target):
-        agent.step = Step.Dodge
+    can_dodge, simulated_duration, simulated_target = agent.simulate()
+    if can_dodge:
         agent.dodge = Dodge(agent.info.my_car)
-        agent.dodge.duration = 0.1
-        agent.dodge.target = target
-    if not agent.defending:
-        agent.step = (Step.Catching if agent.ball_bouncing else Step.Shooting)
+        agent.turn = AerialTurn(agent.info.my_car)
+        agent.dodge.duration = simulated_duration - 0.1
+        agent.dodge.target = simulated_target
+
+        agent.dodge.preorientation = look_at(simulated_target, vec3(0, 0, 1))
+        agent.timer = 0
+        agent.step = Step.Dodge
+    if not agent.should_defend():
+        agent.step = Step.Shooting
     elif vf < -900 and (not dodge_overshoot or distance < 600):
         agent.step = Step.HalfFlip
         agent.halfflip = HalfFlip(agent.info.my_car)

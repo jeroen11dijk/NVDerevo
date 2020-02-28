@@ -45,9 +45,7 @@ class MyAgent(BaseAgent):
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
 
         # Update the game values and set the state
-        self.game.read_game_information(packet,
-                                        self.get_rigid_body_tick(),
-                                        self.get_field_info())
+        self.game.read_game_information(packet, self.get_field_info())
         self.controls = SimpleControllerState()
 
         next_state = self.state
@@ -70,28 +68,26 @@ class MyAgent(BaseAgent):
         # Initialize the drive mechanic
         if self.state == State.INITIALIZE:
             self.drive = Drive(self.game.my_car)
-            self.drive.target = self.game.ball.position + 200 * normalize(
-                vec3(vec2(self.game.ball.position - vec3(0, 5120, 0))))
+            self.drive.target = self.game.ball.position
             self.drive.speed = 1400
             next_state = State.DRIVING
 
         # Start driving towards the target and check whether a dodge is possible, if so initialize the dodge
         if self.state == State.DRIVING:
-            self.drive.target = self.game.ball.position + 200 * normalize(
-                vec3(vec2(self.game.ball.position - vec3(0, 5120, 0))))
+            self.drive.target = self.game.ball.position
             self.drive.step(self.game.time_delta)
             self.controls = self.drive.controls
             a = time.time()
+            target = self.game.my_car.position + 1000000 * (self.game.ball.position - self.game.my_car.position)
             can_dodge, simulated_duration, simulated_target = self.simulate()
             print(time.time() - a)
             if can_dodge:
                 self.dodge = Dodge(self.game.my_car)
                 self.turn = AerialTurn(self.game.my_car)
                 self.dodge.duration = simulated_duration - 0.1
-                self.dodge.direction = vec2(vec3(0, 5120, 321) - simulated_target)
+                self.dodge.target = simulated_target
 
-                target = vec3(0, 5120, jeroens_magic_number * simulated_target[2])
-                self.dodge.preorientation = look_at(target - simulated_target, vec3(0, 0, 1))
+                self.dodge.preorientation = look_at(simulated_target, vec3(0, 0, 1))
                 self.timer = 0
                 next_state = State.DODGING
 
@@ -139,7 +135,7 @@ class MyAgent(BaseAgent):
     # If its heigher use that unless it gets unreachable and else compare with the lower one.
     # If duration_estimate = 0.8 and the ball is moving up there is not sense in even simulating it.
     # Might even lower it since the higher the duration estimate the longer the simulation takes.
-    def simulate(self):
+    def simulate(self, global_target=None):
         lol = 0
         # Initialize the ball prediction
         # Estimate the probable duration of the jump and round it down to the floor decimal
@@ -168,13 +164,18 @@ class MyAgent(BaseAgent):
             physics = prediction_slice.physics
             ball_location = vec3(physics.location.x, physics.location.y, physics.location.z)
             # ball_location = vec3(0, ball_y, ball_z)
-            dodge.direction = vec2(vec3(0, 5120, 321) - ball_location)
             dodge.duration = duration_estimate + i / 60
             if dodge.duration > 1.4:
                 break
 
-            target = vec3(0, 5120, jeroens_magic_number * ball_location[2])
-            dodge.preorientation = look_at(target - ball_location, vec3(0, 0, 1))
+            if global_target is not None:
+                dodge.direction = vec2(global_target - ball_location)
+                target = vec3(vec2(global_target)) + vec3(0, 0, jeroens_magic_number * ball_location[2])
+                dodge.preorientation = look_at(target - ball_location, vec3(0, 0, 1))
+            else:
+                dodge.target = ball_location
+                dodge.direction = vec2(ball_location) + vec2(ball_location - car.position)
+                dodge.preorientation = look_at(ball_location, vec3(0, 0, 1))
             # Loop from now till the end of the duration
             fps = 30
             for j in range(round(fps * dodge.duration)):
@@ -222,7 +223,7 @@ class MyAgent(BaseAgent):
         batmobile.center = car.position + dot(car.orientation, vec3(9.01, 0, 12.09))
         batmobile.orientation = car.orientation
         ball = sphere(ball_location, 93.15)
-        b_local = dot(ball.center - batmobile.center, batmobile.rotation)
+        b_local = dot(ball.center - batmobile.center, batmobile.orientation)
 
         closest_local = vec3(
             min(max(b_local[0], -batmobile.half_width[0]), batmobile.half_width[0]),
@@ -230,7 +231,7 @@ class MyAgent(BaseAgent):
             min(max(b_local[2], -batmobile.half_width[2]), batmobile.half_width[2])
         )
 
-        hit_location = dot(batmobile.rotation, closest_local) + batmobile.center
+        hit_location = dot(batmobile.orientation, closest_local) + batmobile.center
         if norm(hit_location - ball.center) > ball.radius:
             return None
         # if abs(ball_location[2] - hit_location[2]) < 25 and hit_location[2] < ball_location[2]:
