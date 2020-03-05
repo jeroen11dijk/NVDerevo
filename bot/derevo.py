@@ -57,6 +57,7 @@ class Hypebot(BaseAgent):
         """Initializing all parameters which require the field info"""
         self.my_goal = Goal(self.team, self.get_field_info())
         self.their_goal = Goal(1 - self.team, self.get_field_info())
+        print(self.my_goal.center, self.their_goal.center)
         init_boostpads(self)
         """Setting all the mechanics to not none"""
         self.drive = Drive(self.info.my_car)
@@ -153,9 +154,9 @@ class Hypebot(BaseAgent):
                 self.dodge = Dodge(self.info.my_car)
                 self.turn = AerialTurn(self.info.my_car)
                 self.dodge.duration = simulated_duration - 0.1
-                self.dodge.direction = vec2(vec3(0, 5120, 321) - simulated_target)
+                self.dodge.direction = vec2(self.their_goal.center - simulated_target)
 
-                target = vec3(0, 5120, jeroens_magic_number * simulated_target[2])
+                target = vec3(vec2(self.their_goal.center)) + vec3(0, 0, jeroens_magic_number * simulated_target[2])
                 self.dodge.preorientation = look_at(target - simulated_target, vec3(0, 0, 1))
                 self.step = Step.Dodge
             if self.should_defend():
