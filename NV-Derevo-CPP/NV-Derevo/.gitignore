@@ -1,0 +1,4 @@
+build
+**__pycache__**
+release/my_bot.exe
+release/rlutilities.dll
