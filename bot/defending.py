@@ -1,5 +1,6 @@
 """"Module that handles the defending strategy"""
 import math
+import time
 
 from halfflip import HalfFlip
 from rlutilities.linear_algebra import normalize, rotation, vec3, vec2, dot, look_at
@@ -18,7 +19,9 @@ def defending(agent):
     agent.drive.speed = get_speed(agent, target)
     agent.drive.step(agent.info.time_delta)
     agent.controls = agent.drive.controls
+    t = time.time()
     can_dodge, simulated_duration, simulated_target = agent.simulate()
+    print(time.time() - t)
     if can_dodge:
         agent.dodge = Dodge(agent.info.my_car)
         agent.turn = AerialTurn(agent.info.my_car)

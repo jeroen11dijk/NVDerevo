@@ -2,7 +2,7 @@
 import math
 
 from rlutilities.linear_algebra import vec2, norm, dot, vec3, normalize
-
+from jump_sim import get_time_at_height, get_time_at_height_boost
 
 def distance_2d(vec_a, vec_b):
     """returns 2d distance between two vectors"""

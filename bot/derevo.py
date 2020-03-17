@@ -1,7 +1,10 @@
 """Main module"""
 import math
+import time
+import numpy as np
 from queue import Empty
 
+from numba import jit
 from rlbot.agents.base_agent import BaseAgent
 from rlbot.agents.base_agent import SimpleControllerState
 from rlbot.matchcomms.common_uses.reply import reply_to
@@ -52,6 +55,7 @@ class Hypebot(BaseAgent):
         self.has_to_go = False
         self.closest_to_ball = False
         self.defending = False
+        self.ball_prediction_np = []
 
     def initialize_agent(self):
         """Initializing all parameters which require the field info"""
@@ -72,6 +76,11 @@ class Hypebot(BaseAgent):
         update_boostpads(self, packet)
         self.closest_to_ball = self.closest_to_the_ball()
         self.predict()
+        dtype = [('physics', [('location', '<f4', 3), ('rotation', [('pitch', '<f4'), ('yaw', '<f4'), ('roll', '<f4')]),
+                              ('velocity', '<f4', 3), ('angular_velocity', '<f4', 3)]), ('game_seconds', '<f4')]
+
+        self.ball_prediction_np = np.ctypeslib.as_array(self.get_ball_prediction_struct().slices).view(dtype)[
+                                  :self.get_ball_prediction_struct().num_slices]
         self.teammates = []
         for i in range(self.info.num_cars):
             if self.info.cars[i].team == self.team and i != self.index:
@@ -149,7 +158,9 @@ class Hypebot(BaseAgent):
             self.drive.target = target
             self.drive.step(self.info.time_delta)
             self.controls = self.drive.controls
+            t = time.time()
             can_dodge, simulated_duration, simulated_target = self.simulate(self.their_goal.center)
+            print(time.time() - t)
             if can_dodge:
                 self.dodge = Dodge(self.info.my_car)
                 self.turn = AerialTurn(self.info.my_car)
