@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 
     Game g(botIndex, botTeam);
 
-    Spikeroog b(botIndex, botTeam, botName, g);
+    NVDerevo b(botIndex, botTeam, botName, g);
 
 
     while (true)

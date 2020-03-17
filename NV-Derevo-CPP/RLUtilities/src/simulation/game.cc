@@ -168,6 +168,7 @@ void Game::read_flatbuffer_packet(
   match_ended = gameTickPacket->gameInfo()->isMatchEnded();
   gravity = gameTickPacket->gameInfo()->worldGravityZ();
 
+
   num_cars = gameTickPacket->players()->size();
 
   for (int i = 0; i < gameTickPacket->players()->size(); i++) {

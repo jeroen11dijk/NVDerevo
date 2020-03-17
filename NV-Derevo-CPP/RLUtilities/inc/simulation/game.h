@@ -7,7 +7,6 @@
 
 #include "simulation/ball.h"
 #include "simulation/car.h"
-#include "simulation/goal.h"
 #include "simulation/pad.h"
 
 #include "rlbot/rlbot_generated.h"
