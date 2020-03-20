@@ -3,7 +3,7 @@
 #include <optional>
 #include <variant>
 
-const float Dodge::timeout = 1.25f;
+const float Dodge::timeout = 1.5f;
 const float Dodge::input_threshold = 0.5f;
 
 const float Dodge::z_damping = 0.35f;
@@ -14,17 +14,13 @@ const float Dodge::torque_time = 0.65f;
 const float Dodge::side_torque = 260.0f;
 const float Dodge::forward_torque = 224.0f;
 
-Dodge::Dodge(Car & c) : car(c), reorient(c) {
-
-	direction = vec2{0.0f, 0.0f};
-	jump_duration = 0.15f;
-
-	preorientation = mat3(0.0f);
+Dodge::Dodge(Car & c) : car(c), turn(c) {
+	target = {};
+	direction = {};
 
 	finished = false;
 	controls = Input();
 
-	delay = 0.0f;
 	timer = 0.0f;
 }
 
@@ -37,17 +33,34 @@ void Dodge::step(float dt) {
 	controls.pitch = 0.0f;
 	controls.yaw = 0.0f;
 
-	if (timer < jump_duration) {
+	if (duration && timer <= duration.value()) {
 		controls.jump = 1;
 	}
 
-	if (timer >= delay && timer > jump_duration + 2.0f * dt && !car.double_jumped && !car.on_ground) {
+	float dodge_time;
+	if (!duration && !delay) std::cout << "invalid dodge parameters" << std::endl;
+	if (!duration &&  delay) dodge_time = delay.value();
+	if (duration && !delay) dodge_time = duration.value() + 2.0f * dt;
+	if (duration &&  delay) dodge_time = delay.value();
 
-		if (norm(direction) > 0.0f) {
+  //if ((timer < dodge_time) && ((timer + dt) >= dodge_time)) {
+	if (timer >= dodge_time && !car.double_jumped && !car.on_ground) {
 
-			vec3 f = car.forward();
-			mat2 orientation_xy = rotation(atan2(f[1], f[0]));
-			vec2 direction_local = dot(normalize(direction), orientation_xy);
+		vec2 direction_local;
+
+		if ((!target && !direction) || (target && direction)) {
+			direction_local = vec2{ 0.0f, 0.0f };
+		}
+
+		if (target && !direction) {
+			direction_local = dot(vec2(normalize(target.value() - car.position)), car.o_dodge);
+		}
+
+		if (!target && direction) {
+			direction_local = dot(normalize(direction.value()), car.o_dodge);
+		}
+
+		if (norm(direction_local) > 0.0f) {
 
 			float vf = dot(car.velocity, car.forward());
 			float s = fabs(vf) / 2300.0f;
@@ -80,14 +93,14 @@ void Dodge::step(float dt) {
     controls.jump = 0;
   }
 
-	if ((timer < delay) && fabs(det(preorientation) - 1.0f) < 0.01f) {
+	if ((timer < dodge_time) && preorientation) {
 
-		reorient.target_orientation = preorientation;
-		reorient.step(dt);
+		turn.target_orientation = preorientation.value();
+		turn.step(dt);
 
-		controls.roll = reorient.controls.roll;
-		controls.pitch = reorient.controls.pitch;
-		controls.yaw = reorient.controls.yaw;
+		controls.roll = turn.controls.roll;
+		controls.pitch = turn.controls.pitch;
+		controls.yaw = turn.controls.yaw;
 
 	}
 
@@ -102,10 +115,9 @@ Car Dodge::simulate() {
 	// make a copy of the car's state and get a pointer to it
 	Car car_copy = Car(car);
 	Dodge copy = Dodge(car_copy);
+	copy.duration = duration;
+	copy.target = target;
 	copy.direction = direction;
-	copy.jump_duration = jump_duration;
-  copy.delay = delay;
-	copy.preorientation = preorientation;
 	copy.finished = finished;
 	copy.timer = timer;
 
@@ -125,3 +137,26 @@ Car Dodge::simulate() {
 
 }
 
+nlohmann::json Dodge::to_json() {
+
+  vec3 _target = target.value_or(vec3{NAN, NAN, NAN});
+  vec2 _direction = direction.value_or(vec2{NAN, NAN});
+  mat3 _preorientation = preorientation.value_or(mat3(NAN));
+  float _duration = duration.value_or(NAN);
+  float _delay = delay.value_or(NAN);
+
+  nlohmann::json obj;
+  obj["type"] = "Dodge";
+  obj["target"] = {_target[0], _target[1], _target[2]};
+  obj["direction"] = {_direction[0], _direction[1]};
+  obj["preorientation"] = {
+    {_preorientation(0, 0), _preorientation(0, 1), _preorientation(0, 2)},
+    {_preorientation(1, 0), _preorientation(1, 1), _preorientation(1, 2)},
+    {_preorientation(2, 0), _preorientation(2, 1), _preorientation(2, 2)}
+  };
+  obj["duration"] = _duration;
+  obj["timer"] = timer;
+  obj["finished"] = finished;
+  return obj;
+
+}

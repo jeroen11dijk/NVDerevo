@@ -4,6 +4,7 @@
 #include "simulation/field.h"
 #include "rlbot/renderer.h"
 #include "agent.h"
+#include "kickoff.h"
 #include "utils.h"
 #include <memory>
 #include <time.h>
@@ -21,6 +22,7 @@ NVDerevo::NVDerevo(int index, int team, std::string name, Game &game)
     }
     drive = new Drive(*game.my_car);
     dodge = new Dodge(*game.my_car);
+    turn = new Reorient(*game.my_car);
 }
 
 Input NVDerevo::GetOutput(Game game)
@@ -50,10 +52,7 @@ Input NVDerevo::GetOutput(Game game)
         {
             if (closest_to_ball)
             {
-                // TODO
-                // init_kickoff()
-                drive->target = game.ball.position;
-                drive->speed = 2300;
+                InitKickoff(*this, game);
                 has_to_go = true;
             }
             else
@@ -64,18 +63,12 @@ Input NVDerevo::GetOutput(Game game)
         }
         else
         {
-            // TODO
-            // init_kickoff()
-            drive->target = game.ball.position;
-            drive->speed = 2300;
+            InitKickoff(*this, game);
             has_to_go = true;
         }
     }
     if ((kickoff or step == Dodging_2) and has_to_go) {
-        //TODO
-        //kick_off()
-        drive->target = game.ball.position;
-        drive->speed = 2300;
+        KickOff(*this, game);
     } else if (kickoff and not has_to_go) {
         drive->target = our_goal;
         drive->speed = 1410;
@@ -85,22 +78,18 @@ Input NVDerevo::GetOutput(Game game)
         }
         //TODO
         //get_controls()
-        if (closest_to_ball) {
-            drive->target = game.ball.position;
-            drive->speed = 1410;
-        } else {
-            drive->target = our_goal;
-            drive->speed = 1410;
-        }
+        GetControls(*this, game);
     }
-    drive->step(1 / 60);
-    return drive->controls;
+    if (not game.round_active) {
+        controls.steer = 0;
+    }
+    return controls;
 }
 
 bool NVDerevo::ClosestToBall(Game game)
 {
-    int dist_to_ball = INT_MAX;
-    for (int i = 0; i < teammates.size(); i++)
+    float dist_to_ball = std::numeric_limits<float>::max();
+    for (size_t i = 0; i < teammates.size(); i++)
     {
         Car teammate_car = *teammates[i];
         if (Distance2D(teammate_car.position, GetIntersect(game, teammate_car)) < dist_to_ball)

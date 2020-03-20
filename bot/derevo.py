@@ -3,6 +3,7 @@ import math
 import time
 import numpy as np
 from queue import Empty
+from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator, GameInfoState
 
 from numba import jit
 from rlbot.agents.base_agent import BaseAgent
@@ -55,13 +56,13 @@ class Hypebot(BaseAgent):
         self.has_to_go = False
         self.closest_to_ball = False
         self.defending = False
+        self.set_state = False
         self.ball_prediction_np = []
 
     def initialize_agent(self):
         """Initializing all parameters which require the field info"""
         self.my_goal = Goal(self.team, self.get_field_info())
         self.their_goal = Goal(1 - self.team, self.get_field_info())
-        print(self.my_goal.center, self.their_goal.center)
         init_boostpads(self)
         """Setting all the mechanics to not none"""
         self.drive = Drive(self.info.my_car)
@@ -76,6 +77,12 @@ class Hypebot(BaseAgent):
         update_boostpads(self, packet)
         self.closest_to_ball = self.closest_to_the_ball()
         self.predict()
+        self.time += self.info.time_delta
+        if self.time > 5 and self.set_state:
+            ball_state = BallState(Physics(location=Vector3(0, 5250, 250)))
+            game_state = GameState(ball=ball_state)
+            self.set_state = False
+            self.set_game_state(game_state)
         dtype = [('physics', [('location', '<f4', 3), ('rotation', [('pitch', '<f4'), ('yaw', '<f4'), ('roll', '<f4')]),
                               ('velocity', '<f4', 3), ('angular_velocity', '<f4', 3)]), ('game_seconds', '<f4')]
 
@@ -152,6 +159,9 @@ class Hypebot(BaseAgent):
     def get_controls(self):
         """Decides what strategy to uses and gives corresponding output"""
         if self.step == Step.Steer or self.step == Step.Dodge_2 or self.step == Step.Dodge_1 or self.step == Step.Drive:
+            print("GETCONTROLS")
+            self.time = 0
+            self.set_state = True
             self.step = Step.Shooting
         if self.step == Step.Shooting:
             target = get_intersect(self, self.info.my_car)
@@ -160,7 +170,7 @@ class Hypebot(BaseAgent):
             self.controls = self.drive.controls
             t = time.time()
             can_dodge, simulated_duration, simulated_target = self.simulate(self.their_goal.center)
-            print(time.time() - t)
+            # print(time.time() - t)
             if can_dodge:
                 self.dodge = Dodge(self.info.my_car)
                 self.turn = AerialTurn(self.info.my_car)

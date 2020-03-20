@@ -24,7 +24,7 @@ Aerial::Aerial(Car & c) : car(c), dodge(c), reorient(c) {
   throttle_distance = 50.0f;
 
   double_jump = true;
-  dodge.jump_duration = 0.20f;
+  dodge.duration = 0.20f;
   dodge.delay = 0.25f;
 
   jumping = car.on_ground;

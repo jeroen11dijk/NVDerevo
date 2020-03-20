@@ -6,7 +6,7 @@ Boostdash::Boostdash(Car & c) : car(c), dodge(c), reorient(c) {
 	finished = false;
 	controls = Input();
 
-	dodge.jump_duration = 0.0f;
+	dodge.duration = 0.0f;
 	dodge.delay = 0.80f;
 
 	boost_off = 0.4f;

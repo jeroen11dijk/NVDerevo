@@ -6,7 +6,7 @@ Wavedash::Wavedash(Car & c) : car(c), dodge(c), reorient(c) {
 	finished = false;
 	controls = Input();
 
-	dodge.jump_duration = 0.035f;
+	dodge.duration = 0.035f;
 	dodge.delay = 1.00f;
 
 	timer = 0.0f;

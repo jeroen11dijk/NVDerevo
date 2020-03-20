@@ -1,5 +1,7 @@
 #pragma once
 
+#include "misc/json.h"
+
 #include "simulation/car.h"
 #include "simulation/input.h"
 
@@ -7,17 +9,18 @@
 
 #include "linear_algebra/math.h"
 
+#include <optional>
+
 class Dodge {
 
  public:
   Car & car;
 
-  vec2 direction;
-  float jump_duration;
-  float delay;
-
-  mat3 preorientation;
-  mat3 postorientation;
+  std::optional < vec3 > target;
+  std::optional < vec2 > direction;
+  std::optional < mat3 > preorientation;
+  std::optional < float > duration;
+  std::optional < float > delay;
 
   bool finished;
   Input controls;
@@ -29,6 +32,8 @@ class Dodge {
   void step(float dt);
 
   Car simulate();
+
+  nlohmann::json to_json();
 
   static const float timeout;
   static const float input_threshold;
@@ -43,6 +48,6 @@ class Dodge {
 
  private:
 
-  Reorient reorient;
+  Reorient turn;
 
 };

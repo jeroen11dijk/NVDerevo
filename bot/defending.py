@@ -21,7 +21,7 @@ def defending(agent):
     agent.controls = agent.drive.controls
     t = time.time()
     can_dodge, simulated_duration, simulated_target = agent.simulate()
-    print(time.time() - t)
+    # print(time.time() - t)
     if can_dodge:
         agent.dodge = Dodge(agent.info.my_car)
         agent.turn = AerialTurn(agent.info.my_car)

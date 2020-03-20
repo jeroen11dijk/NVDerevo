@@ -37,7 +37,6 @@ set(rlu_sources
   ${PROJECT_SOURCE_DIR}/src/misc/dll.cc
   ${PROJECT_SOURCE_DIR}/src/misc/graph.cc
   ${PROJECT_SOURCE_DIR}/src/misc/random.cc
-  ${PROJECT_SOURCE_DIR}/src/misc/logging.cc
 
   # experimental
   ${PROJECT_SOURCE_DIR}/src/experimental/navigator.cc

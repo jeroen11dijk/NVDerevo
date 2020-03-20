@@ -16,6 +16,7 @@ def init_kickoff(agent):
         agent.kickoffStart = "Center"
     elif abs(agent.info.my_car.position[0]) < 1000:
         target = vec3(0.0, sign(agent.team) * 2816.0, 70.0) + sign(agent.team) * vec3(0, 300, 0)
+        print(target)
         agent.kickoffStart = "offCenter"
     else:
         target = agent.info.my_car.position + 300 * agent.info.my_car.forward()
@@ -69,6 +70,8 @@ def kick_off(agent):
                 agent.turn.step(agent.info.time_delta)
                 agent.controls = agent.turn.controls
                 if car.on_ground:
+                    agent.time = 0
+                    agent.set_state = True
                     agent.step = Step.Shooting
             else:
                 agent.dodge.step(agent.info.time_delta)
@@ -106,6 +109,8 @@ def kick_off(agent):
             agent.dodge.step(agent.info.time_delta)
             agent.controls = agent.dodge.controls
             if agent.dodge.finished and car.on_ground:
+                agent.time = 0
+                agent.set_state = True
                 agent.step = Step.Shooting
     elif agent.kickoffStart == "offCenter":
         if agent.step is Step.Drive:
@@ -117,6 +122,8 @@ def kick_off(agent):
                 preorientation = dot(
                     axis_to_rotation(vec3(0, 0, math.radians(-sign(agent.info.team) * sign(car.position[0]) * 30))),
                     car.orientation)
+                print("PYTHON: ", agent.info.my_car.position)
+                print("PYTHON: ", math.radians(-sign(agent.info.team) * -sign(car.position[0]) * 100))
                 setup_first_dodge(agent, 0.05, 0.4, target, preorientation)
         elif agent.step is Step.Dodge_1:
             agent.timer += agent.info.time_delta
@@ -144,6 +151,8 @@ def kick_off(agent):
             agent.dodge.step(agent.info.time_delta)
             agent.controls = agent.dodge.controls
             if agent.dodge.finished and car.on_ground:
+                agent.time = 0
+                agent.set_state = True
                 agent.step = Step.Shooting
 
 

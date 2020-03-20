@@ -7,6 +7,8 @@ add_subdirectory(../RLUtilities ${CMAKE_BINARY_DIR}/rlu)
 # let CMake know which files to compile for your bot library
 set(source_files
   ${PROJECT_SOURCE_DIR}/src/agent.cc
+  ${PROJECT_SOURCE_DIR}/src/kickoff.cc
+  ${PROJECT_SOURCE_DIR}/src/utils.cc
 )
 
 # build the library
