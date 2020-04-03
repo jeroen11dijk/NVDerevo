@@ -11,5 +11,3 @@ inline int Cap(int num, int low, int high) {
 }
 
 int sign(int num);
-
-void GetControls(NVDerevo & derevo, Game & game);

@@ -78,7 +78,8 @@ Input NVDerevo::GetOutput(Game game)
         }
         //TODO
         //get_controls()
-        GetControls(*this, game);
+        // Pass this along with *this
+        GetControls(game);
     }
     if (not game.round_active) {
         controls.steer = 0;
@@ -86,7 +87,19 @@ Input NVDerevo::GetOutput(Game game)
     return controls;
 }
 
-bool NVDerevo::ClosestToBall(Game game)
+void NVDerevo::GetControls(Game & game) {
+    if (closest_to_ball) {
+        drive->target = game.ball.position;
+        drive->speed = 1410;
+    } else {
+        drive->target = our_goal;
+        drive->speed = 1410;
+    }
+    drive->step(game.time_delta);
+    controls = drive->controls;
+}
+
+bool NVDerevo::ClosestToBall(Game & game)
 {
     float dist_to_ball = std::numeric_limits<float>::max();
     for (size_t i = 0; i < teammates.size(); i++)
@@ -100,7 +113,7 @@ bool NVDerevo::ClosestToBall(Game game)
     return Distance2D(game.my_car->position, GetIntersect(game, *game.my_car)) < dist_to_ball;
 }
 
-vec3 NVDerevo::GetIntersect(Game game, Car car)
+vec3 NVDerevo::GetIntersect(Game & game, Car car)
 {
     float intercept_time = (norm(game.ball.position - car.position) - 200) / std::max(1.0f, norm(car.velocity));
     int intercept_index = Cap(static_cast<int>(intercept_time * 60), 0, ball_prediction.size());

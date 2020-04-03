@@ -160,8 +160,8 @@ class Hypebot(BaseAgent):
         """Decides what strategy to uses and gives corresponding output"""
         if self.step == Step.Steer or self.step == Step.Dodge_2 or self.step == Step.Dodge_1 or self.step == Step.Drive:
             print("GETCONTROLS")
-            self.time = 0
-            self.set_state = True
+            # self.time = 0
+            # self.set_state = True
             self.step = Step.Shooting
         if self.step == Step.Shooting:
             target = get_intersect(self, self.info.my_car)

@@ -39,6 +39,7 @@ class NVDerevo : public Bot
     void initialize_agent();
 
     Input GetOutput(Game game);
-    bool ClosestToBall(Game game);
-    vec3 GetIntersect(Game game, Car car);
+    bool ClosestToBall(Game & game);
+    vec3 GetIntersect(Game & game, Car car);
+    void GetControls(Game & game);
 };
